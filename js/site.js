@@ -15,6 +15,15 @@
   var conc = document.getElementById('conciergerie');
   var concBtn = document.getElementById('conciergerieToggle');
 
+  /* GA4 helper */
+  function gaEvent(name, params) {
+    if (typeof gtag !== 'function') return;
+    var payload = params && typeof params === 'object' ? params : {};
+    if (!payload.page_path) payload.page_path = window.location.pathname;
+    if (window.__GA_DEBUG__ === true) payload.debug_mode = true;
+    gtag('event', name, payload);
+  }
+
   /* ── Preloader ── */
   if (pre && nav) {
     if (sessionStorage.getItem('evochia-visited')) {
@@ -217,10 +226,75 @@
   });
 
   /* ── Contact form submit ── */
+  /* GA4 click tracking: contact actions and CTA clicks */
+  document.addEventListener('click', function (e) {
+    var el = e.target && e.target.closest ? e.target.closest('a, button') : null;
+    if (!el) return;
+
+    var href = '';
+    if (el.tagName === 'A') href = el.getAttribute('href') || '';
+    if (href.indexOf('#') === 0) return;
+
+    var linkText = (el.textContent || '').trim().replace(/\s+/g, ' ');
+    var normalizedHref = href.toLowerCase();
+
+    if (normalizedHref.indexOf('tel:') === 0) {
+      gaEvent('contact_click', {
+        method: 'phone',
+        link_url: href,
+        link_text: linkText,
+        lead_source: 'site'
+      });
+      return;
+    }
+
+    if (normalizedHref.indexOf('mailto:') === 0) {
+      gaEvent('contact_click', {
+        method: 'email',
+        link_url: href,
+        link_text: linkText,
+        lead_source: 'site'
+      });
+      return;
+    }
+
+    if (normalizedHref.indexOf('wa.me/') !== -1) {
+      gaEvent('contact_click', {
+        method: 'whatsapp',
+        link_url: href,
+        link_text: linkText,
+        lead_source: 'site'
+      });
+      return;
+    }
+
+    var ctaVariant = '';
+    if (el.classList.contains('btn-primary')) {
+      ctaVariant = 'primary';
+    } else if (el.classList.contains('btn-secondary')) {
+      ctaVariant = 'secondary';
+    } else if (el.classList.contains('text-link')) {
+      ctaVariant = 'text';
+    }
+
+    if (ctaVariant) {
+      gaEvent('cta_click', {
+        cta_variant: ctaVariant,
+        link_url: href,
+        link_text: linkText,
+        lead_source: 'site'
+      });
+    }
+  });
+
   var quoteForm = document.getElementById('quoteForm');
   if (quoteForm) {
     quoteForm.addEventListener('submit', function (e) {
       e.preventDefault();
+      gaEvent('form_submit_attempt', {
+        form_id: 'quoteForm',
+        lead_source: 'quote_form'
+      });
       var btn = quoteForm.querySelector('button[type="submit"]');
       var status = document.getElementById('form-status');
       var origText = btn.textContent;
@@ -234,6 +308,8 @@
         headers: { 'Accept': 'application/json' }
       }).then(function (res) {
         if (res.ok) {
+          var eventTypeEl = document.getElementById('qf-event');
+          var eventType = eventTypeEl ? eventTypeEl.value : '';
           var isEl = document.documentElement.lang === 'el';
           if (status) {
             status.textContent = isEl
@@ -242,6 +318,11 @@
             status.className = 'form-status success';
             status.hidden = false;
           }
+          gaEvent('generate_lead', {
+            lead_source: 'quote_form',
+            event_type: eventType || '',
+            form_id: 'quoteForm'
+          });
           quoteForm.reset();
         } else {
           throw new Error('Server error');
