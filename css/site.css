@@ -135,6 +135,11 @@ body {
 .hamburger[aria-expanded="true"] span:nth-child(1) { transform: rotate(45deg) translate(4px, 5px); }
 .hamburger[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
 .hamburger[aria-expanded="true"] span:nth-child(3) { transform: rotate(-45deg) translate(4px, -5px); }
+.hamburger:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
 
 /* ── Hero ── */
 .hero {
