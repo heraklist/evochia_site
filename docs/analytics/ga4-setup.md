@@ -64,14 +64,18 @@
 - Required `Content-Security-Policy` sources:
   - `script-src`:
     - `'self'`
-    - `https://www.googletagmanager.com`
+    - `https://*.googletagmanager.com`
     - `'sha256-2WIuDihWi48Fg5pkalmwn/qtUUnLW3XxjuNkZRe7RNo='` (inline GA config block hash)
   - `connect-src`:
     - `'self'`
     - `https://formspree.io` (existing)
     - `https://*.google-analytics.com`
+    - `https://*.analytics.google.com`
+    - `https://*.googletagmanager.com`
   - `img-src`:
     - `'self'`
     - `data:`
     - `https://*.google-analytics.com`
+    - `https://*.googletagmanager.com`
 - Canonical production domain remains `www.evochia.gr`; CSP allowances above are domain-agnostic for GA endpoints.
+- If CSP changes in the future, keep this inline script hash unchanged unless the inline GA block content is edited; any content change requires a new hash.

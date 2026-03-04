@@ -1,5 +1,10 @@
-﻿# GA4 Changelog
+# GA4 Changelog
 
+- PASS 2.1 (CSP compatibility):
+  - Updated `vercel.json` CSP for `/(.*)` to allow GA4 under strict policy:
+    - `script-src`: `https://*.googletagmanager.com` + inline hash `sha256-2WIuDihWi48Fg5pkalmwn/qtUUnLW3XxjuNkZRe7RNo=`
+    - `img-src`: added `https://*.google-analytics.com` and `https://*.googletagmanager.com`
+    - `connect-src`: added `https://*.google-analytics.com`, `https://*.analytics.google.com`, `https://*.googletagmanager.com`
 - Added Google tag (`gtag.js`) with measurement ID `G-******HHF1` to public entry pages:
   - `index.html`, `about.html`, `catering.html`, `private-chef.html`, `menus.html`, `contact.html`
 - Implemented debug gate via URL query `?ga_debug=1`:

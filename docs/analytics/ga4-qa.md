@@ -5,6 +5,15 @@
 - Ensure network is not blocking `www.googletagmanager.com`.
 - In GA4, keep Realtime and DebugView open.
 
+## CSP and network QA gates
+- Open DevTools Console and verify there are no CSP violations for:
+  - `https://www.googletagmanager.com/gtag/js`
+  - inline GA config script hash (`sha256-2WIuDihWi48Fg5pkalmwn/qtUUnLW3XxjuNkZRe7RNo=`)
+- In DevTools Network, confirm successful requests to:
+  - `www.googletagmanager.com`
+  - `*.google-analytics.com`
+  - `*.analytics.google.com` (if emitted by GA runtime)
+
 ## Steps
 1. Open `/contact?ga_debug=1`.
 2. Confirm Google tag is loaded in page source and no duplicate GA snippets exist.
