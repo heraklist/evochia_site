@@ -7,16 +7,7 @@
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-
-      var __gaDebug = new URLSearchParams(window.location.search).get('ga_debug') === '1';
-      if (__gaDebug) {
-        gtag('config', 'G-DERZSDHHF1', { debug_mode: true });
-      } else {
-        gtag('config', 'G-DERZSDHHF1');
-      }
-
-      window.__GA_DEBUG__ = __gaDebug;
-      window.__GA_ID__ = 'G-DERZSDHHF1';
+      gtag('config', 'G-DERZSDHHF1');
     </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -24,7 +15,7 @@
     <link rel="icon" href="assets/favicon.png" type="image/png">
     <meta name="description" content="Contact Evochia — request a quote for your premium catering or private chef event. We reply within 24 hours.">
     <meta name="robots" content="index, follow">
-    <link rel="canonical" href="https://evochia.gr/contact">
+    <link rel="canonical" href="https://www.evochia.gr/contact/">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta property="og:title" content="Evochia — Get a Quote | Premium Catering in Greece">
     <meta property="og:type" content="website">
@@ -39,6 +30,14 @@
     <meta name="twitter:title" content="Evochia — Get a Quote | Premium Catering in Greece">
     <meta name="twitter:description" content="Contact Evochia — request a quote for your premium catering or private chef event. We reply within 24 hours.">
     <meta name="twitter:image" content="https://evochia.gr/photos/chef-plating.webp">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "ContactPage",
+      "name": "Evochia Contact",
+      "url": "https://www.evochia.gr/contact/"
+    }
+    </script>
     <link rel="preload" href="assets/logo.png" as="image">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -77,7 +76,6 @@
             <h1 class="hero-title" data-en="Let's Talk Details" data-el="Ας Μιλήσουμε για Λεπτομέρειες">Let&#8217;s Talk Details</h1>
             <p class="hero-description" data-en="Share your event details — we'll respond with a structured offer." data-el="Μοιραστείτε τις λεπτομέρειες — θα απαντήσουμε με δομημένη προσφορά.">Share your event details — we'll respond with a structured offer.</p>
         </div>
-        <div class="hero-scroll"><span class="scroll-line"></span><span class="scroll-text" data-en="Scroll" data-el="Κύλιση">Scroll</span></div>
     </section>
 
     <section class="section reveal">
@@ -94,7 +92,7 @@
         </div>
         <div style="border:1px solid rgba(196,162,101,.15);background:rgba(20,58,40,.25);padding:2rem;border-radius:18px">
           <h3 style="font-family:var(--font-heading);color:var(--white);font-weight:300;font-size:1.4rem;margin-bottom:1.5rem" data-en="Request a Quote" data-el="Ζήτηση Προσφοράς">Request a Quote</h3>
-          <form id="quoteForm" action="https://formspree.io/f/xwpkpzkd" method="POST" novalidate>
+          <form id="quoteForm" action="https://formspree.io/f/xwvngybk" method="POST" novalidate>
             <div class="form-row">
               <div class="form-group">
                 <label for="qf-name" data-en="Full Name" data-el="Ονοματεπώνυμο">Full Name</label>

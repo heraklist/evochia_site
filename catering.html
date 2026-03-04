@@ -7,16 +7,7 @@
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-
-      var __gaDebug = new URLSearchParams(window.location.search).get('ga_debug') === '1';
-      if (__gaDebug) {
-        gtag('config', 'G-DERZSDHHF1', { debug_mode: true });
-      } else {
-        gtag('config', 'G-DERZSDHHF1');
-      }
-
-      window.__GA_DEBUG__ = __gaDebug;
-      window.__GA_ID__ = 'G-DERZSDHHF1';
+      gtag('config', 'G-DERZSDHHF1');
     </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -24,7 +15,7 @@
     <link rel="icon" href="assets/favicon.png" type="image/png">
     <meta name="description" content="Premium event catering for weddings, baptisms, corporate events, and themed nights across Greece. Buffet, plated service, or finger food.">
     <meta name="robots" content="index, follow">
-    <link rel="canonical" href="https://evochia.gr/catering">
+    <link rel="canonical" href="https://www.evochia.gr/catering/">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta property="og:title" content="Evochia — Luxury Wedding & Event Catering in Greece">
     <meta property="og:type" content="website">
@@ -39,6 +30,14 @@
     <meta name="twitter:title" content="Evochia — Luxury Wedding & Event Catering in Greece">
     <meta name="twitter:description" content="Premium event catering for weddings, baptisms, corporate events, and themed nights across Greece. Buffet, plated service, or finger food.">
     <meta name="twitter:image" content="https://evochia.gr/photos/wedding-catering.webp">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "CateringBusiness",
+      "name": "Evochia – Premium Event Catering & Private Chef Services",
+      "url": "https://www.evochia.gr/catering/"
+    }
+    </script>
     <link rel="preload" href="assets/logo.png" as="image">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -81,7 +80,6 @@
                 <a class="btn btn-secondary" href="/menus" data-en="View Menus" data-el="Δες Μενού">View Menus</a>
             </div>
         </div>
-        <div class="hero-scroll"><span class="scroll-line"></span><span class="scroll-text" data-en="Scroll" data-el="Κύλιση">Scroll</span></div>
     </section>
 
     <section class="section reveal">
