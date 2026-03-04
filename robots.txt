@@ -1,4 +1,3 @@
 User-agent: *
 Allow: /
-
-Sitemap: https://evochia.gr/sitemap.xml
+Sitemap: https://www.evochia.gr/sitemap.xml
