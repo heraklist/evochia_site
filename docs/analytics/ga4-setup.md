@@ -58,3 +58,20 @@
 - Enable debug by appending `?ga_debug=1` to any page URL.
 - When debug is enabled, events include `debug_mode: true`.
 - When debug is not enabled, `debug_mode` is omitted entirely.
+
+## CSP requirements for GA4 on Vercel
+- Keep the GA4 snippet in `<head>` as already implemented (no GTM migration required).
+- Required `Content-Security-Policy` sources:
+  - `script-src`:
+    - `'self'`
+    - `https://www.googletagmanager.com`
+    - `'sha256-2WIuDihWi48Fg5pkalmwn/qtUUnLW3XxjuNkZRe7RNo='` (inline GA config block hash)
+  - `connect-src`:
+    - `'self'`
+    - `https://formspree.io` (existing)
+    - `https://*.google-analytics.com`
+  - `img-src`:
+    - `'self'`
+    - `data:`
+    - `https://*.google-analytics.com`
+- Canonical production domain remains `www.evochia.gr`; CSP allowances above are domain-agnostic for GA endpoints.
