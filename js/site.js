@@ -126,7 +126,10 @@
     });
     document.querySelectorAll('[data-' + lang + '-html]').forEach(function (el) {
       var t = el.getAttribute('data-' + lang + '-html');
-      if (t) el.innerHTML = t;
+      if (!t) return;
+      // Allow only the small inline tags used in localized headings.
+      var allowed = t.replace(/<(?!\/?(?:em|span)(?:\s[^>]*)?>)[^>]+>/gi, '');
+      el.innerHTML = allowed;
     });
   }
 
