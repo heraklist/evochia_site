@@ -22,7 +22,7 @@
     <meta property="og:title" content="Evochia — Premium Event Catering & Private Chef Services">
     <meta property="og:description" content="Bespoke dining experiences for private villas, yachts, and exclusive venues across Greece.">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://evochia.gr/">
+    <meta property="og:url" content="https://www.evochia.gr/">
     <meta property="og:image" content="https://evochia.gr/photos/chef-plating.webp">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
@@ -35,12 +35,15 @@
     <meta name="twitter:title" content="Evochia — Premium Event Catering & Private Chef Services">
     <meta name="twitter:description" content="Bespoke dining experiences for private villas, yachts, and exclusive venues across Greece.">
     <meta name="twitter:image" content="https://evochia.gr/photos/chef-plating.webp">
+    <meta property="og:image:alt" content="Chef carefully plating a dish at an Evochia private event in Greece">
 
     <!-- Security: CSP fallback (Vercel headers take priority) -->
     <meta name="referrer" content="strict-origin-when-cross-origin">
 
     <!-- Favicon -->
     <link rel="icon" href="assets/favicon.png" type="image/png">
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+    <meta name="theme-color" content="#0a1f15">
 
     <!-- Performance: Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -50,6 +53,7 @@
 
     <!-- Performance: Preload critical assets -->
     <link rel="preload" href="assets/logo.png" as="image">
+    <link rel="preload" as="image" href="photos/chef-plating.webp" fetchpriority="high">
 
     <!-- Structured Data -->
     <script type="application/ld+json">
@@ -61,17 +65,27 @@
       "address": {
         "addressCountry": "GR"
       },
+      "telephone": "+306931170245",
+      "email": "info@evochia.gr",
+      "founder": {
+        "@type": "Person",
+        "name": "Heraklis",
+        "jobTitle": "Executive Chef & Founder"
+      },
       "priceRange": "€€€",
       "servesCuisine": ["Mediterranean", "Asian Fusion", "Nikkei"],
-      "sameAs": []
+      "sameAs": [
+        "https://www.instagram.com/evochia",
+        "https://www.facebook.com/evochia"
+      ]
     }
     </script>
 
     <!-- Styles -->
-    <link rel="stylesheet" href="css/site.css?v=1.0">
+    <link rel="stylesheet" href="css/site.css?v=2.0">
 
     <!-- JS: defer for parallel download, no render blocking -->
-    <script src="js/site.js?v=1.0" defer></script>
+    <script src="js/site.js?v=2.0" defer></script>
 </head>
 <body>
     <a href="#main" class="skip-link">Skip to content</a>
@@ -313,4 +327,5 @@
 
 </body>
 </html>
+
 
