@@ -204,6 +204,7 @@ body {
 }
 
 /* ── Buttons ── */
+.btn { display: inline-block; text-decoration: none; cursor: pointer; }
 .btn-primary {
   display: inline-block; padding: 1rem 3rem;
   background: var(--gold); color: var(--green-deepest);
@@ -692,10 +693,10 @@ body {
 
 /* ── About grid reverse (text left, image right) ── */
 .about-grid-reverse {
-  direction: rtl;
-}
-.about-grid-reverse > * {
   direction: ltr;
+}
+.about-grid-reverse > *:first-child {
+  order: 2;
 }
 
 /* ── Responsive ── */
