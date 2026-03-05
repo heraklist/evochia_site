@@ -119,11 +119,11 @@ All six sitemap entries had `<lastmod>2026-03-01</lastmod>`, a date in the futur
 
 ---
 
-### M-3 · `hreflang` link elements added for bilingual support — All pages ✅ Fixed
+### M-3 · `hreflang` link elements not applicable — same-URL bilingual site ℹ️ No action
 
-The site serves both English and Greek content within the **same URL** via a JavaScript language switcher. Self-referencing `hreflang` annotations were added for `en`, `el`, and `x-default` on all 6 indexable pages to signal to search engines that both language variants are available.
+The site serves both English and Greek content within the **same URL** via a JavaScript language switcher (`js/site.js`). Since there are no separate `/el/` routes, `hreflang` annotations pointing both `en` and `el` to the same URL send conflicting language signals to search engines. The `hreflang` tags were correctly removed in PR #3 and should not be re-added until localized routes exist.
 
-**Fix applied:** Added `<link rel="alternate" hreflang="en">`, `<link rel="alternate" hreflang="el">`, and `<link rel="alternate" hreflang="x-default">` to all indexable page `<head>` sections.
+**Status:** No `hreflang` tags present. Canonical tags are retained.
 
 ---
 
@@ -348,11 +348,11 @@ All secondary pages (about, catering, private-chef, menus, contact) had minimal 
 
 ---
 
-### S-2 · Missing `hreflang` tags for bilingual site ✅ Fixed
+### S-2 · `hreflang` tags not applicable for same-URL bilingual site ℹ️ No action
 
-The site serves both English and Greek content via a JavaScript language switcher. No `hreflang` annotations were present, which could cause Google to not associate the correct language variant with the page.
+The site serves both English and Greek content via a JavaScript language switcher on the **same URL**. Without separate localized routes (e.g., `/el/about/`), `hreflang` annotations are incorrect — they signal to search engines that the same URL serves different languages, creating conflicting language signals. The `hreflang` tags were removed in PR #3 and remain removed.
 
-**Fix applied:** Added `<link rel="alternate" hreflang="en">`, `hreflang="el"`, and `hreflang="x-default"` to all 6 indexable pages (index, about, catering, private-chef, menus, contact).
+**Status:** No action needed until localized routes are implemented.
 
 ---
 
@@ -372,11 +372,9 @@ The homepage had no `WebSite` schema, which is used by Google for sitelinks and 
 
 ---
 
-### S-5 · `sitemap.xml` includes `noindex` privacy page ✅ Fixed
+### S-5 · `sitemap.xml` `/privacy/` entry retained ℹ️ No change needed
 
-`privacy.html` has `<meta name="robots" content="noindex">` but was listed in `sitemap.xml`. This sends conflicting signals to search engines and can cause "Indexed, though blocked by robots" warnings in Google Search Console.
-
-**Fix applied:** Removed `/privacy/` from `sitemap.xml`.
+`privacy.html` has `<meta name="robots" content="noindex">` and is listed in `sitemap.xml` with low priority (0.3) and yearly changefreq. While the `noindex` directive prevents indexing, keeping the URL in the sitemap aids discovery and is the established convention for this repo. The 7-URL sitemap is maintained as-is.
 
 ---
 
@@ -406,7 +404,7 @@ All 8 HTML pages had `<span id="copyright-year">2025</span>` in the footer.
 | `hero-actions` missing CSS | `catering.html`, `private-chef.html`, `menus.html` | ✅ Fixed |
 | `innerHTML` sanitizer weakness | `js/site.js` | ✅ Fixed |
 | No GDPR consent mechanism | All pages | ⚠️ Needs work |
-| `hreflang` added for bilingual support | All indexable pages | ✅ Fixed |
+| `hreflang` not applicable (same-URL bilingual) | All pages | ℹ️ No action |
 | Missing `og:locale:alternate` | All inner pages | ✅ Fixed |
 | Missing `aria-label` on footer social links | All inner pages + 404 | ✅ Fixed |
 | 3 items in 4-column stats grid | `about.html` | ✅ Fixed |
@@ -421,10 +419,10 @@ All 8 HTML pages had `<span id="copyright-year">2025</span>` in the footer.
 | Sitemap future `lastmod` dates | `sitemap.xml` | ✅ Fixed |
 | `about.html` stats missing `aria-label` | `about.html` | ✅ Fixed |
 | Structured data thin on secondary pages | All secondary pages | ✅ Fixed |
-| Missing `hreflang` tags | All indexable pages | ✅ Fixed |
+| `hreflang` not applicable (same-URL bilingual) | All pages | ℹ️ No action |
 | Missing `BreadcrumbList` schema | All secondary pages | ✅ Fixed |
 | Missing `WebSite` schema on homepage | `index.html` | ✅ Fixed |
-| `noindex` page in `sitemap.xml` | `sitemap.xml` | ✅ Fixed |
+| `/privacy/` retained in `sitemap.xml` | `sitemap.xml` | ℹ️ No change |
 | `robots.txt` missing `/_publish_repo/` | `robots.txt` | ✅ Fixed |
 | Copyright year 2025 → 2026 | All pages | ✅ Fixed |
 
