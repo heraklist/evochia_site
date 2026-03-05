@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Evochia — Luxury Wedding & Event Catering in Greece</title>
-    <link rel="icon" href="assets/favicon.ico" sizes="any">
-    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+    <link rel="icon" href="/assets/favicon.ico" sizes="any">
+    <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
     <meta name="theme-color" content="#0a1f15">
     <meta name="description" content="Premium event catering for weddings, baptisms, corporate events, and themed nights across Greece. Buffet, plated service, or finger food.">
     <meta name="robots" content="index, follow">
@@ -38,29 +38,39 @@
       "url": "https://www.evochia.gr/catering/"
     }
     </script>
-    <link rel="preload" href="assets/logo.webp" as="image" type="image/webp">
+    <link rel="preload" href="/assets/logo.webp" as="image" type="image/webp">
     <link rel="preconnect" href="https://www.googletagmanager.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Raleway:wght@300;400;500;600&display=swap" as="style">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Raleway:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/site.css?v=2.0">
-    <script src="js/site.js?v=2.0" defer></script>
+    <link rel="stylesheet" href="/css/site.css?v=2.0">
+    <!-- CookieConsent v3 -->
+    <link rel="stylesheet" href="/css/cookieconsent.css">
+    <link rel="stylesheet" href="/css/cookieconsent-evochia.css">
+    <script src="/js/site.js?v=2.0" defer></script>
 
-    <!-- Google tag (gtag.js) -->
+    <!-- Google tag (gtag.js) — Consent Mode v2 default DENIED -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-DERZSDHHF1"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
+      gtag('consent', 'default', {
+        'analytics_storage': 'denied',
+        'ad_storage': 'denied',
+        'ad_user_data': 'denied',
+        'ad_personalization': 'denied',
+        'wait_for_update': 500
+      });
       gtag('js', new Date());
       gtag('config', 'G-DERZSDHHF1');
     </script>
 </head>
-<body>
+<body id="top">
     <a href="#main" class="skip-link">Skip to content</a>
-    <div class="preloader" id="preloader" role="status" aria-label="Loading"><picture><source srcset="assets/logo.webp" type="image/webp"><img src="assets/logo.png" alt="" class="preloader-logo-img" id="preloaderLogo" width="110" height="110"></picture><div class="preloader-tagline" aria-hidden="true">Sophisticated taste & tailored events</div></div>
+    <div class="preloader" id="preloader" role="status" aria-label="Loading"><picture><source srcset="/assets/logo.webp" type="image/webp"><img src="/assets/logo.png" alt="" class="preloader-logo-img" id="preloaderLogo" width="110" height="110"></picture><div class="preloader-tagline" aria-hidden="true">Sophisticated taste & tailored events</div></div>
     <nav class="nav" id="nav" aria-label="Main navigation">
-        <a href="/" class="nav-logo" aria-label="Evochia - Home"><picture><source srcset="assets/logo.webp" type="image/webp"><img src="assets/logo.png" alt="Evochia logo" class="nav-logo-img" id="navLogo" width="42" height="42"></picture><span class="nav-logo-text">Evochia</span></a>
+        <a href="/" class="nav-logo" aria-label="Evochia - Home"><picture><source srcset="/assets/logo.webp" type="image/webp"><img src="/assets/logo.png" alt="Evochia logo" class="nav-logo-img" id="navLogo" width="42" height="42"></picture><span class="nav-logo-text">Evochia</span></a>
         <ul class="nav-links" id="navLinks">
             <li><a href="/about" data-en="About" data-el="Σχετικά">About</a></li>
             <li><a href="/catering" aria-current="page" data-en="Catering" data-el="Catering">Catering</a></li>
@@ -99,28 +109,28 @@
         <div class="gold-line"></div>
                 <div class="event-type-grid">
           <article class="event-type-card reveal">
-            <div class="event-type-img has-photo" style="--bg:url('photos/wedding-catering.webp')" role="img" aria-label="Elegant outdoor wedding dinner setup"></div>
+            <div class="event-type-img has-photo" style="--bg:url('/photos/wedding-catering.webp')" role="img" aria-label="Elegant outdoor wedding dinner setup"></div>
             <div class="event-type-info">
               <h3 data-en="Weddings & Celebrations" data-el="Γάμοι & Εορτασμοί">Weddings & Celebrations</h3>
               <p data-en="Courtyard weddings, intimate receptions — buffet, finger food, or plated service." data-el="Γάμοι σε αυλές, intimate receptions - buffet, finger food ή σερβιρισμένο.">Courtyard weddings, intimate receptions — buffet, finger food, or plated service.</p>
             </div>
           </article>
           <article class="event-type-card reveal">
-            <div class="event-type-img has-photo" style="--bg:url('photos/family-celebration.webp')" role="img" aria-label="Elegant celebration buffet spread"></div>
+            <div class="event-type-img has-photo" style="--bg:url('/photos/family-celebration.webp')" role="img" aria-label="Elegant celebration buffet spread"></div>
             <div class="event-type-info">
               <h3 data-en="Baptisms & Family Events" data-el="Βαπτίσεις & Οικογενειακές Εκδηλώσεις">Baptisms & Family Events</h3>
               <p data-en="Family-friendly menus, coffee breaks, and thoughtful portions for every age." data-el="Μενού φιλικά για οικογένειες, coffee breaks και μερίδες για κάθε ηλικία.">Family-friendly menus, coffee breaks, and thoughtful portions for every age.</p>
             </div>
           </article>
           <article class="event-type-card reveal">
-            <div class="event-type-img has-photo" style="--bg:url('photos/corporate-event.webp')" role="img" aria-label="Professional corporate event setup"></div>
+            <div class="event-type-img has-photo" style="--bg:url('/photos/corporate-event.webp')" role="img" aria-label="Professional corporate event setup"></div>
             <div class="event-type-info">
               <h3 data-en="Corporate Events" data-el="Εταιρικές Εκδηλώσεις">Corporate Events</h3>
               <p data-en="Coffee breaks, working lunches, conferences — on time, presented professionally." data-el="Coffee breaks, working lunches, συνέδρια - στην ώρα τους, επαγγελματικά.">Coffee breaks, working lunches, conferences — on time, presented professionally.</p>
             </div>
           </article>
           <article class="event-type-card reveal">
-            <div class="event-type-img has-photo" style="--bg:url('photos/themed-night.webp')" role="img" aria-label="Themed dining experience setup"></div>
+            <div class="event-type-img has-photo" style="--bg:url('/photos/themed-night.webp')" role="img" aria-label="Themed dining experience setup"></div>
             <div class="event-type-info">
               <h3 data-en="Themed Experiences" data-el="Θεματικές Εμπειρίες">Themed Experiences</h3>
               <p data-en="Pizza · BBQ · Sushi · Greek Meze · Street Food — curated like a real event." data-el="Pizza · BBQ · Sushi · Ελληνικός Μεζές · Street Food - σαν αληθινή εκδήλωση.">Pizza · BBQ · Sushi · Greek Meze · Street Food — curated like a real event.</p>
@@ -161,14 +171,51 @@
 
     <footer class="footer">
         <div class="footer-grid">
-            <div><div class="footer-brand">Evochia</div><div class="footer-tagline">Sophisticated taste & tailored events</div><p class="footer-desc" data-en="Premium event catering and private chef services across Greece." data-el="Premium catering εκδηλώσεων και υπηρεσίες private chef σε όλη την Ελλάδα.">Premium event catering and private chef services across Greece.</p></div>
-            <div><h4 data-en="Services" data-el="Υπηρεσίες">Services</h4><ul><li><a href="/catering" data-en="Event Catering" data-el="Catering Εκδηλώσεων">Event Catering</a></li><li><a href="/private-chef" data-en="Private Chef" data-el="Private Chef">Private Chef</a></li><li><a href="/menus" data-en="Menus" data-el="Μενού">Menus</a></li></ul></div>
-            <div><h4 data-en="Company" data-el="Εταιρεία">Company</h4><ul><li><a href="/about" data-en="About Us" data-el="Σχετικά">About Us</a></li><li><a href="/contact" data-en="Contact" data-el="Επικοινωνία">Contact</a></li></ul></div>
-            <div><h4 data-en="Connect" data-el="Σύνδεση">Connect</h4><ul><li><a href="mailto:info@evochia.gr" data-en="info@evochia.gr" data-el="info@evochia.gr">info@evochia.gr</a></li><li><a href="https://www.instagram.com/evochia" target="_blank" rel="noopener noreferrer" data-en="Instagram" data-el="Instagram" aria-label="Evochia on Instagram">Instagram</a></li><li><a href="https://www.facebook.com/evochia" target="_blank" rel="noopener noreferrer" data-en="Facebook" data-el="Facebook" aria-label="Evochia on Facebook">Facebook</a></li></ul></div>
+            <div>
+                <div class="footer-brand">Evochia</div>
+                <div class="footer-tagline" data-en="Sophisticated taste & tailored events" data-el="Εκλεπτυσμένη γεύση & εξατομικευμένες εκδηλώσεις">Sophisticated taste & tailored events</div>
+                <p class="footer-desc" data-en="Premium event catering and private chef services across Greece." data-el="Premium catering εκδηλώσεων και υπηρεσίες private chef σε όλη την Ελλάδα.">Premium event catering and private chef services across Greece.</p>
+                <div class="footer-social-icons">
+                    <a href="https://www.instagram.com/evochia" target="_blank" rel="noopener noreferrer" aria-label="Evochia on Instagram"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg></a>
+                    <a href="https://www.facebook.com/evochia" target="_blank" rel="noopener noreferrer" aria-label="Evochia on Facebook"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg></a>
+                </div>
+            </div>
+            <div>
+                <h4 data-en="Services" data-el="Υπηρεσίες">Services</h4>
+                <ul>
+                    <li><a href="/catering" data-en="Event Catering" data-el="Catering Εκδηλώσεων">Event Catering</a></li>
+                    <li><a href="/private-chef" data-en="Private Chef" data-el="Private Chef">Private Chef</a></li>
+                    <li><a href="/menus" data-en="Menus" data-el="Μενού">Menus</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 data-en="Company" data-el="Εταιρεία">Company</h4>
+                <ul>
+                    <li><a href="/about" data-en="About Us" data-el="Σχετικά">About Us</a></li>
+                    <li><a href="/contact" data-en="Contact" data-el="Επικοινωνία">Contact</a></li>
+                    <li><a href="/privacy" data-en="Privacy Policy" data-el="Πολιτική Απορρήτου">Privacy Policy</a></li>
+                    <li>
+                        <button type="button" onclick="CookieConsent.showPreferences()" style="background:none;border:none;color:inherit;cursor:pointer;padding:0;font:inherit" data-en="Cookie Preferences" data-el="Προτιμήσεις Cookies">Cookie Preferences</button>
+                    </li>
+                </ul>
+            </div>
+            <div>
+                <h4 data-en="Connect" data-el="Σύνδεση">Connect</h4>
+                <ul>
+                    <li><a href="mailto:info@evochia.gr">info@evochia.gr</a></li>
+                    <li><a href="tel:+306931170245" data-en="+30 693 117 0245" data-el="+30 693 117 0245">+30 693 117 0245</a></li>
+                    <li><a href="https://wa.me/306931170245" target="_blank" rel="noopener noreferrer" data-en="WhatsApp" data-el="WhatsApp">WhatsApp</a></li>
+                </ul>
+            </div>
         </div>
-        <div class="footer-bottom"><span>&copy; <span id="copyright-year">2025</span> Evochia. <span data-en="All rights reserved." data-el="Με επιφύλαξη παντός δικαιώματος.">All rights reserved.</span></span><div class="social-links"><a href="https://www.instagram.com/evochia" target="_blank" rel="noopener noreferrer" data-en="Instagram" data-el="Instagram" aria-label="Evochia on Instagram">Instagram</a><a href="https://www.facebook.com/evochia" target="_blank" rel="noopener noreferrer" data-en="Facebook" data-el="Facebook" aria-label="Evochia on Facebook">Facebook</a></div></div>
+        <div class="footer-divider"></div>
+        <div class="footer-bottom">
+            <span>&copy; <span id="copyright-year">2025</span> Evochia. <span data-en="All rights reserved." data-el="Με επιφύλαξη παντός δικαιώματος.">All rights reserved.</span></span>
+            <a href="#top" class="back-to-top" aria-label="Back to top"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="18 15 12 9 6 15"/></svg><span data-en="Top" data-el="Κορυφή">Top</span></a>
+        </div>
     </footer>
 
+    <script type="module" src="/js/cookieconsent-config.js"></script>
 </body>
 </html>
 
