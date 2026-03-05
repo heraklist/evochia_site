@@ -15,6 +15,7 @@
 | 🟡 Medium | 10 | Fixed |
 | 🔵 Low | 10 | Fixed |
 | ℹ️ Info | 7 | Noted |
+| 🟢 SEO Audit | 6 | Fixed |
 
 ---
 
@@ -118,11 +119,11 @@ All six sitemap entries had `<lastmod>2026-03-01</lastmod>`, a date in the futur
 
 ---
 
-### M-3 · `hreflang` link elements removed — All pages ✅ Updated
+### M-3 · `hreflang` link elements not applicable — same-URL bilingual site ℹ️ No action
 
-The site serves both English and Greek content within the **same URL** via a JavaScript language switcher. Using `hreflang` with identical `href` values for both languages signals conflicting information to search engines and is incorrect when both language variants share a single URL. The canonical tag is retained; no `hreflang` annotations are used.
+The site serves both English and Greek content within the **same URL** via a JavaScript language switcher (`js/site.js`). Since there are no separate `/el/` routes, `hreflang` annotations pointing both `en` and `el` to the same URL send conflicting language signals to search engines. The `hreflang` tags were correctly removed in PR #3 and should not be re-added until localized routes exist.
 
-**Fix applied:** Removed all `<link rel="alternate" hreflang="...">` elements (`en`, `el`, `x-default`) from all six page `<head>` sections.
+**Status:** No `hreflang` tags present. Canonical tags are retained.
 
 ---
 
@@ -286,9 +287,18 @@ These could reduce credibility for users browsing the Private Chef cuisine selec
 
 ## ℹ️ INFO
 
-### I-1 · Structured data on inner pages is minimal
+### I-1 · Structured data on inner pages is minimal ✅ Fixed
 
-`index.html` has comprehensive `FoodEstablishment`/`CateringBusiness` JSON-LD including `address`, `telephone`, `email`, `founder`, `priceRange`, `servesCuisine`, and `sameAs`. Inner pages have minimal JSON-LD (e.g., `catering.html` only has `@type`, `name`, and `url`). Enriching these would improve rich result eligibility.
+`index.html` has comprehensive `FoodEstablishment`/`CateringBusiness` JSON-LD including `address`, `telephone`, `email`, `founder`, `priceRange`, `servesCuisine`, and `sameAs`. Inner pages previously had minimal JSON-LD (e.g., `catering.html` only had `@type`, `name`, and `url`).
+
+**Fix applied (SEO Audit):**
+- **Homepage** — Added `image`, `logo`, `description`, `geo` (GeoCoordinates), `areaServed`, `availableLanguage`, and a separate `WebSite` schema with `@id` references.
+- **Catering** — Replaced thin `CateringBusiness` with full `Service` schema including `description`, `image`, `provider`, `areaServed`, `serviceType`, and `hasOfferCatalog` with 4 service types.
+- **Private Chef** — Replaced thin `ProfessionalService` with full `Service` schema including `description`, `image`, `provider`, `areaServed`, `serviceType`, and `hasOfferCatalog` with 8 cuisine styles.
+- **Menus** — Upgraded `WebPage` to `CollectionPage` with `description`, `about`, and `mainEntity` (`ItemList` with 3 menu collections).
+- **Contact** — Enriched `ContactPage` with `description` and `mainEntity` (`Organization` with `contactPoint` including telephone, email, and available languages).
+- **About** — Added `description` and `about` reference to organization.
+- **All secondary pages** — Added `BreadcrumbList` schema (Home → Page).
 
 ---
 
@@ -328,6 +338,62 @@ For identity verification (used by Mastodon, IndieWeb, and increasingly Google),
 
 ---
 
+## 🟢 SEO AUDIT — Additional Fixes
+
+### S-1 · Structured data severely thin on all secondary pages ✅ Fixed
+
+All secondary pages (about, catering, private-chef, menus, contact) had minimal JSON-LD with only 2–3 properties. This severely limited rich result eligibility.
+
+**Fix applied:** Enriched all pages with complete schemas — see I-1 above for details.
+
+---
+
+### S-2 · `hreflang` tags not applicable for same-URL bilingual site ℹ️ No action
+
+The site serves both English and Greek content via a JavaScript language switcher on the **same URL**. Without separate localized routes (e.g., `/el/about/`), `hreflang` annotations are incorrect — they signal to search engines that the same URL serves different languages, creating conflicting language signals. The `hreflang` tags were removed in PR #3 and remain removed.
+
+**Status:** No action needed until localized routes are implemented.
+
+---
+
+### S-3 · `BreadcrumbList` schema missing from all secondary pages ✅ Fixed
+
+No page had a `BreadcrumbList` JSON-LD block, meaning Google could not display breadcrumb navigation in search results.
+
+**Fix applied:** Added `BreadcrumbList` schema (Home → Page) to all 5 secondary pages.
+
+---
+
+### S-4 · `WebSite` schema missing from homepage ✅ Fixed
+
+The homepage had no `WebSite` schema, which is used by Google for sitelinks and search box features.
+
+**Fix applied:** Added `WebSite` schema with `@id`, `name`, `url`, `publisher`, and `inLanguage` to `index.html`.
+
+---
+
+### S-5 · `sitemap.xml` `/privacy/` entry retained ℹ️ No change needed
+
+`privacy.html` has `<meta name="robots" content="noindex">` and is listed in `sitemap.xml` with low priority (0.3) and yearly changefreq. While the `noindex` directive prevents indexing, keeping the URL in the sitemap aids discovery and is the established convention for this repo. The 7-URL sitemap is maintained as-is.
+
+---
+
+### S-6 · `robots.txt` does not disallow `/_publish_repo/` ✅ Fixed
+
+The `/_publish_repo/` path is set to `X-Robots-Tag: noindex` via Vercel headers but was not disallowed in `robots.txt`.
+
+**Fix applied:** Added `Disallow: /_publish_repo/` to `robots.txt` for belt-and-suspenders coverage.
+
+---
+
+### S-7 · Copyright year shows 2025 instead of 2026 ✅ Fixed
+
+All 8 HTML pages had `<span id="copyright-year">2025</span>` in the footer.
+
+**Fix applied:** Updated to `2026` across all pages.
+
+---
+
 ## Cross-Cutting Issues Summary
 
 | Issue | Affected Files | Status |
@@ -338,7 +404,7 @@ For identity verification (used by Mastodon, IndieWeb, and increasingly Google),
 | `hero-actions` missing CSS | `catering.html`, `private-chef.html`, `menus.html` | ✅ Fixed |
 | `innerHTML` sanitizer weakness | `js/site.js` | ✅ Fixed |
 | No GDPR consent mechanism | All pages | ⚠️ Needs work |
-| `hreflang` removed (same-URL bilingual) | All pages | ✅ Updated |
+| `hreflang` not applicable (same-URL bilingual) | All pages | ℹ️ No action |
 | Missing `og:locale:alternate` | All inner pages | ✅ Fixed |
 | Missing `aria-label` on footer social links | All inner pages + 404 | ✅ Fixed |
 | 3 items in 4-column stats grid | `about.html` | ✅ Fixed |
@@ -352,6 +418,13 @@ For identity verification (used by Mastodon, IndieWeb, and increasingly Google),
 | Button class inconsistency | All pages | ✅ Fixed |
 | Sitemap future `lastmod` dates | `sitemap.xml` | ✅ Fixed |
 | `about.html` stats missing `aria-label` | `about.html` | ✅ Fixed |
+| Structured data thin on secondary pages | All secondary pages | ✅ Fixed |
+| `hreflang` not applicable (same-URL bilingual) | All pages | ℹ️ No action |
+| Missing `BreadcrumbList` schema | All secondary pages | ✅ Fixed |
+| Missing `WebSite` schema on homepage | `index.html` | ✅ Fixed |
+| `/privacy/` retained in `sitemap.xml` | `sitemap.xml` | ℹ️ No change |
+| `robots.txt` missing `/_publish_repo/` | `robots.txt` | ✅ Fixed |
+| Copyright year 2025 → 2026 | All pages | ✅ Fixed |
 
 ---
 

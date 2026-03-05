@@ -30,10 +30,31 @@
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebPage",
+      "@type": "CollectionPage",
       "name": "Evochia — Sample Menus",
+      "description": "Browse menu collections — Mediterranean, Nikkei, Asian Fusion, Italian, French, and more. Custom menus crafted for your event.",
       "url": "https://www.evochia.gr/menus/",
-      "isPartOf": { "@id": "https://www.evochia.gr/#website" }
+      "isPartOf": { "@id": "https://www.evochia.gr/#website" },
+      "about": { "@id": "https://www.evochia.gr/#organization" },
+      "mainEntity": {
+        "@type": "ItemList",
+        "name": "Menu Collections",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Mediterranean", "description": "Seasonal, fresh, refined classics" },
+          { "@type": "ListItem", "position": 2, "name": "Nikkei", "description": "Japanese-Peruvian, sushi + small plates" },
+          { "@type": "ListItem", "position": 3, "name": "Asian Fusion", "description": "Share-style with premium touch" }
+        ]
+      }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.evochia.gr/" },
+        { "@type": "ListItem", "position": 2, "name": "Menus" }
+      ]
     }
     </script>
     <link rel="preload" href="/assets/logo.webp" as="image" type="image/webp">
@@ -185,7 +206,7 @@
         </div>
         <div class="footer-divider"></div>
         <div class="footer-bottom">
-            <span>&copy; <span id="copyright-year">2025</span> Evochia. <span data-en="All rights reserved." data-el="Με επιφύλαξη παντός δικαιώματος.">All rights reserved.</span></span>
+            <span>&copy; <span id="copyright-year">2026</span> Evochia. <span data-en="All rights reserved." data-el="Με επιφύλαξη παντός δικαιώματος.">All rights reserved.</span></span>
             <a href="#top" class="back-to-top" aria-label="Back to top"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="18 15 12 9 6 15"/></svg><span data-en="Top" data-el="Κορυφή">Top</span></a>
         </div>
     </footer>

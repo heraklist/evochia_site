@@ -30,9 +30,38 @@
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "CateringBusiness",
-      "name": "Evochia – Premium Event Catering & Private Chef Services",
-      "url": "https://www.evochia.gr/catering/"
+      "@type": "Service",
+      "name": "Premium Event Catering",
+      "description": "Premium event catering for weddings, baptisms, corporate events, and themed nights across Greece. Buffet, plated service, or finger food.",
+      "url": "https://www.evochia.gr/catering/",
+      "image": "https://www.evochia.gr/photos/wedding-catering.webp",
+      "provider": { "@id": "https://www.evochia.gr/#organization" },
+      "areaServed": [
+        { "@type": "City", "name": "Athens" },
+        { "@type": "AdministrativeArea", "name": "Greek Islands" },
+        { "@type": "Country", "name": "Greece" }
+      ],
+      "serviceType": "Event Catering",
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "Catering Services",
+        "itemListElement": [
+          { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Wedding & Celebration Catering" } },
+          { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Corporate Event Catering" } },
+          { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Cocktail Receptions & Finger Food" } },
+          { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Themed Night Catering" } }
+        ]
+      }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://www.evochia.gr/" },
+        { "@type": "ListItem", "position": 2, "name": "Catering" }
+      ]
     }
     </script>
     <link rel="preload" href="/assets/logo.webp" as="image" type="image/webp">
@@ -207,7 +236,7 @@
         </div>
         <div class="footer-divider"></div>
         <div class="footer-bottom">
-            <span>&copy; <span id="copyright-year">2025</span> Evochia. <span data-en="All rights reserved." data-el="Με επιφύλαξη παντός δικαιώματος.">All rights reserved.</span></span>
+            <span>&copy; <span id="copyright-year">2026</span> Evochia. <span data-en="All rights reserved." data-el="Με επιφύλαξη παντός δικαιώματος.">All rights reserved.</span></span>
             <a href="#top" class="back-to-top" aria-label="Back to top"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="18 15 12 9 6 15"/></svg><span data-en="Top" data-el="Κορυφή">Top</span></a>
         </div>
     </footer>

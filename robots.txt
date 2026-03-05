@@ -1,3 +1,4 @@
 User-agent: *
 Allow: /
+Disallow: /_publish_repo/
 Sitemap: https://www.evochia.gr/sitemap.xml

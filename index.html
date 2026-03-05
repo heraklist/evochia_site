@@ -49,19 +49,39 @@
     <link rel="preload" href="/assets/logo.webp" as="image" type="image/webp">
     <link rel="preload" as="image" href="/photos/chef-plating.webp" fetchpriority="high">
 
-    <!-- Structured Data -->
+    <!-- Structured Data: Organization -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": ["FoodEstablishment", "CateringBusiness"],
+      "@id": "https://www.evochia.gr/#organization",
       "name": "Evochia – Premium Event Catering & Private Chef Services",
       "url": "https://www.evochia.gr",
+      "description": "Bespoke event catering and private chef services for villas, yachts, and exclusive venues across Athens and the Greek Islands.",
+      "image": "https://www.evochia.gr/photos/chef-plating.webp",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://www.evochia.gr/assets/logo.webp",
+        "width": 512,
+        "height": 512
+      },
       "address": {
         "@type": "PostalAddress",
         "addressLocality": "Athens",
         "addressRegion": "Attica",
         "addressCountry": "GR"
       },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 37.9838,
+        "longitude": 23.7275
+      },
+      "areaServed": [
+        { "@type": "City", "name": "Athens" },
+        { "@type": "AdministrativeArea", "name": "Attica" },
+        { "@type": "AdministrativeArea", "name": "Greek Islands" },
+        { "@type": "Country", "name": "Greece" }
+      ],
       "telephone": "+306931170245",
       "email": "info@evochia.gr",
       "founder": {
@@ -70,11 +90,24 @@
         "jobTitle": "Executive Chef & Founder"
       },
       "priceRange": "€€€",
-      "servesCuisine": ["Mediterranean", "Asian Fusion", "Nikkei"],
+      "servesCuisine": ["Mediterranean", "Asian Fusion", "Nikkei", "Italian", "French", "Japanese", "Mexican"],
+      "availableLanguage": ["English", "Greek"],
       "sameAs": [
         "https://www.instagram.com/evochia",
         "https://www.facebook.com/evochia"
       ]
+    }
+    </script>
+    <!-- Structured Data: WebSite -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "@id": "https://www.evochia.gr/#website",
+      "name": "Evochia",
+      "url": "https://www.evochia.gr",
+      "publisher": { "@id": "https://www.evochia.gr/#organization" },
+      "inLanguage": ["en", "el"]
     }
     </script>
 
@@ -320,7 +353,7 @@
         </div>
         <div class="footer-divider"></div>
         <div class="footer-bottom">
-            <span>&copy; <span id="copyright-year">2025</span> Evochia. <span data-en="All rights reserved." data-el="Με επιφύλαξη παντός δικαιώματος.">All rights reserved.</span></span>
+            <span>&copy; <span id="copyright-year">2026</span> Evochia. <span data-en="All rights reserved." data-el="Με επιφύλαξη παντός δικαιώματος.">All rights reserved.</span></span>
             <a href="#top" class="back-to-top" aria-label="Back to top"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="18 15 12 9 6 15"/></svg><span data-en="Top" data-el="Κορυφή">Top</span></a>
         </div>
     </footer>
