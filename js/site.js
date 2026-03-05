@@ -56,6 +56,9 @@
         sessionStorage.setItem('evochia-visited', '1');
       });
     }
+  } else if (!pre && nav) {
+    /* Pages without a preloader (e.g. 404) — make nav visible immediately */
+    nav.classList.add('visible');
   }
 
   /* ── Scroll — nav background ── */
@@ -129,6 +132,8 @@
       if (!t) return;
       // Allow only the small inline tags used in localized headings.
       var allowed = t.replace(/<(?!\/?(?:em|span)(?:\s[^>]*)?>)[^>]+>/gi, '');
+      // Strip any event-handler attributes from the remaining allowed tags.
+      allowed = allowed.replace(/(<(?:em|span)\b[^>]*?)\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)([^>]*>)/gi, '$1$2');
       el.innerHTML = allowed;
     });
   }
