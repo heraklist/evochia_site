@@ -118,11 +118,11 @@ All six sitemap entries had `<lastmod>2026-03-01</lastmod>`, a date in the futur
 
 ---
 
-### M-3 · Missing `hreflang` link elements for bilingual support — All pages ✅ Fixed
+### M-3 · `hreflang` link elements removed — All pages ✅ Updated
 
-The site serves content in both English and Greek via a JavaScript language switcher, but there were no `<link rel="alternate" hreflang="...">` elements in the `<head>`. Without `hreflang`, search engines don't know the bilingual nature of the site and can't serve the correct language to Greek-speaking users who search in Greek.
+The site serves both English and Greek content within the **same URL** via a JavaScript language switcher. Using `hreflang` with identical `href` values for both languages signals conflicting information to search engines and is incorrect when both language variants share a single URL. The canonical tag is retained; no `hreflang` annotations are used.
 
-**Fix applied:** Added `hreflang` annotations (`en`, `el`, `x-default`) to all six page `<head>` sections.
+**Fix applied:** Removed all `<link rel="alternate" hreflang="...">` elements (`en`, `el`, `x-default`) from all six page `<head>` sections.
 
 ---
 
@@ -338,7 +338,7 @@ For identity verification (used by Mastodon, IndieWeb, and increasingly Google),
 | `hero-actions` missing CSS | `catering.html`, `private-chef.html`, `menus.html` | ✅ Fixed |
 | `innerHTML` sanitizer weakness | `js/site.js` | ✅ Fixed |
 | No GDPR consent mechanism | All pages | ⚠️ Needs work |
-| Missing `hreflang` | All pages | ✅ Fixed |
+| `hreflang` removed (same-URL bilingual) | All pages | ✅ Updated |
 | Missing `og:locale:alternate` | All inner pages | ✅ Fixed |
 | Missing `aria-label` on footer social links | All inner pages + 404 | ✅ Fixed |
 | 3 items in 4-column stats grid | `about.html` | ✅ Fixed |
