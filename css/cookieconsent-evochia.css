@@ -1,0 +1,47 @@
+/* ═══════════════════════════════════════════
+   EVOCHIA — CookieConsent Theme Override
+   Matches site palette: dark-green + gold
+   ═══════════════════════════════════════════ */
+
+#cc-main {
+  --cc-font-family: 'Raleway', 'Helvetica Neue', sans-serif;
+  --cc-bg: #0f2e1f;
+  --cc-primary-color: #f0e8d8;
+  --cc-secondary-color: #c4b9a8;
+
+  --cc-btn-primary-bg: #c4a265;
+  --cc-btn-primary-color: #0a1f15;
+  --cc-btn-primary-border-color: #c4a265;
+  --cc-btn-primary-hover-bg: #d4b87a;
+  --cc-btn-primary-hover-color: #0a1f15;
+  --cc-btn-primary-hover-border-color: #d4b87a;
+
+  --cc-btn-secondary-bg: transparent;
+  --cc-btn-secondary-color: #c4a265;
+  --cc-btn-secondary-border-color: #c4a265;
+  --cc-btn-secondary-hover-bg: rgba(196,162,101,0.1);
+  --cc-btn-secondary-hover-color: #d4b87a;
+  --cc-btn-secondary-hover-border-color: #d4b87a;
+
+  --cc-separator-border-color: rgba(196,162,101,0.2);
+  --cc-cookie-category-block-bg: #143a28;
+  --cc-cookie-category-block-border: rgba(196,162,101,0.15);
+  --cc-cookie-category-block-hover-bg: #1a4a34;
+
+  --cc-toggle-on-bg: #c4a265;
+  --cc-toggle-off-bg: #1a4a34;
+  --cc-toggle-readonly-bg: #c4a265;
+  --cc-toggle-readonly-knob-bg: #0a1f15;
+
+  --cc-overlay-bg: rgba(10,31,21,0.7);
+
+  --cc-section-border: rgba(196,162,101,0.15);
+}
+
+#cc-main a {
+  color: #d4b87a;
+}
+
+#cc-main a:hover {
+  color: #e0cb97;
+}
