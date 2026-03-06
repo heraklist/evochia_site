@@ -11,32 +11,8 @@
     <meta name="robots" content="noindex">
     <meta name="description" content="The requested Evochia page could not be found.">
     <meta name="referrer" content="strict-origin-when-cross-origin">
-    <link rel="preload" href="/assets/logo.webp" as="image" type="image/webp">
-    <link rel="preconnect" href="https://www.googletagmanager.com">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Raleway:wght@300;400;500;600&display=swap" as="style">
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Raleway:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/site.css?v=2.0">
-    <!-- CookieConsent v3 -->
-    <link rel="stylesheet" href="/css/cookieconsent.css">
-    <link rel="stylesheet" href="/css/cookieconsent-evochia.css">
     <script src="/js/site.js?v=2.0" defer></script>
-    <!-- Google tag (gtag.js) — Consent Mode v2 default DENIED -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-DERZSDHHF1"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('consent', 'default', {
-        'analytics_storage': 'denied',
-        'ad_storage': 'denied',
-        'ad_user_data': 'denied',
-        'ad_personalization': 'denied',
-        'wait_for_update': 500
-      });
-      gtag('js', new Date());
-      gtag('config', 'G-DERZSDHHF1');
-    </script>
 </head>
 <body id="top">
     <a href="#main" class="skip-link">Skip to content</a>
@@ -109,7 +85,7 @@
                     <li><a href="/contact" data-en="Contact" data-el="Επικοινωνία">Contact</a></li>
                     <li><a href="/privacy" data-en="Privacy Policy" data-el="Πολιτική Απορρήτου">Privacy Policy</a></li>
                     <li>
-                        <button type="button" onclick="CookieConsent.showPreferences()" style="background:none;border:none;color:inherit;cursor:pointer;padding:0;font:inherit" data-en="Cookie Preferences" data-el="Προτιμήσεις Cookies">Cookie Preferences</button>
+                        <button type="button" class="cc-show-prefs" data-en="Cookie Preferences" data-el="Προτιμήσεις Cookies">Cookie Preferences</button>
                     </li>
                 </ul>
             </div>
@@ -128,6 +104,5 @@
             <a href="#top" class="back-to-top" aria-label="Back to top"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="18 15 12 9 6 15"/></svg><span data-en="Top" data-el="Κορυφή">Top</span></a>
         </div>
     </footer>
-    <script type="module" src="/js/cookieconsent-config.js"></script>
 </body>
 </html>

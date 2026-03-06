@@ -21,7 +21,6 @@
     <meta property="og:image:height" content="630">
     <meta property="og:site_name" content="Evochia">
     <meta property="og:locale" content="en_US">
-    <meta property="og:locale:alternate" content="el_GR">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Evochia — Get a Quote | Premium Catering in Greece">
     <meta name="twitter:description" content="Contact Evochia — request a quote for your premium catering or private chef event. We reply within 24 hours.">
@@ -57,37 +56,12 @@
       ]
     }
     </script>
-    <link rel="preload" href="/assets/logo.webp" as="image" type="image/webp">
-    <link rel="preconnect" href="https://www.googletagmanager.com">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Raleway:wght@300;400;500;600&display=swap" as="style">
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Raleway:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- CookieConsent CSS loaded via deferred JS (site.js) -->
     <link rel="stylesheet" href="/css/site.css?v=2.0">
-    <!-- CookieConsent v3 -->
-    <link rel="stylesheet" href="/css/cookieconsent.css">
-    <link rel="stylesheet" href="/css/cookieconsent-evochia.css">
     <script src="/js/site.js?v=2.0" defer></script>
-
-    <!-- Google tag (gtag.js) — Consent Mode v2 default DENIED -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-DERZSDHHF1"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('consent', 'default', {
-        'analytics_storage': 'denied',
-        'ad_storage': 'denied',
-        'ad_user_data': 'denied',
-        'ad_personalization': 'denied',
-        'wait_for_update': 500
-      });
-      gtag('js', new Date());
-      gtag('config', 'G-DERZSDHHF1');
-    </script>
 </head>
 <body id="top">
     <a href="#main" class="skip-link">Skip to content</a>
-    <div class="preloader" id="preloader" role="status" aria-label="Loading"><picture><source srcset="/assets/logo.webp" type="image/webp"><img src="/assets/logo.png" alt="" class="preloader-logo-img" id="preloaderLogo" width="110" height="110"></picture><div class="preloader-tagline" aria-hidden="true">Sophisticated taste & tailored events</div></div>
     <nav class="nav" id="nav" aria-label="Main navigation">
         <a href="/" class="nav-logo" aria-label="Evochia - Home"><picture><source srcset="/assets/logo.webp" type="image/webp"><img src="/assets/logo.png" alt="Evochia logo" class="nav-logo-img" id="navLogo" width="42" height="42"></picture><span class="nav-logo-text">Evochia</span></a>
         <ul class="nav-links" id="navLinks">
@@ -214,7 +188,7 @@
                     <li><a href="/contact" data-en="Contact" data-el="Επικοινωνία">Contact</a></li>
                     <li><a href="/privacy" data-en="Privacy Policy" data-el="Πολιτική Απορρήτου">Privacy Policy</a></li>
                     <li>
-                        <button type="button" onclick="CookieConsent.showPreferences()" style="background:none;border:none;color:inherit;cursor:pointer;padding:0;font:inherit" data-en="Cookie Preferences" data-el="Προτιμήσεις Cookies">Cookie Preferences</button>
+                        <button type="button" class="cc-show-prefs" data-en="Cookie Preferences" data-el="Προτιμήσεις Cookies">Cookie Preferences</button>
                     </li>
                 </ul>
             </div>

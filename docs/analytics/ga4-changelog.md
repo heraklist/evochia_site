@@ -1,0 +1,28 @@
+# GA4 Changelog
+
+- PASS 2.1 (CSP compatibility):
+  - Updated `vercel.json` CSP for `/(.*)` to allow GA4 under strict policy:
+    - `script-src`: `https://*.googletagmanager.com` + inline hash `sha256-2WIuDihWi48Fg5pkalmwn/qtUUnLW3XxjuNkZRe7RNo=`
+    - `img-src`: added `https://*.google-analytics.com` and `https://*.googletagmanager.com`
+    - `connect-src`: added `https://*.google-analytics.com`, `https://*.analytics.google.com`, `https://*.googletagmanager.com`
+- Added Google tag (`gtag.js`) with measurement ID `G-******HHF1` to public entry pages:
+  - `index.html`, `about.html`, `catering.html`, `private-chef.html`, `menus.html`, `contact.html`
+- Implemented debug gate via URL query `?ga_debug=1`:
+  - Sends `debug_mode: true` only when enabled
+  - Omits `debug_mode` when disabled
+- Added GA helper in `js/site.js`:
+  - `gaEvent(name, params)` with `gtag` guard
+  - Auto-adds `page_path` when missing
+  - Adds `debug_mode` only in debug sessions
+- Added form analytics in `js/site.js`:
+  - `form_submit_attempt` at quote form submit start
+  - `generate_lead` only in successful submit branch before `quoteForm.reset()`
+- Added delegated click tracking in `js/site.js` for:
+  - `contact_click` (`tel:`, `mailto:`, `wa.me`)
+  - `cta_click` (`.btn-primary`, `.btn-secondary`, `.text-link`)
+- Updated `vercel.json` hardening:
+  - Added `X-Robots-Tag: noindex, nofollow` for `/_publish_repo/(.*)`
+- Added analytics documentation:
+  - `docs/analytics/ga4-setup.md`
+  - `docs/analytics/ga4-qa.md`
+  - `docs/analytics/ga4-changelog.md`

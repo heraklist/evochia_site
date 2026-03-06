@@ -1,13 +1,18 @@
 (function () {
   'use strict';
 
+  /* ── Load deferred CSS (CookieConsent, non-render-blocking) ── */
+  ['/css/cookieconsent.css', '/css/cookieconsent-evochia.css'].forEach(function (href) {
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    document.head.appendChild(link);
+  });
+
   /* ── Remove no-js class (enables CSS animations) ── */
   document.documentElement.classList.remove('no-js');
 
   /* ── Element refs (all defensive) ── */
-  var pre = document.getElementById('preloader');
-  var pLogo = document.getElementById('preloaderLogo');
-  var nLogo = document.getElementById('navLogo');
   var nav = document.getElementById('nav');
   var ham = document.getElementById('hamburger');
   var nLinks = document.getElementById('navLinks');
@@ -24,42 +29,8 @@
     gtag('event', name, payload);
   }
 
-  /* ── Preloader ── */
-  if (pre && nav) {
-    if (sessionStorage.getItem('evochia-visited')) {
-      pre.classList.add('skip');
-      nav.classList.add('visible');
-    } else {
-      var failsafe = setTimeout(function () {
-        pre.style.display = 'none';
-        nav.classList.add('visible');
-      }, 3500);
-
-      window.addEventListener('load', function () {
-        setTimeout(function () {
-          if (pLogo && nLogo) {
-            var lr = pLogo.getBoundingClientRect();
-            var nr = nLogo.getBoundingClientRect();
-            pLogo.style.setProperty('--logo-dx', (nr.left + nr.width / 2 - lr.left - lr.width / 2) + 'px');
-            pLogo.style.setProperty('--logo-dy', (nr.top + nr.height / 2 - lr.top - lr.height / 2) + 'px');
-          }
-          pre.classList.add('phase-rise');
-          setTimeout(function () {
-            pre.classList.add('phase-fade');
-            nav.classList.add('visible');
-          }, 600);
-          setTimeout(function () {
-            pre.style.display = 'none';
-            clearTimeout(failsafe);
-          }, 1500);
-        }, 1000);
-        sessionStorage.setItem('evochia-visited', '1');
-      });
-    }
-  } else if (!pre && nav) {
-    /* Pages without a preloader (e.g. 404) — make nav visible immediately */
-    nav.classList.add('visible');
-  }
+  /* ── Nav visible ── */
+  if (nav) nav.classList.add('visible');
 
   /* ── Scroll — nav background ── */
   if (nav) {
@@ -135,6 +106,10 @@
       // Strip any event-handler attributes from the remaining allowed tags.
       allowed = allowed.replace(/(<(?:em|span)\b[^>]*?)\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)([^>]*>)/gi, '$1$2');
       el.innerHTML = allowed;
+    });
+    /* Toggle language-specific hidden blocks (privacy page) */
+    document.querySelectorAll('[data-en-hidden],[data-el-hidden]').forEach(function (el) {
+      el.hidden = el.hasAttribute('data-' + lang + '-hidden');
     });
   }
 
@@ -354,5 +329,12 @@
   /* ── Dynamic copyright year ── */
   var yearEl = document.getElementById('copyright-year');
   if (yearEl) yearEl.textContent = new Date().getFullYear();
+
+  /* ── Cookie preference buttons (CSP-safe delegation) ── */
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('.cc-show-prefs, .policy-cookie-btn')) {
+      if (typeof CookieConsent !== 'undefined') CookieConsent.showPreferences();
+    }
+  });
 
 })();

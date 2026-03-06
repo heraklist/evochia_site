@@ -19,7 +19,6 @@
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:locale" content="en_US">
-    <meta property="og:locale:alternate" content="el_GR">
     <meta property="og:site_name" content="Evochia">
 
     <!-- SEO: Twitter -->
@@ -38,112 +37,98 @@
     <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
     <meta name="theme-color" content="#0a1f15">
 
-    <!-- Performance: Fonts -->
-    <link rel="preconnect" href="https://www.googletagmanager.com">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Raleway:wght@300;400;500;600&display=swap" as="style">
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Raleway:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- Performance: Preload critical font -->
+    <link rel="preload" href="/assets/fonts/cormorant-garamond-latin.woff2" as="font" type="font/woff2" crossorigin>
 
-    <!-- Performance: Preload critical assets -->
-    <link rel="preload" href="/assets/logo.webp" as="image" type="image/webp">
-    <link rel="preload" as="image" href="/photos/chef-plating.webp" fetchpriority="high">
-
-    <!-- Structured Data: Organization -->
+    <!-- Structured Data: Entity Graph -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": ["FoodEstablishment", "CateringBusiness"],
-      "@id": "https://www.evochia.gr/#organization",
-      "name": "Evochia – Premium Event Catering & Private Chef Services",
-      "url": "https://www.evochia.gr",
-      "description": "Bespoke event catering and private chef services for villas, yachts, and exclusive venues across Athens and the Greek Islands.",
-      "image": "https://www.evochia.gr/photos/chef-plating.webp",
-      "logo": {
-        "@type": "ImageObject",
-        "url": "https://www.evochia.gr/assets/logo.webp",
-        "width": 512,
-        "height": 512
-      },
-      "address": {
-        "@type": "PostalAddress",
-        "addressLocality": "Athens",
-        "addressRegion": "Attica",
-        "addressCountry": "GR"
-      },
-      "geo": {
-        "@type": "GeoCoordinates",
-        "latitude": 37.9838,
-        "longitude": 23.7275
-      },
-      "areaServed": [
-        { "@type": "City", "name": "Athens" },
-        { "@type": "AdministrativeArea", "name": "Attica" },
-        { "@type": "AdministrativeArea", "name": "Greek Islands" },
-        { "@type": "Country", "name": "Greece" }
-      ],
-      "telephone": "+306931170245",
-      "email": "info@evochia.gr",
-      "founder": {
-        "@type": "Person",
-        "name": "Heraklis Listikakis",
-        "jobTitle": "Executive Chef & Founder"
-      },
-      "priceRange": "€€€",
-      "servesCuisine": ["Mediterranean", "Asian Fusion", "Nikkei", "Italian", "French", "Japanese", "Mexican"],
-      "availableLanguage": ["English", "Greek"],
-      "sameAs": [
-        "https://www.instagram.com/evochia",
-        "https://www.facebook.com/evochia"
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://www.evochia.gr/#organization",
+          "name": "Evochia",
+          "url": "https://www.evochia.gr/",
+          "logo": "https://www.evochia.gr/assets/logo.webp",
+          "sameAs": [
+            "https://www.instagram.com/evochia",
+            "https://www.facebook.com/evochia"
+          ],
+          "email": "info@evochia.gr",
+          "telephone": "+306931170245"
+        },
+        {
+          "@type": "CateringBusiness",
+          "@id": "https://www.evochia.gr/#business",
+          "name": "Evochia",
+          "url": "https://www.evochia.gr/",
+          "image": "https://www.evochia.gr/photos/chef-plating.webp",
+          "logo": "https://www.evochia.gr/assets/logo.webp",
+          "description": "Bespoke event catering and private chef services for villas, yachts, and exclusive venues across Athens and the Greek Islands.",
+          "priceRange": "€€€",
+          "servesCuisine": ["Mediterranean", "Asian Fusion", "Nikkei", "Italian", "French", "Japanese", "Mexican"],
+          "areaServed": [
+            { "@type": "City", "name": "Athens" },
+            { "@type": "AdministrativeArea", "name": "Attica" },
+            { "@type": "AdministrativeArea", "name": "Cyclades" },
+            { "@type": "AdministrativeArea", "name": "Dodecanese" },
+            { "@type": "AdministrativeArea", "name": "Ionian Islands" },
+            { "@type": "AdministrativeArea", "name": "Saronic Islands" },
+            { "@type": "AdministrativeArea", "name": "Sporades" },
+            { "@type": "Country", "name": "Greece" }
+          ],
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "telephone": "+306931170245",
+            "email": "info@evochia.gr",
+            "contactType": "reservations",
+            "availableLanguage": ["English", "Greek"]
+          },
+          "founder": {
+            "@type": "Person",
+            "name": "Heraklis Listikakis",
+            "jobTitle": "Executive Chef & Founder"
+          },
+          "sameAs": [
+            "https://www.instagram.com/evochia",
+            "https://www.facebook.com/evochia"
+          ]
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://www.evochia.gr/#website",
+          "url": "https://www.evochia.gr/",
+          "name": "Evochia",
+          "publisher": { "@id": "https://www.evochia.gr/#organization" },
+          "inLanguage": ["en", "el"]
+        },
+        {
+          "@type": "WebPage",
+          "@id": "https://www.evochia.gr/#webpage",
+          "url": "https://www.evochia.gr/",
+          "name": "Evochia — Premium Event Catering & Private Chef Services in Greece",
+          "isPartOf": { "@id": "https://www.evochia.gr/#website" },
+          "about": { "@id": "https://www.evochia.gr/#business" },
+          "primaryImageOfPage": {
+            "@type": "ImageObject",
+            "contentUrl": "https://www.evochia.gr/photos/chef-plating.webp"
+          },
+          "inLanguage": "en"
+        }
       ]
-    }
-    </script>
-    <!-- Structured Data: WebSite -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      "@id": "https://www.evochia.gr/#website",
-      "name": "Evochia",
-      "url": "https://www.evochia.gr",
-      "publisher": { "@id": "https://www.evochia.gr/#organization" },
-      "inLanguage": ["en", "el"]
     }
     </script>
 
     <!-- Styles -->
     <link rel="stylesheet" href="/css/site.css?v=2.0">
-    <!-- CookieConsent v3 -->
-    <link rel="stylesheet" href="/css/cookieconsent.css">
-    <link rel="stylesheet" href="/css/cookieconsent-evochia.css">
+    <!-- CookieConsent CSS loaded via deferred JS (site.js) to avoid render-blocking -->
 
     <!-- JS: defer for parallel download, no render blocking -->
     <script src="/js/site.js?v=2.0" defer></script>
-
-    <!-- Google tag (gtag.js) — Consent Mode v2 default DENIED -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-DERZSDHHF1"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('consent', 'default', {
-        'analytics_storage': 'denied',
-        'ad_storage': 'denied',
-        'ad_user_data': 'denied',
-        'ad_personalization': 'denied',
-        'wait_for_update': 500
-      });
-      gtag('js', new Date());
-      gtag('config', 'G-DERZSDHHF1');
-    </script>
 </head>
 <body id="top">
     <a href="#main" class="skip-link">Skip to content</a>
-
-    <!-- Preloader -->
-    <div class="preloader" id="preloader" role="status" aria-label="Loading">
-        <picture><source srcset="/assets/logo.webp" type="image/webp"><img src="/assets/logo.png" alt="" class="preloader-logo-img" id="preloaderLogo" width="110" height="110"></picture>
-        <div class="preloader-tagline" aria-hidden="true">Sophisticated taste & tailored events</div>
-    </div>
 
     <!-- Navigation -->
     <nav class="nav" id="nav" aria-label="Main navigation">
@@ -192,7 +177,7 @@
         <!-- About -->
     <section class="section about" id="about" aria-labelledby="about-title">
         <div class="about-grid">
-            <div class="about-image has-photo reveal" style="--bg:url('/photos/chef-plating.webp')" role="img" aria-label="Chef carefully preparing a dish"></div>
+            <div class="about-image has-photo reveal"><img src="/photos/chef-plating.webp" alt="Chef carefully preparing a dish" width="600" height="800" loading="lazy" decoding="async"></div>
             <div class="about-text reveal">
                 <p class="section-label" data-en="About Evochia" data-el="Σχετικά με την Evochia">About Evochia</p>
                 <h2 class="section-title" id="about-title" data-en-html="Empowered by <em>Craft</em>, Driven by <em>Taste</em>" data-el-html="Δύναμη από την <em>Τέχνη</em>, Κίνηση από τη <em>Γεύση</em>">Empowered by <em>Craft</em>, Driven by <em>Taste</em></h2>
@@ -217,7 +202,7 @@
         </div>
         <div class="services-content">
             <div class="service-panel active" id="panel-catering" role="tabpanel" aria-labelledby="tab-catering">
-                <div class="service-visual has-photo" style="background-image:linear-gradient(180deg,rgba(10,31,21,.15) 0%,rgba(10,31,21,.55) 70%),url('/assets/images/bbq-grills.avif')" role="img" aria-label="Grilled food at outdoor event"></div>
+                <div class="service-visual has-photo"><img src="/assets/images/bbq-grills.avif" alt="Grilled food at outdoor event" width="800" height="600" loading="lazy" decoding="async"></div>
                 <div class="service-info">
                     <h3 data-en-html="Event <em>Catering</em>" data-el-html="Catering <em>Εκδηλώσεων</em>">Event <em>Catering</em></h3>
                     <p data-en="From intimate villa dinners to grand celebrations, we design and execute complete culinary experiences with meticulous attention to every detail." data-el="Από ιδιωτικά δείπνα σε βίλες μέχρι μεγαλειώδεις γιορτές, σχεδιάζουμε και υλοποιούμε ολοκληρωμένες γαστρονομικές εμπειρίες.">From intimate villa dinners to grand celebrations, we design and execute complete culinary experiences with meticulous attention to every detail.</p>
@@ -231,7 +216,7 @@
                 </div>
             </div>
             <div class="service-panel" id="panel-private-chef" role="tabpanel" aria-labelledby="tab-private-chef">
-                <div class="service-visual has-photo" style="background-image:linear-gradient(180deg,rgba(10,31,21,.15) 0%,rgba(10,31,21,.55) 70%),url('/assets/images/fine-dining.avif')" role="img" aria-label="Fine dining plated course"></div>
+                <div class="service-visual has-photo"><img src="/assets/images/fine-dining.avif" alt="Fine dining plated course" width="800" height="600" loading="lazy" decoding="async"></div>
                 <div class="service-info">
                     <h3 data-en-html="Private <em>Chef</em>" data-el-html="Private <em>Chef</em>">Private <em>Chef</em></h3>
                     <p data-en="An exclusive, personalized culinary journey in the comfort of your villa or yacht. Bespoke menus crafted around your tastes and the freshest local ingredients." data-el="Μια αποκλειστική γαστρονομική εμπειρία στην άνεση της βίλας ή του σκάφους σας.">An exclusive, personalized culinary journey in the comfort of your villa or yacht. Bespoke menus crafted around your tastes and the freshest local ingredients.</p>
@@ -288,11 +273,11 @@
             <p style="color:var(--cream-dim);font-size:.95rem;max-width:550px;margin:0 auto" data-en="We bring the Evochia experience wherever your occasion calls — across Greece and beyond." data-el="Φέρνουμε την εμπειρία Evochia όπου κι αν βρίσκεται η περίστασή σας — σε όλη την Ελλάδα και πέρα.">We bring the Evochia experience wherever your occasion calls — across Greece and beyond.</p>
         </div>
         <div class="venues-grid reveal">
-            <article class="venue-card has-photo"><div class="venue-card-bg" style="background-image:linear-gradient(180deg,rgba(10,31,21,.1) 0%,rgba(10,31,21,.65) 60%),url('/assets/images/private-villas.avif')"></div><div class="venue-card-overlay"></div><div class="venue-card-content"><div class="venue-card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21V9l9-6 9 6v12H3z"/><path d="M9 21V13h6v8"/></svg></div><h3 data-en="Private Villas" data-el="Ιδιωτικές Βίλες">Private Villas</h3><p data-en="Intimate dining in the comfort of your retreat" data-el="Ιδιωτικά δείπνα στην άνεση του καταλύματός σας">Intimate dining in the comfort of your retreat</p></div></article>
-            <article class="venue-card has-photo"><div class="venue-card-bg" style="background-image:linear-gradient(180deg,rgba(10,31,21,.1) 0%,rgba(10,31,21,.65) 60%),url('/assets/images/luxury-yachts.avif')"></div><div class="venue-card-overlay"></div><div class="venue-card-content"><div class="venue-card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 20l2-3h16l2 3"/><path d="M4 17V7l8-4 8 4v10"/><path d="M12 3v14"/></svg></div><h3 data-en="Luxury Yachts" data-el="Πολυτελή Σκάφη">Luxury Yachts</h3><p data-en="Gourmet experiences on the open sea" data-el="Γκουρμέ εμπειρίες στην ανοιχτή θάλασσα">Gourmet experiences on the open sea</p></div></article>
-            <article class="venue-card has-photo"><div class="venue-card-bg" style="background-image:linear-gradient(180deg,rgba(10,31,21,.1) 0%,rgba(10,31,21,.65) 60%),url('/assets/images/corporate-events.avif')"></div><div class="venue-card-overlay"></div><div class="venue-card-content"><div class="venue-card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M3 9h18"/></svg></div><h3 data-en="Corporate Events" data-el="Εταιρικές Εκδηλώσεις">Corporate Events</h3><p data-en="Elevating business gatherings with taste" data-el="Αναβαθμίζουμε τις επαγγελματικές συναντήσεις">Elevating business gatherings with taste</p></div></article>
-            <article class="venue-card has-photo"><div class="venue-card-bg" style="background-image:linear-gradient(180deg,rgba(10,31,21,.1) 0%,rgba(10,31,21,.65) 60%),url('/assets/images/exclusive-venues.avif')"></div><div class="venue-card-overlay"></div><div class="venue-card-content"><div class="venue-card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 6.91-1.01z"/></svg></div><h3 data-en="Exclusive Venues" data-el="Αποκλειστικοί Χώροι">Exclusive Venues</h3><p data-en="Unforgettable settings, flawless execution" data-el="Αξέχαστοι χώροι, άψογη εκτέλεση">Unforgettable settings, flawless execution</p></div></article>
-            <article class="venue-card has-photo"><div class="venue-card-bg" style="background-image:linear-gradient(180deg,rgba(10,31,21,.1) 0%,rgba(10,31,21,.65) 60%),url('/assets/images/island-retreats.avif')"></div><div class="venue-card-overlay"></div><div class="venue-card-content"><div class="venue-card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3c-2 3-3 6-3 9s1 6 3 9c2-3 3-6 3-9s-1-6-3-9z"/><path d="M3 12h18"/></svg></div><h3 data-en="Island Retreats" data-el="Νησιωτικές Αποδράσεις">Island Retreats</h3><p data-en="Destination dining across the Greek Islands" data-el="Γαστρονομία προορισμού στα ελληνικά νησιά">Destination dining across the Greek Islands</p></div></article>
+            <article class="venue-card has-photo"><div class="venue-card-bg"><img src="/assets/images/private-villas.avif" alt="" loading="lazy" decoding="async"></div><div class="venue-card-overlay"></div><div class="venue-card-content"><div class="venue-card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21V9l9-6 9 6v12H3z"/><path d="M9 21V13h6v8"/></svg></div><h3 data-en="Private Villas" data-el="Ιδιωτικές Βίλες">Private Villas</h3><p data-en="Intimate dining in the comfort of your retreat" data-el="Ιδιωτικά δείπνα στην άνεση του καταλύματός σας">Intimate dining in the comfort of your retreat</p></div></article>
+            <article class="venue-card has-photo"><div class="venue-card-bg"><img src="/assets/images/luxury-yachts.avif" alt="" loading="lazy" decoding="async"></div><div class="venue-card-overlay"></div><div class="venue-card-content"><div class="venue-card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 20l2-3h16l2 3"/><path d="M4 17V7l8-4 8 4v10"/><path d="M12 3v14"/></svg></div><h3 data-en="Luxury Yachts" data-el="Πολυτελή Σκάφη">Luxury Yachts</h3><p data-en="Gourmet experiences on the open sea" data-el="Γκουρμέ εμπειρίες στην ανοιχτή θάλασσα">Gourmet experiences on the open sea</p></div></article>
+            <article class="venue-card has-photo"><div class="venue-card-bg"><img src="/assets/images/corporate-events.avif" alt="" loading="lazy" decoding="async"></div><div class="venue-card-overlay"></div><div class="venue-card-content"><div class="venue-card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M3 9h18"/></svg></div><h3 data-en="Corporate Events" data-el="Εταιρικές Εκδηλώσεις">Corporate Events</h3><p data-en="Elevating business gatherings with taste" data-el="Αναβαθμίζουμε τις επαγγελματικές συναντήσεις">Elevating business gatherings with taste</p></div></article>
+            <article class="venue-card has-photo"><div class="venue-card-bg"><img src="/assets/images/exclusive-venues.avif" alt="" loading="lazy" decoding="async"></div><div class="venue-card-overlay"></div><div class="venue-card-content"><div class="venue-card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 6.91-1.01z"/></svg></div><h3 data-en="Exclusive Venues" data-el="Αποκλειστικοί Χώροι">Exclusive Venues</h3><p data-en="Unforgettable settings, flawless execution" data-el="Αξέχαστοι χώροι, άψογη εκτέλεση">Unforgettable settings, flawless execution</p></div></article>
+            <article class="venue-card has-photo"><div class="venue-card-bg"><img src="/assets/images/island-retreats.avif" alt="" loading="lazy" decoding="async"></div><div class="venue-card-overlay"></div><div class="venue-card-content"><div class="venue-card-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3c-2 3-3 6-3 9s1 6 3 9c2-3 3-6 3-9s-1-6-3-9z"/><path d="M3 12h18"/></svg></div><h3 data-en="Island Retreats" data-el="Νησιωτικές Αποδράσεις">Island Retreats</h3><p data-en="Destination dining across the Greek Islands" data-el="Γαστρονομία προορισμού στα ελληνικά νησιά">Destination dining across the Greek Islands</p></div></article>
         </div>
     </section>
     <div class="section-divider" aria-hidden="true"></div>
@@ -338,7 +323,7 @@
                     <li><a href="/contact" data-en="Contact" data-el="Επικοινωνία">Contact</a></li>
                     <li><a href="/privacy" data-en="Privacy Policy" data-el="Πολιτική Απορρήτου">Privacy Policy</a></li>
                     <li>
-                        <button type="button" onclick="CookieConsent.showPreferences()" style="background:none;border:none;color:inherit;cursor:pointer;padding:0;font:inherit" data-en="Cookie Preferences" data-el="Προτιμήσεις Cookies">Cookie Preferences</button>
+                        <button type="button" class="cc-show-prefs" data-en="Cookie Preferences" data-el="Προτιμήσεις Cookies">Cookie Preferences</button>
                     </li>
                 </ul>
             </div>

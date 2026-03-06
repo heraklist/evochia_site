@@ -1,0 +1,5 @@
+# Lighthouse browser downloads
+.lh-browser/
+
+# Lighthouse audit artifacts
+audit/live-lighthouse/
