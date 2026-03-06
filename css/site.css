@@ -786,6 +786,7 @@ body {
   .nav.scrolled { backdrop-filter: blur(10px); }
   .nav-logo-text { font-size: 1.35rem; }
   .hero-subtitle { letter-spacing: .2em; }
+  html[lang="el"] .hero-subtitle { letter-spacing: .1em; }
   .venues { padding: 5rem var(--page-pad); }
   .venues-grid { gap: 1rem; }
   .venue-card { aspect-ratio: 2/3; }
