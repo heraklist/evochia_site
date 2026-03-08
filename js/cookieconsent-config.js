@@ -1,5 +1,13 @@
 import '/js/cookieconsent.umd.js';
 
+var localizedPrefix = (function () {
+  var match = window.location.pathname.match(/^\/(en|el)(?:\/|$)/);
+  return match ? '/' + match[1] : '/en';
+})();
+
+var privacyPath = localizedPrefix + '/privacy/';
+var contactPath = localizedPrefix + '/contact/';
+
 CookieConsent.run({
   guiOptions: {
     consentModal: {
@@ -33,7 +41,7 @@ CookieConsent.run({
       en: {
         consentModal: {
           title: 'We use cookies',
-          description: 'We use cookies to analyse site traffic via Google Analytics. No personal data is shared with third parties. You can change your preferences at any time. <a href="/privacy">Privacy Policy</a>',
+          description: 'We use cookies to analyse site traffic via Google Analytics. Analytics data is processed only with your consent, and you can change your preferences at any time. <a href="' + privacyPath + '">Privacy Policy</a>',
           acceptAllBtn: 'Accept all',
           acceptNecessaryBtn: 'Reject all',
           showPreferencesBtn: 'Manage preferences'
@@ -56,7 +64,7 @@ CookieConsent.run({
             },
             {
               title: 'More information',
-              description: 'For questions about our cookie policy, please <a href="/contact">contact us</a>.'
+              description: 'For questions about our cookie policy, please <a href="' + contactPath + '">contact us</a>.'
             }
           ]
         }
@@ -64,7 +72,7 @@ CookieConsent.run({
       el: {
         consentModal: {
           title: 'Χρησιμοποιούμε cookies',
-          description: 'Χρησιμοποιούμε cookies για ανάλυση επισκεψιμότητας μέσω Google Analytics. Κανένα προσωπικό δεδομένο δεν κοινοποιείται σε τρίτους. Μπορείτε να αλλάξετε τις προτιμήσεις σας ανά πάσα στιγμή. <a href="/privacy">Πολιτική Απορρήτου</a>',
+          description: 'Χρησιμοποιούμε cookies για ανάλυση επισκεψιμότητας μέσω Google Analytics. Τα δεδομένα ανάλυσης επεξεργάζονται μόνο με τη συγκατάθεσή σας και μπορείτε να αλλάξετε τις προτιμήσεις σας ανά πάσα στιγμή. <a href="' + privacyPath + '">Πολιτική Απορρήτου</a>',
           acceptAllBtn: 'Αποδοχή όλων',
           acceptNecessaryBtn: 'Απόρριψη όλων',
           showPreferencesBtn: 'Διαχείριση προτιμήσεων'
@@ -87,7 +95,7 @@ CookieConsent.run({
             },
             {
               title: 'Περισσότερες πληροφορίες',
-              description: 'Για ερωτήσεις σχετικά με την πολιτική cookies, <a href="/contact">επικοινωνήστε μαζί μας</a>.'
+              description: 'Για ερωτήσεις σχετικά με την πολιτική cookies, <a href="' + contactPath + '">επικοινωνήστε μαζί μας</a>.'
             }
           ]
         }

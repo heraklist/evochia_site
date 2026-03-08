@@ -68,6 +68,20 @@
     }
   ],
   "redirects": [
-    { "source": "/index", "destination": "/", "statusCode": 301 }
+    { "source": "/", "destination": "/en/", "statusCode": 301 },
+    { "source": "/index", "destination": "/en/", "statusCode": 301 },
+    { "source": "/index/", "destination": "/en/", "statusCode": 301 },
+    { "source": "/about", "destination": "/en/about/", "statusCode": 301 },
+    { "source": "/about/", "destination": "/en/about/", "statusCode": 301 },
+    { "source": "/catering", "destination": "/en/catering/", "statusCode": 301 },
+    { "source": "/catering/", "destination": "/en/catering/", "statusCode": 301 },
+    { "source": "/private-chef", "destination": "/en/private-chef/", "statusCode": 301 },
+    { "source": "/private-chef/", "destination": "/en/private-chef/", "statusCode": 301 },
+    { "source": "/menus", "destination": "/en/menus/", "statusCode": 301 },
+    { "source": "/menus/", "destination": "/en/menus/", "statusCode": 301 },
+    { "source": "/contact", "destination": "/en/contact/", "statusCode": 301 },
+    { "source": "/contact/", "destination": "/en/contact/", "statusCode": 301 },
+    { "source": "/privacy", "destination": "/en/privacy/", "statusCode": 301 },
+    { "source": "/privacy/", "destination": "/en/privacy/", "statusCode": 301 }
   ]
 }

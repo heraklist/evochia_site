@@ -83,13 +83,18 @@
   });
 
   /* ── Language toggle ── */
-  var lang = document.documentElement.lang || 'en';
+  var staticLocaleMatch = window.location.pathname.match(/^\/(en|el)(?:\/|$)/);
+  var isStaticLocalized = !!staticLocaleMatch;
+  var lang = isStaticLocalized ? staticLocaleMatch[1] : (document.documentElement.lang || 'en');
 
-  /* 12A: Restore saved language preference */
-  var savedLang = localStorage.getItem('evochia-lang');
-  if (savedLang && savedLang !== lang) {
-    lang = savedLang;
-    document.documentElement.lang = lang;
+  /* 12A: Restore saved language preference only on legacy root pages */
+  var savedLang = null;
+  if (!isStaticLocalized) {
+    savedLang = localStorage.getItem('evochia-lang');
+    if (savedLang && savedLang !== lang) {
+      lang = savedLang;
+      document.documentElement.lang = lang;
+    }
   }
 
   function applyLanguage() {
@@ -113,7 +118,7 @@
     });
   }
 
-  if (ls) {
+  if (ls && !isStaticLocalized) {
     ls.addEventListener('click', function () {
       lang = lang === 'en' ? 'el' : 'en';
       ls.textContent = lang === 'en' ? 'EL' : 'EN';
@@ -125,7 +130,7 @@
   }
 
   /* Apply saved language on page load */
-  if (savedLang) {
+  if (!isStaticLocalized && savedLang) {
     if (ls) {
       ls.textContent = lang === 'en' ? 'EL' : 'EN';
       ls.setAttribute('aria-label', lang === 'en' ? 'Αλλαγή σε Ελληνικά' : 'Switch to English');
