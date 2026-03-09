@@ -43,14 +43,17 @@
   function closeMenu() {
     if (ham) ham.setAttribute('aria-expanded', 'false');
     if (nLinks) nLinks.classList.remove('mobile-open');
+    document.body.classList.remove('menu-open');
   }
   function openMenu() {
     if (ham) ham.setAttribute('aria-expanded', 'true');
     if (nLinks) nLinks.classList.add('mobile-open');
+    document.body.classList.add('menu-open');
   }
 
   if (ham) {
-    ham.addEventListener('click', function () {
+    ham.addEventListener('click', function (e) {
+      e.stopPropagation();
       nLinks && nLinks.classList.contains('mobile-open') ? closeMenu() : openMenu();
     });
   }
@@ -80,6 +83,10 @@
         !nLinks.contains(e.target) && ham && !ham.contains(e.target)) {
       closeMenu();
     }
+  });
+
+  window.addEventListener('resize', function () {
+    if (window.innerWidth > 768) closeMenu();
   });
 
   /* Language toggle */
@@ -314,7 +321,7 @@
           if (status) {
             status.textContent = isEl
               ? 'Ευχαριστούμε! Θα επικοινωνήσουμε σύντομα.'
-              : 'Thank you! We'll be in touch soon.';
+              : "Thank you! We'll be in touch soon.";
             status.className = 'form-status success';
             status.hidden = false;
           }
