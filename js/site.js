@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  /* ── Load deferred CSS (CookieConsent, non-render-blocking) ── */
+  /* Load deferred CSS (CookieConsent, non-render-blocking) */
   ['/css/cookieconsent.css', '/css/cookieconsent-evochia.css'].forEach(function (href) {
     var link = document.createElement('link');
     link.rel = 'stylesheet';
@@ -9,10 +9,10 @@
     document.head.appendChild(link);
   });
 
-  /* ── Remove no-js class (enables CSS animations) ── */
+  /* Remove no-js class (enables CSS animations) */
   document.documentElement.classList.remove('no-js');
 
-  /* ── Element refs (all defensive) ── */
+  /* Element refs (all defensive) */
   var nav = document.getElementById('nav');
   var ham = document.getElementById('hamburger');
   var nLinks = document.getElementById('navLinks');
@@ -29,17 +29,17 @@
     gtag('event', name, payload);
   }
 
-  /* ── Nav visible ── */
+  /* Nav visible */
   if (nav) nav.classList.add('visible');
 
-  /* ── Scroll — nav background ── */
+  /* Scroll - nav background */
   if (nav) {
     window.addEventListener('scroll', function () {
       nav.classList.toggle('scrolled', window.scrollY > 50);
     }, { passive: true });
   }
 
-  /* ── Mobile menu ── */
+  /* Mobile menu */
   function closeMenu() {
     if (ham) ham.setAttribute('aria-expanded', 'false');
     if (nLinks) nLinks.classList.remove('mobile-open');
@@ -60,13 +60,13 @@
     });
   }
 
-  /* ── Conciergerie helpers ── */
+  /* Conciergerie helpers */
   function closeConciergerie() {
     if (conc) conc.classList.remove('open');
     if (concBtn) concBtn.setAttribute('aria-expanded', 'false');
   }
 
-  /* ── Escape key — close menus ── */
+  /* Escape key - close menus */
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
       closeMenu();
@@ -74,7 +74,7 @@
     }
   });
 
-  /* ── Click outside mobile menu ── */
+  /* Click outside mobile menu */
   document.addEventListener('click', function (e) {
     if (nLinks && nLinks.classList.contains('mobile-open') &&
         !nLinks.contains(e.target) && ham && !ham.contains(e.target)) {
@@ -82,7 +82,7 @@
     }
   });
 
-  /* ── Language toggle ── */
+  /* Language toggle */
   var staticLocaleMatch = window.location.pathname.match(/^\/(en|el)(?:\/|$)/);
   var isStaticLocalized = !!staticLocaleMatch;
   var lang = isStaticLocalized ? staticLocaleMatch[1] : (document.documentElement.lang || 'en');
@@ -97,7 +97,15 @@
     }
   }
 
+  function applyLocalizedAttribute(suffix, targetAttr) {
+    document.querySelectorAll('[data-' + lang + '-' + suffix + ']').forEach(function (el) {
+      var value = el.getAttribute('data-' + lang + '-' + suffix);
+      if (value) el.setAttribute(targetAttr || suffix, value);
+    });
+  }
+
   function applyLanguage() {
+    document.documentElement.lang = lang;
     document.querySelectorAll('[data-' + lang + ']').forEach(function (el) {
       if (el.hasAttribute('data-' + lang + '-html')) return;
       var t = el.getAttribute('data-' + lang);
@@ -112,33 +120,37 @@
       allowed = allowed.replace(/(<(?:em|span)\b[^>]*?)\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)([^>]*>)/gi, '$1$2');
       el.innerHTML = allowed;
     });
+    applyLocalizedAttribute('href');
+    applyLocalizedAttribute('aria-label', 'aria-label');
+    applyLocalizedAttribute('content');
+    applyLocalizedAttribute('lang');
+    applyLocalizedAttribute('alt');
     /* Toggle language-specific hidden blocks (privacy page) */
     document.querySelectorAll('[data-en-hidden],[data-el-hidden]').forEach(function (el) {
       el.hidden = el.hasAttribute('data-' + lang + '-hidden');
     });
   }
 
+  applyLanguage();
+
   if (ls && !isStaticLocalized) {
-    ls.addEventListener('click', function () {
-      lang = lang === 'en' ? 'el' : 'en';
+    if (ls.tagName !== 'A') {
       ls.textContent = lang === 'en' ? 'EL' : 'EN';
       ls.setAttribute('aria-label', lang === 'en' ? 'Αλλαγή σε Ελληνικά' : 'Switch to English');
-      document.documentElement.lang = lang;
+    }
+    ls.addEventListener('click', function (e) {
+      e.preventDefault();
+      lang = lang === 'en' ? 'el' : 'en';
+      if (ls.tagName !== 'A') {
+        ls.textContent = lang === 'en' ? 'EL' : 'EN';
+        ls.setAttribute('aria-label', lang === 'en' ? 'Αλλαγή σε Ελληνικά' : 'Switch to English');
+      }
       localStorage.setItem('evochia-lang', lang);
       applyLanguage();
     });
   }
 
-  /* Apply saved language on page load */
-  if (!isStaticLocalized && savedLang) {
-    if (ls) {
-      ls.textContent = lang === 'en' ? 'EL' : 'EN';
-      ls.setAttribute('aria-label', lang === 'en' ? 'Αλλαγή σε Ελληνικά' : 'Switch to English');
-    }
-    applyLanguage();
-  }
-
-  /* ── Service tabs (homepage) ── */
+  /* Service tabs (homepage) */
   var tabs = document.querySelectorAll('.services-tab');
   if (tabs.length) {
     tabs.forEach(function (tab) {
@@ -172,7 +184,7 @@
     });
   }
 
-  /* ── Conciergerie panel ── */
+  /* Conciergerie panel */
   if (concBtn && conc) {
     concBtn.addEventListener('click', function (e) {
       e.stopPropagation();
@@ -185,7 +197,7 @@
     });
   }
 
-  /* ── Scroll reveal (IntersectionObserver) ── */
+  /* Scroll reveal (IntersectionObserver) */
   if ('IntersectionObserver' in window) {
     var obs = new IntersectionObserver(function (entries) {
       entries.forEach(function (e) {
@@ -200,7 +212,7 @@
     document.querySelectorAll('.reveal').forEach(function (el) { el.classList.add('visible'); });
   }
 
-  /* ── Smooth scroll for anchor links (respects reduced-motion) ── */
+  /* Smooth scroll for anchor links (respects reduced-motion) */
   var prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   document.querySelectorAll('a[href^="#"]').forEach(function (a) {
     a.addEventListener('click', function (e) {
@@ -213,7 +225,7 @@
     });
   });
 
-  /* ── Contact form submit ── */
+  /* Contact form submit */
   /* GA4 click tracking: contact actions and CTA clicks */
   document.addEventListener('click', function (e) {
     var el = e.target && e.target.closest ? e.target.closest('a, button') : null;
@@ -302,7 +314,7 @@
           if (status) {
             status.textContent = isEl
               ? 'Ευχαριστούμε! Θα επικοινωνήσουμε σύντομα.'
-              : 'Thank you! We\'ll be in touch soon.';
+              : 'Thank you! We'll be in touch soon.';
             status.className = 'form-status success';
             status.hidden = false;
           }
@@ -331,11 +343,11 @@
     });
   }
 
-  /* ── Dynamic copyright year ── */
+  /* Dynamic copyright year */
   var yearEl = document.getElementById('copyright-year');
   if (yearEl) yearEl.textContent = new Date().getFullYear();
 
-  /* ── Cookie preference buttons (CSP-safe delegation) ── */
+  /* Cookie preference buttons (CSP-safe delegation) */
   document.addEventListener('click', function (e) {
     if (e.target.closest('.cc-show-prefs, .policy-cookie-btn')) {
       if (typeof CookieConsent !== 'undefined') CookieConsent.showPreferences();
