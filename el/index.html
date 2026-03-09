@@ -39,9 +39,6 @@
     <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
     <meta name="theme-color" content="#0a1f15">
 
-    <!-- Performance: Preload critical font -->
-    <link rel="preload" href="/assets/fonts/cormorant-garamond-latin.woff2" as="font" type="font/woff2" crossorigin>
-
     <!-- Structured Data: Entity Graph -->
     <script type="application/ld+json">
     {
@@ -123,18 +120,18 @@
     </script>
 
     <!-- Styles -->
-    <link rel="stylesheet" href="/css/site.css?v=2.0">
+    <link rel="stylesheet" href="/css/site.css?v=2.1">
     <!-- CookieConsent CSS loaded via deferred JS (site.js) to avoid render-blocking -->
 
     <!-- JS: defer for parallel download, no render blocking -->
     <script src="/js/site.js?v=2.1" defer></script>
 </head>
 <body id="top">
-    <a href="#main" class="skip-link">Skip to content</a>
+    <a href="#main" class="skip-link">Μετάβαση στο περιεχόμενο</a>
 
     <!-- Navigation -->
-    <nav class="nav" id="nav" aria-label="Main navigation">
-        <a href="/el/" class="nav-logo" aria-label="Evochia — Home">
+    <nav class="nav" id="nav" aria-label="Κύρια πλοήγηση">
+        <a href="/el/" class="nav-logo" aria-label="Evochia - Αρχική">
             <picture><source srcset="/assets/logo.webp" type="image/webp"><img src="/assets/logo.png" alt="Evochia" class="nav-logo-img" id="navLogo" width="42" height="42"></picture>
             <span class="nav-logo-text" aria-hidden="true">Evochia</span>
         </a>
@@ -146,7 +143,7 @@
             <li><a href="/el/contact/" data-en="Contact" data-el="Επικοινωνία">Επικοινωνία</a></li>
             <li><a class="lang-switch" href="/en/" lang="en" aria-label="Ελληνικά ενεργά. Μετάβαση στην αγγλική έκδοση">EL/EN</a></li>
         </ul>
-        <button class="hamburger" id="hamburger" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="navLinks">
+        <button class="hamburger" id="hamburger" type="button" aria-label="Άνοιγμα μενού" aria-expanded="false" aria-controls="navLinks">
             <span></span><span></span><span></span>
         </button>
     </nav>
@@ -155,7 +152,7 @@
     <main id="main">
 
     <!-- Hero -->
-    <section class="hero" aria-label="Welcome">
+    <section class="hero" aria-label="Καλωσορίσατε">
         <div class="hero-grain" aria-hidden="true"></div>
         <div class="hero-particles" aria-hidden="true">
             <div class="particle"></div><div class="particle"></div><div class="particle"></div><div class="particle"></div>
@@ -173,7 +170,7 @@
                 <a href="/el/menus/" class="btn-secondary" data-en="View Menus" data-el="Δες τα μενού">Δες τα μενού</a>
             </div>
         </div>
-        <div class="scroll-indicator" aria-hidden="true"><span>Scroll</span><div class="scroll-line"></div></div>
+        <div class="scroll-indicator" aria-hidden="true"><span>Κύλιση</span><div class="scroll-line"></div></div>
     </section>
 
         <!-- About -->
@@ -199,7 +196,7 @@
             <h2 class="section-title" id="services-title" data-en-html="Two Ways We <em>Work</em>" data-el-html="Δύο τρόποι που <em>δουλεύουμε</em>">Δύο τρόποι που <em>δουλεύουμε</em></h2>
             <div class="gold-line" aria-hidden="true"></div>
         </div>
-        <div class="services-tabs reveal" role="tablist" aria-label="Service categories">
+        <div class="services-tabs reveal" role="tablist" aria-label="Κατηγορίες υπηρεσιών">
             <button class="services-tab active" role="tab" id="tab-catering" aria-selected="true" aria-controls="panel-catering" data-tab="catering" data-en="Event Catering" data-el="Catering Εκδηλώσεων">Catering Εκδηλώσεων</button>
             <button class="services-tab" role="tab" id="tab-private-chef" aria-selected="false" aria-controls="panel-private-chef" data-tab="private-chef" data-en="Private Chef" data-el="Private Chef">Private Chef</button>
         </div>
@@ -250,7 +247,7 @@
     </section>
 
     <!-- Philosophy Quote -->
-    <section class="philosophy reveal" aria-label="Our Philosophy">
+    <section class="philosophy reveal" aria-label="Η φιλοσοφία μας">
         <div class="splatter-overlay" aria-hidden="true"></div>
         <div class="philosophy-ornament" aria-hidden="true">&ldquo;</div>
         <blockquote class="philosophy-quote" data-en-html="“We don’t cook for occasions. We cook for people. The occasion just sets the stage.”" data-el-html="«Δεν μαγειρεύουμε για τις περιστάσεις. Μαγειρεύουμε για τους ανθρώπους. Η περίσταση απλώς δίνει το σκηνικό.»">«Δεν μαγειρεύουμε για τις περιστάσεις. Μαγειρεύουμε για τους ανθρώπους. Η περίσταση απλώς δίνει το σκηνικό.»</blockquote>
@@ -259,7 +256,7 @@
     </section>
 
     <!-- Stats -->
-    <section class="stats-section reveal" aria-label="Key highlights">
+    <section class="stats-section reveal" aria-label="Βασικά σημεία">
         <div class="stats-grid">
             <div class="stat-item"><div class="stat-number" aria-hidden="true">✦</div><div class="stat-label" data-en="Always Bespoke" data-el="Πάντα εξατομικευμένο">Πάντα εξατομικευμένο</div></div>
             <div class="stat-item"><div class="stat-number">100%</div><div class="stat-label" data-en="Seasonal & Local" data-el="Εποχιακό και τοπικό">Εποχιακό και τοπικό</div></div>
@@ -307,8 +304,8 @@
                 <div class="footer-tagline" data-en="Sophisticated taste & tailored events" data-el="Εκλεπτυσμένη γεύση & εξατομικευμένες εκδηλώσεις">Εκλεπτυσμένη γεύση & εξατομικευμένες εκδηλώσεις</div>
                 <p class="footer-desc" data-en="Premium event catering and private chef services across Greece." data-el="Premium catering εκδηλώσεων και υπηρεσίες private chef σε όλη την Ελλάδα.">Premium catering εκδηλώσεων και υπηρεσίες private chef σε όλη την Ελλάδα.</p>
                 <div class="footer-social-icons">
-                    <a href="https://www.instagram.com/evochia" target="_blank" rel="noopener noreferrer" aria-label="Evochia on Instagram"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg></a>
-                    <a href="https://www.facebook.com/evochia" target="_blank" rel="noopener noreferrer" aria-label="Evochia on Facebook"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg></a>
+                    <a href="https://www.instagram.com/evochia" target="_blank" rel="noopener noreferrer" aria-label="Η Evochia στο Instagram"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg></a>
+                    <a href="https://www.facebook.com/evochia" target="_blank" rel="noopener noreferrer" aria-label="Η Evochia στο Facebook"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg></a>
                 </div>
             </div>
             <div>
@@ -342,7 +339,7 @@
         <div class="footer-divider"></div>
         <div class="footer-bottom">
             <span>&copy; <span id="copyright-year">2026</span> Evochia. <span data-en="All rights reserved." data-el="Με επιφύλαξη παντός δικαιώματος.">Με επιφύλαξη παντός δικαιώματος.</span></span>
-            <a href="#top" class="back-to-top" aria-label="Back to top"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="18 15 12 9 6 15"/></svg><span data-en="Top" data-el="Κορυφή">Κορυφή</span></a>
+            <a href="#top" class="back-to-top" aria-label="Επιστροφή στην κορυφή"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="18 15 12 9 6 15"/></svg><span data-en="Top" data-el="Κορυφή">Κορυφή</span></a>
         </div>
     </footer>
 
@@ -362,7 +359,7 @@
                 <span data-en="Email Us" data-el="Στείλτε Email">Στείλτε Email</span>
             </a>
         </div>
-        <button class="conciergerie-toggle" type="button" aria-label="Contact options" aria-expanded="false" id="conciergerieToggle">
+        <button class="conciergerie-toggle" type="button" aria-label="Επιλογές επικοινωνίας" aria-expanded="false" id="conciergerieToggle">
             <div class="conciergerie-pulse" aria-hidden="true"></div>
             <svg viewBox="0 0 24 24" fill="none" stroke="var(--green-deepest)" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
         </button>

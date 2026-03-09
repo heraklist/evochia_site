@@ -1,10 +1,10 @@
-/* ═══════════════════════════════════════════
-   EVOCHIA — CookieConsent Theme Override
+/* ===========================================
+   EVOCHIA - CookieConsent Theme Override
    Matches site palette: dark-green + gold
-   ═══════════════════════════════════════════ */
+   =========================================== */
 
 #cc-main {
-  --cc-font-family: 'Raleway', 'Helvetica Neue', sans-serif;
+  --cc-font-family: 'Bainsley', 'Helvetica Neue', sans-serif;
   --cc-bg: #0f2e1f;
   --cc-primary-color: #f0e8d8;
   --cc-secondary-color: #c4b9a8;

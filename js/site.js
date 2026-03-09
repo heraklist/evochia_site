@@ -87,43 +87,6 @@
   var isStaticLocalized = !!staticLocaleMatch;
   var lang = isStaticLocalized ? staticLocaleMatch[1] : (document.documentElement.lang || 'en');
 
-  function getStaticLocalePath(targetLang) {
-    var path = window.location.pathname || '/';
-    var normalized = path
-      .replace(/\/index\.html$/i, '/')
-      .replace(/\.html$/i, '/');
-
-    if (!normalized.endsWith('/')) normalized += '/';
-
-    var localizedMatch = normalized.match(/^\/(en|el)(\/.*)?$/);
-    if (localizedMatch) {
-      return '/' + targetLang + (localizedMatch[2] || '/');
-    }
-
-    var legacyMap = {
-      '/': '/',
-      '/index/': '/',
-      '/about/': '/about/',
-      '/catering/': '/catering/',
-      '/private-chef/': '/private-chef/',
-      '/menus/': '/menus/',
-      '/contact/': '/contact/',
-      '/privacy/': '/privacy/',
-      '/404/': '/404/'
-    };
-
-    return '/' + targetLang + (legacyMap[normalized] || '/');
-  }
-
-  function switchToStaticLocale(targetLang) {
-    var targetPath = getStaticLocalePath(targetLang);
-    if (window.location.pathname !== targetPath) {
-      window.location.href = targetPath;
-      return true;
-    }
-    return false;
-  }
-
   /* 12A: Restore saved language preference only on legacy root pages */
   var savedLang = null;
   if (!isStaticLocalized) {
@@ -155,14 +118,9 @@
     });
   }
 
-  if (ls) {
+  if (ls && !isStaticLocalized) {
     ls.addEventListener('click', function () {
-      var nextLang = lang === 'en' ? 'el' : 'en';
-
-      if (switchToStaticLocale(nextLang)) return;
-      if (isStaticLocalized) return;
-
-      lang = nextLang;
+      lang = lang === 'en' ? 'el' : 'en';
       ls.textContent = lang === 'en' ? 'EL' : 'EN';
       ls.setAttribute('aria-label', lang === 'en' ? 'Αλλαγή σε Ελληνικά' : 'Switch to English');
       document.documentElement.lang = lang;
