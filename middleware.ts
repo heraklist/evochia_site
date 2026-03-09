@@ -1,8 +1,3 @@
-import { readFileSync } from 'node:fs';
-
-const EN_404_HTML = readFileSync(new URL('./en/404.html', import.meta.url), 'utf8');
-const EL_404_HTML = readFileSync(new URL('./el/404.html', import.meta.url), 'utf8');
-
 const EN_ROUTES = new Set([
   '/en/',
   '/en/about/',
@@ -39,6 +34,11 @@ const RESPONSE_HEADERS: Record<string, string> = {
   'X-Robots-Tag': 'noindex',
 };
 
+const FALLBACK_HTML = {
+  en: `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Page Not Found | Evochia</title><meta name="robots" content="noindex"><link rel="stylesheet" href="/css/site.css?v=2.2"></head><body><main class="error-page"><section class="hero"><div class="container"><p class="eyebrow">404</p><h1>Page Not Found</h1><p>The page you requested could not be found.</p><div class="hero-actions"><a class="btn btn-primary" href="/en/">Return Home</a><a class="btn btn-secondary" href="/en/contact/">Contact Us</a></div></div></section></main><script src="/js/site.js?v=2.2" defer></script></body></html>`,
+  el: `<!doctype html><html lang="el"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Η Σελίδα Δεν Βρέθηκε | Evochia</title><meta name="robots" content="noindex"><link rel="stylesheet" href="/css/site.css?v=2.2"></head><body><main class="error-page"><section class="hero"><div class="container"><p class="eyebrow">404</p><h1>Η Σελίδα Δεν Βρέθηκε</h1><p>Η σελίδα που ζητήσατε δεν βρέθηκε.</p><div class="hero-actions"><a class="btn btn-primary" href="/el/">Επιστροφή στην Αρχική</a><a class="btn btn-secondary" href="/el/contact/">Επικοινωνία</a></div></div></section></main><script src="/js/site.js?v=2.2" defer></script></body></html>`,
+};
+
 function normalizePathname(pathname: string): string {
   if (pathname === '/en' || pathname === '/el') {
     return pathname + '/';
@@ -52,18 +52,51 @@ function hasFileExtension(pathname: string): boolean {
   return lastSegment.includes('.');
 }
 
-function notFoundResponse(html: string): Response {
+async function get404Html(request: Request, localePath: '/en/404/' | '/el/404/'): Promise<string> {
+  const pageUrl = new URL(localePath, request.url);
+  const locale = localePath === '/el/404/' ? 'el' : 'en';
+
+  try {
+    const pageResponse = await fetch(pageUrl, {
+      headers: {
+        'x-evochia-404-fetch': '1',
+      },
+    });
+
+    if (!pageResponse.ok && pageResponse.status >= 500) {
+      throw new Error(`Failed to fetch localized 404 page: ${pageResponse.status}`);
+    }
+
+    return await pageResponse.text();
+  } catch {
+    return FALLBACK_HTML[locale];
+  }
+}
+
+async function notFoundResponse(request: Request, localePath: '/en/404/' | '/el/404/'): Promise<Response> {
+  const localePathResponse = new URL(localePath, request.url);
+  const html = await get404Html(request, localePath);
+  const headers = new Headers(RESPONSE_HEADERS);
+
+  headers.set('Content-Type', 'text/html; charset=utf-8');
+  headers.set('Vary', 'Accept-Encoding');
+  headers.set('X-Localized-404', localePathResponse.pathname);
+
   return new Response(html, {
     status: 404,
-    headers: RESPONSE_HEADERS,
+    headers,
   });
 }
 
-export default function middleware(request: Request): Response | undefined {
+export default async function middleware(request: Request): Promise<Response | undefined> {
   const url = new URL(request.url);
   const pathname = normalizePathname(url.pathname);
 
   if (hasFileExtension(url.pathname)) {
+    return;
+  }
+
+  if (request.headers.get('x-evochia-404-fetch') === '1') {
     return;
   }
 
@@ -72,7 +105,7 @@ export default function middleware(request: Request): Response | undefined {
       return;
     }
 
-    return notFoundResponse(EN_404_HTML);
+    return notFoundResponse(request, '/en/404/');
   }
 
   if (pathname.startsWith('/el/')) {
@@ -80,7 +113,7 @@ export default function middleware(request: Request): Response | undefined {
       return;
     }
 
-    return notFoundResponse(EL_404_HTML);
+    return notFoundResponse(request, '/el/404/');
   }
 
   return;
@@ -88,5 +121,4 @@ export default function middleware(request: Request): Response | undefined {
 
 export const config = {
   matcher: ['/en/:path*', '/el/:path*'],
-  runtime: 'nodejs',
 };
