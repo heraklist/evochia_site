@@ -1119,6 +1119,80 @@ html[lang="el"] .trust-kicker { letter-spacing: .08em; text-transform: none; }
 .policy-table td { padding: 0.75rem; }
 .policy-cookie-btn { background: none; border: none; color: var(--gold-light); cursor: pointer; padding: 0; font: inherit; text-decoration: underline; }
 
+/* venues-grid 3-column variant (Menus page featured cards) */
+.venues-grid-three { grid-template-columns: repeat(3, 1fr); }
+
+/* Circular cuisine navigation (Menus page) */
+.cuisine-circles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.75rem 2.5rem;
+  margin: 2.5rem auto 3.5rem;
+  max-width: 900px;
+  list-style: none;
+  padding: 0;
+}
+.cuisine-circle-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .65rem;
+  text-decoration: none;
+  width: 108px;
+  flex-shrink: 0;
+  transition: transform .35s;
+}
+.cuisine-circle-item:hover { transform: translateY(-3px); }
+.cuisine-circle-item:focus-visible { outline: 2px solid var(--gold); outline-offset: 4px; border-radius: 4px; }
+.cuisine-circle-img {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1.5px solid rgba(196,162,101,.18);
+  transition: border-color .4s, box-shadow .4s;
+  flex-shrink: 0;
+}
+.cuisine-circle-item:hover .cuisine-circle-img,
+.cuisine-circle-item:focus-visible .cuisine-circle-img {
+  border-color: rgba(196,162,101,.55);
+  box-shadow: 0 0 20px rgba(196,162,101,.12);
+}
+.cuisine-circle-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform .5s;
+}
+.cuisine-circle-item:hover .cuisine-circle-img img { transform: scale(1.06); }
+.cuisine-circle-label {
+  font-size: .68rem;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--cream-dim);
+  font-family: var(--font-body);
+  transition: color .3s;
+}
+.cuisine-circle-item:hover .cuisine-circle-label,
+.cuisine-circle-item:focus-visible .cuisine-circle-label { color: var(--gold-light); }
+
+/* More directions grid (Menus page secondary cards) */
+.menus-more-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  max-width: 900px;
+  margin: 3rem auto 0;
+}
+@media (max-width: 968px) {
+  .menus-more-grid { grid-template-columns: 1fr; max-width: 450px; margin: 2rem auto 0; }
+}
+@media (max-width: 480px) {
+  .menus-more-grid { max-width: 320px; }
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
