@@ -29,6 +29,8 @@
     if (route.indexOf('/contact/') === 0) return 'contact';
     if (route.indexOf('/about/') === 0) return 'about';
     if (route.indexOf('/privacy/') === 0) return 'privacy';
+    if (route.indexOf('/faq/') === 0) return 'faq';
+    if (route.indexOf('/lookbook/') === 0) return 'lookbook';
     if (route.indexOf('/404') === 0) return 'not_found';
     return 'other';
   }
