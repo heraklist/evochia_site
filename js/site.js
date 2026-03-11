@@ -71,11 +71,35 @@
     if (ham) ham.setAttribute('aria-expanded', 'false');
     if (nLinks) nLinks.classList.remove('mobile-open');
     document.body.classList.remove('menu-open');
+    if (ham) ham.focus();
   }
   function openMenu() {
     if (ham) ham.setAttribute('aria-expanded', 'true');
     if (nLinks) nLinks.classList.add('mobile-open');
     document.body.classList.add('menu-open');
+    /* Move focus to first interactive item */
+    if (nLinks) {
+      var firstLink = nLinks.querySelector('a, button');
+      if (firstLink) firstLink.focus();
+    }
+  }
+
+  /* Focus trap inside mobile menu */
+  if (nLinks) {
+    nLinks.addEventListener('keydown', function (e) {
+      if (e.key !== 'Tab' || !nLinks.classList.contains('mobile-open')) return;
+      var focusable = nLinks.querySelectorAll('a, button, [tabindex]:not([tabindex="-1"])');
+      if (!focusable.length) return;
+      var first = focusable[0];
+      var last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    });
   }
 
   if (ham) {
