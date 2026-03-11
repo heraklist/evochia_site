@@ -737,6 +737,7 @@ html[lang="el"] .trust-kicker { letter-spacing: .08em; text-transform: none; }
 .mb-xl { margin-bottom: 3rem; }
 .w-full { width: 100%; }
 .copy-muted { color: var(--cream-dim); }
+.copy-italic { font-style: italic; }
 .gold-line-centered { margin: 0 auto 2rem; }
 .gold-line-centered-tight { margin: 0 auto 1.5rem; }
 .section-surface { background: var(--green-main); padding: 6rem 3rem; }
