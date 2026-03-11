@@ -391,4 +391,26 @@
     }
   });
 
+  /* FAQ Accordion — single-open mode */
+  var faqBtns = document.querySelectorAll('.faq-question');
+  if (faqBtns.length) {
+    faqBtns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var isExpanded = this.getAttribute('aria-expanded') === 'true';
+        /* Close all */
+        faqBtns.forEach(function (b) {
+          b.setAttribute('aria-expanded', 'false');
+          var ans = b.nextElementSibling;
+          if (ans) ans.classList.remove('is-open');
+        });
+        /* Open clicked (toggle) */
+        if (!isExpanded) {
+          this.setAttribute('aria-expanded', 'true');
+          var answer = this.nextElementSibling;
+          if (answer) answer.classList.add('is-open');
+        }
+      });
+    });
+  }
+
 })();

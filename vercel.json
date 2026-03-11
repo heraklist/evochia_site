@@ -211,6 +211,46 @@
       "source": "/privacy/",
       "destination": "/en/privacy/",
       "statusCode": 301
+    },
+    {
+      "source": "/faq",
+      "destination": "/en/faq/",
+      "statusCode": 301
+    },
+    {
+      "source": "/faq/",
+      "destination": "/en/faq/",
+      "statusCode": 301
+    },
+    {
+      "source": "/en/faq",
+      "destination": "/en/faq/",
+      "statusCode": 301
+    },
+    {
+      "source": "/el/faq",
+      "destination": "/el/faq/",
+      "statusCode": 301
+    },
+    {
+      "source": "/lookbook",
+      "destination": "/en/lookbook/",
+      "statusCode": 301
+    },
+    {
+      "source": "/lookbook/",
+      "destination": "/en/lookbook/",
+      "statusCode": 301
+    },
+    {
+      "source": "/en/lookbook",
+      "destination": "/en/lookbook/",
+      "statusCode": 301
+    },
+    {
+      "source": "/el/lookbook",
+      "destination": "/el/lookbook/",
+      "statusCode": 301
     }
   ]
 }

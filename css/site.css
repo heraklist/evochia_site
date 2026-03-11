@@ -1193,6 +1193,133 @@ html[lang="el"] .trust-kicker { letter-spacing: .08em; text-transform: none; }
   .menus-more-grid { max-width: 320px; }
 }
 
+/* ==========================================================================
+   FAQ Accordion
+   ========================================================================== */
+.faq-section { padding: var(--section-pad) 0; }
+.faq-intro { color: var(--cream-dim); line-height: 1.7; max-width: 640px; margin: 0 auto 3rem; text-align: center; }
+
+.faq-accordion { max-width: 780px; margin: 0 auto; }
+
+.faq-item { border-bottom: 1px solid rgba(196,162,101,.18); }
+.faq-item:first-child { border-top: 1px solid rgba(196,162,101,.18); }
+
+.faq-question {
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 1.4rem 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--cream);
+  text-align: left;
+  transition: color .25s;
+}
+.faq-question:hover { color: var(--gold); }
+.faq-question[aria-expanded="true"] { color: var(--gold); }
+
+.faq-question-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform .3s, background .25s;
+}
+.faq-question[aria-expanded="true"] .faq-question-icon { background: var(--gold); border-color: var(--gold); color: var(--green-deepest); transform: rotate(45deg); }
+
+.faq-question-icon svg { width: 10px; height: 10px; }
+
+.faq-answer {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height .35s cubic-bezier(.25,.46,.45,.94), padding .35s;
+  padding-bottom: 0;
+}
+.faq-answer.is-open {
+  max-height: 600px;
+  padding-bottom: 1.5rem;
+}
+.faq-answer p {
+  color: var(--cream-dim);
+  line-height: 1.75;
+  font-size: .97rem;
+  margin: 0;
+}
+
+/* ==========================================================================
+   Lookbook
+   ========================================================================== */
+.lookbook-section { padding: var(--section-pad) 0; }
+
+.lookbook-viewer-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto 3rem;
+  border: 1px solid rgba(196,162,101,.2);
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(10,31,21,.6);
+}
+.lookbook-viewer-wrap iframe {
+  display: block;
+  width: 100%;
+  height: 680px;
+  border: none;
+}
+
+.lookbook-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2rem;
+  padding: 5rem 2rem;
+  text-align: center;
+}
+.lookbook-placeholder-ornament {
+  font-family: var(--font-accent);
+  font-size: 3rem;
+  color: var(--gold);
+  opacity: .6;
+  line-height: 1;
+}
+.lookbook-placeholder h3 {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  color: var(--cream);
+  margin: 0;
+}
+.lookbook-placeholder p {
+  color: var(--cream-dim);
+  font-size: .97rem;
+  max-width: 360px;
+  margin: 0;
+  line-height: 1.7;
+}
+
+/* Lookbook homepage teaser */
+.lookbook-teaser {
+  border-top: 1px solid rgba(196,162,101,.15);
+  border-bottom: 1px solid rgba(196,162,101,.15);
+  padding: 3.5rem 0;
+  text-align: center;
+  background: rgba(10,31,21,.35);
+}
+.lookbook-teaser .section-label { margin-bottom: .6rem; }
+.lookbook-teaser h2 { font-family: var(--font-heading); font-size: clamp(1.4rem, 3vw, 2rem); color: var(--cream); margin: 0 0 .8rem; }
+.lookbook-teaser p { color: var(--cream-dim); font-size: .97rem; max-width: 500px; margin: 0 auto 1.8rem; line-height: 1.7; }
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }

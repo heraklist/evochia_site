@@ -216,4 +216,40 @@
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
+  <url>
+    <loc>https://www.evochia.gr/en/faq/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.evochia.gr/en/faq/"/>
+    <xhtml:link rel="alternate" hreflang="el" href="https://www.evochia.gr/el/faq/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.evochia.gr/en/faq/"/>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.evochia.gr/el/faq/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.evochia.gr/en/faq/"/>
+    <xhtml:link rel="alternate" hreflang="el" href="https://www.evochia.gr/el/faq/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.evochia.gr/en/faq/"/>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.evochia.gr/en/lookbook/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.evochia.gr/en/lookbook/"/>
+    <xhtml:link rel="alternate" hreflang="el" href="https://www.evochia.gr/el/lookbook/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.evochia.gr/en/lookbook/"/>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.evochia.gr/el/lookbook/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.evochia.gr/en/lookbook/"/>
+    <xhtml:link rel="alternate" hreflang="el" href="https://www.evochia.gr/el/lookbook/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.evochia.gr/en/lookbook/"/>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
 </urlset>
