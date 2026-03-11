@@ -20,6 +20,8 @@ export const contentPages = [
   "menus",
   "contact",
   "privacy",
+  "faq",
+  "lookbook",
 ];
 export const sitemapPages = [
   "index",
@@ -34,6 +36,8 @@ export const sitemapPages = [
   "greek-islands-private-chef",
   "menus",
   "contact",
+  "faq",
+  "lookbook",
 ];
 
 export function readRepoFile(relativePath) {

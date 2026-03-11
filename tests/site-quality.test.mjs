@@ -46,6 +46,10 @@ const requiredRedirects = new Map([
   ["/contact/", "/en/contact/"],
   ["/privacy", "/en/privacy/"],
   ["/privacy/", "/en/privacy/"],
+  ["/faq", "/en/faq/"],
+  ["/faq/", "/en/faq/"],
+  ["/lookbook", "/en/lookbook/"],
+  ["/lookbook/", "/en/lookbook/"],
 ]);
 
 function getVercelConfig() {
