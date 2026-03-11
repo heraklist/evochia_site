@@ -1,4 +1,9 @@
-# Lighthouse browser downloads
+﻿# Node / test tooling
+node_modules/
+npm-debug.log*
+
+# Local temporary artifacts
+.codex_tmp/
 .lh-browser/
 
 # Lighthouse audit artifacts

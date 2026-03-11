@@ -1,15 +1,219 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://www.evochia.gr/en/</loc><lastmod>2026-03-08</lastmod><changefreq>monthly</changefreq><priority>1.0</priority></url>
-  <url><loc>https://www.evochia.gr/en/about/</loc><lastmod>2026-03-08</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://www.evochia.gr/en/catering/</loc><lastmod>2026-03-08</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://www.evochia.gr/en/private-chef/</loc><lastmod>2026-03-08</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://www.evochia.gr/en/menus/</loc><lastmod>2026-03-08</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://www.evochia.gr/en/contact/</loc><lastmod>2026-03-08</lastmod><changefreq>yearly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://www.evochia.gr/el/</loc><lastmod>2026-03-08</lastmod><changefreq>monthly</changefreq><priority>1.0</priority></url>
-  <url><loc>https://www.evochia.gr/el/about/</loc><lastmod>2026-03-08</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://www.evochia.gr/el/catering/</loc><lastmod>2026-03-08</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://www.evochia.gr/el/private-chef/</loc><lastmod>2026-03-08</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://www.evochia.gr/el/menus/</loc><lastmod>2026-03-08</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://www.evochia.gr/el/contact/</loc><lastmod>2026-03-08</lastmod><changefreq>yearly</changefreq><priority>0.6</priority></url>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://www.evochia.gr/en/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.evochia.gr/en/"/>
+    <xhtml:link rel="alternate" hreflang="el" href="https://www.evochia.gr/el/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.evochia.gr/en/"/>
+    <lastmod>2026-03-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://www.evochia.gr/en/about/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.evochia.gr/en/about/"/>
+    <xhtml:link rel="alternate" hreflang="el" href="https://www.evochia.gr/el/about/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.evochia.gr/en/about/"/>
+    <lastmod>2026-03-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.evochia.gr/en/catering/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.evochia.gr/en/catering/"/>
+    <xhtml:link rel="alternate" hreflang="el" href="https://www.evochia.gr/el/catering/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.evochia.gr/en/catering/"/>
+    <lastmod>2026-03-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.evochia.gr/en/wedding-catering/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.evochia.gr/en/wedding-catering/"/>
+    <xhtml:link rel="alternate" hreflang="el" href="https://www.evochia.gr/el/wedding-catering/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.evochia.gr/en/wedding-catering/"/>
+    <lastmod>2026-03-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.evochia.gr/en/corporate-catering/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.evochia.gr/en/corporate-catering/"/>
+    <xhtml:link rel="alternate" hreflang="el" href="https://www.evochia.gr/el/corporate-catering/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.evochia.gr/en/corporate-catering/"/>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.evochia.gr/en/private-chef/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.evochia.gr/en/private-chef/"/>
+    <xhtml:link rel="alternate" hreflang="el" href="https://www.evochia.gr/el/private-chef/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.evochia.gr/en/private-chef/"/>
+    <lastmod>2026-03-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.evochia.gr/en/villa-private-chef/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.evochia.gr/en/villa-private-chef/"/>
+    <xhtml:link rel="alternate" hreflang="el" href="https://www.evochia.gr/el/villa-private-chef/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.evochia.gr/en/villa-private-chef/"/>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.evochia.gr/en/yacht-private-chef/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.evochia.gr/en/yacht-private-chef/"/>
+    <xhtml:link rel="alternate" hreflang="el" href="https://www.evochia.gr/el/yacht-private-chef/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.evochia.gr/en/yacht-private-chef/"/>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.evochia.gr/en/athens-private-chef/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.evochia.gr/en/athens-private-chef/"/>
+    <xhtml:link rel="alternate" hreflang="el" href="https://www.evochia.gr/el/athens-private-chef/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.evochia.gr/en/athens-private-chef/"/>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.evochia.gr/en/greek-islands-private-chef/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.evochia.gr/en/greek-islands-private-chef/"/>
+    <xhtml:link rel="alternate" hreflang="el" href="https://www.evochia.gr/el/greek-islands-private-chef/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.evochia.gr/en/greek-islands-private-chef/"/>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.evochia.gr/en/menus/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.evochia.gr/en/menus/"/>
+    <xhtml:link rel="alternate" hreflang="el" href="https://www.evochia.gr/el/menus/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.evochia.gr/en/menus/"/>
+    <lastmod>2026-03-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.evochia.gr/en/contact/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.evochia.gr/en/contact/"/>
+    <xhtml:link rel="alternate" hreflang="el" href="https://www.evochia.gr/el/contact/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.evochia.gr/en/contact/"/>
+    <lastmod>2026-03-08</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.evochia.gr/el/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.evochia.gr/en/"/>
+    <xhtml:link rel="alternate" hreflang="el" href="https://www.evochia.gr/el/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.evochia.gr/en/"/>
+    <lastmod>2026-03-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://www.evochia.gr/el/about/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.evochia.gr/en/about/"/>
+    <xhtml:link rel="alternate" hreflang="el" href="https://www.evochia.gr/el/about/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.evochia.gr/en/about/"/>
+    <lastmod>2026-03-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.evochia.gr/el/catering/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.evochia.gr/en/catering/"/>
+    <xhtml:link rel="alternate" hreflang="el" href="https://www.evochia.gr/el/catering/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.evochia.gr/en/catering/"/>
+    <lastmod>2026-03-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.evochia.gr/el/wedding-catering/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.evochia.gr/en/wedding-catering/"/>
+    <xhtml:link rel="alternate" hreflang="el" href="https://www.evochia.gr/el/wedding-catering/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.evochia.gr/en/wedding-catering/"/>
+    <lastmod>2026-03-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.evochia.gr/el/corporate-catering/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.evochia.gr/en/corporate-catering/"/>
+    <xhtml:link rel="alternate" hreflang="el" href="https://www.evochia.gr/el/corporate-catering/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.evochia.gr/en/corporate-catering/"/>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.evochia.gr/el/private-chef/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.evochia.gr/en/private-chef/"/>
+    <xhtml:link rel="alternate" hreflang="el" href="https://www.evochia.gr/el/private-chef/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.evochia.gr/en/private-chef/"/>
+    <lastmod>2026-03-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.evochia.gr/el/villa-private-chef/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.evochia.gr/en/villa-private-chef/"/>
+    <xhtml:link rel="alternate" hreflang="el" href="https://www.evochia.gr/el/villa-private-chef/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.evochia.gr/en/villa-private-chef/"/>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.evochia.gr/el/yacht-private-chef/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.evochia.gr/en/yacht-private-chef/"/>
+    <xhtml:link rel="alternate" hreflang="el" href="https://www.evochia.gr/el/yacht-private-chef/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.evochia.gr/en/yacht-private-chef/"/>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.evochia.gr/el/athens-private-chef/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.evochia.gr/en/athens-private-chef/"/>
+    <xhtml:link rel="alternate" hreflang="el" href="https://www.evochia.gr/el/athens-private-chef/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.evochia.gr/en/athens-private-chef/"/>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.evochia.gr/el/greek-islands-private-chef/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.evochia.gr/en/greek-islands-private-chef/"/>
+    <xhtml:link rel="alternate" hreflang="el" href="https://www.evochia.gr/el/greek-islands-private-chef/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.evochia.gr/en/greek-islands-private-chef/"/>
+    <lastmod>2026-03-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.evochia.gr/el/menus/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.evochia.gr/en/menus/"/>
+    <xhtml:link rel="alternate" hreflang="el" href="https://www.evochia.gr/el/menus/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.evochia.gr/en/menus/"/>
+    <lastmod>2026-03-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.evochia.gr/el/contact/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.evochia.gr/en/contact/"/>
+    <xhtml:link rel="alternate" hreflang="el" href="https://www.evochia.gr/el/contact/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.evochia.gr/en/contact/"/>
+    <lastmod>2026-03-08</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
 </urlset>

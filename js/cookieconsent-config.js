@@ -139,5 +139,9 @@ function ensureAnalyticsScript() {
   window.dataLayer = window.dataLayer || [];
   window.gtag = function () { dataLayer.push(arguments); };
   gtag('js', new Date());
-  gtag('config', 'G-DERZSDHHF1');
+  gtag('config', 'G-DERZSDHHF1', {
+    language: document.documentElement.lang || 'en',
+    page_path: window.location.pathname,
+    page_title: document.title
+  });
 }

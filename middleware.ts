@@ -7,6 +7,12 @@ const EN_ROUTES = new Set([
   '/en/contact/',
   '/en/privacy/',
   '/en/404/',
+  '/en/wedding-catering/',
+  '/en/corporate-catering/',
+  '/en/villa-private-chef/',
+  '/en/yacht-private-chef/',
+  '/en/athens-private-chef/',
+  '/en/greek-islands-private-chef/',
 ]);
 
 const EL_ROUTES = new Set([
@@ -18,6 +24,12 @@ const EL_ROUTES = new Set([
   '/el/contact/',
   '/el/privacy/',
   '/el/404/',
+  '/el/wedding-catering/',
+  '/el/corporate-catering/',
+  '/el/villa-private-chef/',
+  '/el/yacht-private-chef/',
+  '/el/athens-private-chef/',
+  '/el/greek-islands-private-chef/',
 ]);
 
 const RESPONSE_HEADERS: Record<string, string> = {
@@ -27,7 +39,7 @@ const RESPONSE_HEADERS: Record<string, string> = {
   'X-Frame-Options': 'DENY',
   'Referrer-Policy': 'strict-origin-when-cross-origin',
   'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-  'Content-Security-Policy': "default-src 'self'; script-src 'self' https://www.googletagmanager.com https://*.googletagmanager.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://www.google-analytics.com https://*.google-analytics.com https://*.googletagmanager.com; connect-src 'self' https://formspree.io https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
+  'Content-Security-Policy': "default-src 'self'; script-src 'self' https://www.googletagmanager.com https://*.googletagmanager.com; style-src 'self'; font-src 'self'; img-src 'self' data: https://www.google-analytics.com https://*.google-analytics.com https://*.googletagmanager.com; connect-src 'self' https://formspree.io https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
   'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
   'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
   'Cross-Origin-Resource-Policy': 'same-site',

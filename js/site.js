@@ -20,11 +20,38 @@
   var conc = document.getElementById('conciergerie');
   var concBtn = document.getElementById('conciergerieToggle');
 
+  function getPageType(pathname) {
+    var route = pathname.replace(/^\/(en|el)/, '') || '/';
+    if (route === '/' || route === '') return 'home';
+    if (route.indexOf('/private-chef/') === 0) return 'private_chef';
+    if (route.indexOf('/catering/') === 0) return 'catering';
+    if (route.indexOf('/menus/') === 0) return 'menus';
+    if (route.indexOf('/contact/') === 0) return 'contact';
+    if (route.indexOf('/about/') === 0) return 'about';
+    if (route.indexOf('/privacy/') === 0) return 'privacy';
+    if (route.indexOf('/404') === 0) return 'not_found';
+    return 'other';
+  }
+
+  function getServiceIntent(pageType) {
+    if (pageType === 'catering') return 'event_catering';
+    if (pageType === 'private_chef') return 'private_chef';
+    if (pageType === 'menus') return 'menu_inquiry';
+    if (pageType === 'contact') return 'lead_capture';
+    if (pageType === 'home') return 'mixed_services';
+    return 'general';
+  }
+
   /* GA4 helper */
   function gaEvent(name, params) {
     if (typeof gtag !== 'function') return;
-    var payload = params && typeof params === 'object' ? params : {};
-    if (!payload.page_path) payload.page_path = window.location.pathname;
+    var payload = params && typeof params === 'object' ? Object.assign({}, params) : {};
+    var currentPath = window.location.pathname;
+    var pageType = getPageType(currentPath);
+    if (!payload.page_path) payload.page_path = currentPath;
+    if (!payload.locale) payload.locale = lang;
+    if (!payload.page_type) payload.page_type = pageType;
+    if (!payload.service_intent) payload.service_intent = getServiceIntent(pageType);
     if (window.__GA_DEBUG__ === true) payload.debug_mode = true;
     gtag('event', name, payload);
   }
@@ -97,7 +124,7 @@
   /* 12A: Restore saved language preference only on legacy root pages */
   var savedLang = null;
   if (!isStaticLocalized) {
-    savedLang = localStorage.getItem('evochia-lang');
+    try { savedLang = localStorage.getItem('evochia-lang'); } catch (e) { /* private browsing */ }
     if (savedLang && savedLang !== lang) {
       lang = savedLang;
       document.documentElement.lang = lang;
@@ -152,7 +179,7 @@
         ls.textContent = lang === 'en' ? 'EL' : 'EN';
         ls.setAttribute('aria-label', lang === 'en' ? 'Αλλαγή σε Ελληνικά' : 'Switch to English');
       }
-      localStorage.setItem('evochia-lang', lang);
+      try { localStorage.setItem('evochia-lang', lang); } catch (e) { /* private browsing */ }
       applyLanguage();
     });
   }
@@ -298,9 +325,12 @@
   if (quoteForm) {
     quoteForm.addEventListener('submit', function (e) {
       e.preventDefault();
+      var eventTypeEl = document.getElementById('qf-event');
+      var eventType = eventTypeEl ? eventTypeEl.value : '';
       gaEvent('form_submit_attempt', {
         form_id: 'quoteForm',
-        lead_source: 'quote_form'
+        lead_source: 'quote_form',
+        event_type: eventType || ''
       });
       var btn = quoteForm.querySelector('button[type="submit"]');
       var status = document.getElementById('form-status');
