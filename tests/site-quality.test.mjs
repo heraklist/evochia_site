@@ -322,6 +322,28 @@ test("first-party JS stays free of direct style injection", () => {
   }
 });
 
+test("language switcher links point to the correct counterpart page", () => {
+  const otherLocale = { en: "el", el: "en" };
+
+  for (const locale of locales) {
+    for (const page of [...contentPages, "404"]) {
+      const html = readRepoFile(pagePath(locale, page));
+      const match = html.match(/class="lang-switch"\s+href="([^"]+)"/);
+      if (!match) continue;
+
+      const href = match[1];
+      const expectedSlug = page === "index" ? "" : `${page}/`;
+      const expectedHref = `/${otherLocale[locale]}/${expectedSlug}`;
+
+      assert.equal(
+        href,
+        expectedHref,
+        `${pagePath(locale, page)} lang-switch should point to ${expectedHref} but got ${href}`,
+      );
+    }
+  }
+});
+
 test("contact form controls keep 1rem font sizing for mobile usability", () => {
   const css = readRepoFile("css/site.css");
 
