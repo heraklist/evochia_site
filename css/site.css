@@ -528,6 +528,32 @@ body.menu-open { overflow: hidden; }
 .trust-layer-contact .trust-header .section-label,
 .trust-layer-contact .trust-header .gold-line { margin-left: 0; margin-right: 0; }
 
+/* FAQ accordion */
+.faq-accordion { display: grid; gap: .9rem; max-width: 800px; margin: 0 auto; }
+.faq-accordion details {
+  padding: 0; border-top: 1px solid rgba(196,162,101,.12);
+  background: linear-gradient(180deg, rgba(255,255,255,.02), transparent);
+}
+.faq-accordion summary {
+  font-family: var(--font-heading); font-size: 1.15rem; font-weight: 400;
+  color: var(--white); padding: 1.15rem 2.5rem 1.15rem 1.2rem;
+  cursor: pointer; list-style: none; position: relative; line-height: 1.45;
+}
+.faq-accordion summary::-webkit-details-marker { display: none; }
+.faq-accordion summary::after {
+  content: '+'; position: absolute; right: 1.2rem; top: 50%; transform: translateY(-50%);
+  font-size: 1.3rem; color: var(--gold); transition: transform .3s ease;
+}
+.faq-accordion details[open] summary::after { content: '−'; }
+.faq-accordion summary:hover { color: var(--gold); }
+.faq-accordion summary:focus-visible { outline: 1px solid var(--gold); outline-offset: 2px; }
+.faq-accordion .faq-answer {
+  color: var(--cream-dim); font-size: .85rem; line-height: 1.7;
+  padding: 0 1.2rem 1.15rem;
+}
+.faq-accordion .faq-answer a { color: var(--gold); text-decoration: underline; text-underline-offset: 2px; }
+.faq-accordion .faq-answer a:hover { color: var(--gold-light); }
+
 /* Venues */
 .venues { background: var(--green-deepest); padding: 8rem var(--page-pad); }
 .venues-header { text-align: center; max-width: 700px; margin: 0 auto 4rem; }
