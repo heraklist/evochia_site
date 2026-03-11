@@ -330,14 +330,14 @@ body.menu-open { overflow: hidden; }
 .text-link:hover { gap: 1.25rem; }
 .text-link:focus-visible { outline: 2px solid var(--gold); outline-offset: 4px; }
 .text-link svg { width: 18px; height: 18px; }
-.landing-link-group { margin-top: 1.5rem; display: grid; gap: .85rem; }
+.landing-link-group { margin-top: 1.5rem; display: grid; gap: .75rem; }
 .landing-link-group-top { margin-top: 1.5rem; }
-.landing-link-label { margin: 0; color: rgba(196,162,101,.8); font-size: .68rem; letter-spacing: .16em; text-transform: uppercase; }
-.landing-link-list { display: flex; flex-wrap: wrap; gap: .65rem; }
+.landing-link-label { margin: 0; color: rgba(196,162,101,.55); font-size: .62rem; letter-spacing: .16em; text-transform: uppercase; }
+.landing-link-list { display: flex; flex-wrap: wrap; gap: .55rem; }
 .landing-link-chip {
-  display: inline-flex; align-items: center; padding: .6rem .95rem; border-radius: 999px;
-  border: 1px solid rgba(196,162,101,.18); background: rgba(255,255,255,.03); color: var(--white);
-  text-decoration: none; font-size: .76rem; line-height: 1.2; letter-spacing: .08em;
+  display: inline-flex; align-items: center; padding: .5rem .85rem; border-radius: 999px;
+  border: 1px solid rgba(196,162,101,.12); background: rgba(255,255,255,.02); color: var(--cream-dim);
+  text-decoration: none; font-size: .72rem; line-height: 1.2; letter-spacing: .08em;
   transition: border-color .3s, background-color .3s, transform .3s;
 }
 .landing-link-chip:hover { border-color: rgba(196,162,101,.4); background: rgba(196,162,101,.08); transform: translateY(-2px); }
