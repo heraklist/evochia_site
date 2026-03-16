@@ -5,51 +5,236 @@
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "https://www.evochia.gr"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=()"
+        },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' https://www.googletagmanager.com https://*.googletagmanager.com 'sha256-2WIuDihWi48Fg5pkalmwn/qtUUnLW3XxjuNkZRe7RNo='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://www.google-analytics.com https://*.google-analytics.com https://*.googletagmanager.com; connect-src 'self' https://formspree.io https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; frame-ancestors 'none'"
+          "value": "default-src 'self'; script-src 'self' https://www.googletagmanager.com https://*.googletagmanager.com; script-src-attr 'none'; style-src 'self'; style-src-attr 'none'; font-src 'self'; img-src 'self' data: https://www.google-analytics.com https://*.google-analytics.com https://*.googletagmanager.com; connect-src 'self' https://formspree.io https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; form-action 'self' https://formspree.io; frame-src 'none'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; manifest-src 'self'; worker-src 'self'; media-src 'self'"
         },
-        { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" },
-        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin-allow-popups" },
-        { "key": "Cross-Origin-Resource-Policy", "value": "same-site" }
-      ]
-    },
-    {
-      "source": "/_publish_repo/(.*)",
-      "headers": [
-        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=63072000; includeSubDomains; preload"
+        },
+        {
+          "key": "Cross-Origin-Opener-Policy",
+          "value": "same-origin"
+        },
+        {
+          "key": "Cross-Origin-Resource-Policy",
+          "value": "same-site"
+        }
       ]
     },
     {
       "source": "/assets/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
       ]
     },
     {
       "source": "/css/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=2592000" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
       ]
     },
     {
       "source": "/js/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=2592000" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
       ]
     },
     {
       "source": "/photos/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
       ]
     }
   ],
   "redirects": [
-    { "source": "/index", "destination": "/", "statusCode": 301 }
+    {
+      "source": "/",
+      "destination": "/en/",
+      "statusCode": 301
+    },
+    {
+      "source": "/index",
+      "destination": "/en/",
+      "statusCode": 301
+    },
+    {
+      "source": "/index/",
+      "destination": "/en/",
+      "statusCode": 301
+    },
+    {
+      "source": "/about",
+      "destination": "/en/about/",
+      "statusCode": 301
+    },
+    {
+      "source": "/about/",
+      "destination": "/en/about/",
+      "statusCode": 301
+    },
+    {
+      "source": "/catering",
+      "destination": "/en/catering/",
+      "statusCode": 301
+    },
+    {
+      "source": "/catering/",
+      "destination": "/en/catering/",
+      "statusCode": 301
+    },
+    {
+      "source": "/wedding-catering",
+      "destination": "/en/wedding-catering/",
+      "statusCode": 301
+    },
+    {
+      "source": "/wedding-catering/",
+      "destination": "/en/wedding-catering/",
+      "statusCode": 301
+    },
+    {
+      "source": "/villa-private-chef",
+      "destination": "/en/villa-private-chef/",
+      "statusCode": 301
+    },
+    {
+      "source": "/villa-private-chef/",
+      "destination": "/en/villa-private-chef/",
+      "statusCode": 301
+    },
+    {
+      "source": "/private-chef",
+      "destination": "/en/private-chef/",
+      "statusCode": 301
+    },
+    {
+      "source": "/private-chef/",
+      "destination": "/en/private-chef/",
+      "statusCode": 301
+    },
+    {
+      "source": "/corporate-catering",
+      "destination": "/en/corporate-catering/",
+      "statusCode": 301
+    },
+    {
+      "source": "/corporate-catering/",
+      "destination": "/en/corporate-catering/",
+      "statusCode": 301
+    },
+    {
+      "source": "/yacht-private-chef",
+      "destination": "/en/yacht-private-chef/",
+      "statusCode": 301
+    },
+    {
+      "source": "/yacht-private-chef/",
+      "destination": "/en/yacht-private-chef/",
+      "statusCode": 301
+    },
+    {
+      "source": "/athens-private-chef",
+      "destination": "/en/athens-private-chef/",
+      "statusCode": 301
+    },
+    {
+      "source": "/athens-private-chef/",
+      "destination": "/en/athens-private-chef/",
+      "statusCode": 301
+    },
+    {
+      "source": "/greek-islands-private-chef",
+      "destination": "/en/greek-islands-private-chef/",
+      "statusCode": 301
+    },
+    {
+      "source": "/greek-islands-private-chef/",
+      "destination": "/en/greek-islands-private-chef/",
+      "statusCode": 301
+    },
+    {
+      "source": "/menus",
+      "destination": "/en/menus/",
+      "statusCode": 301
+    },
+    {
+      "source": "/menus/",
+      "destination": "/en/menus/",
+      "statusCode": 301
+    },
+    {
+      "source": "/contact",
+      "destination": "/en/contact/",
+      "statusCode": 301
+    },
+    {
+      "source": "/contact/",
+      "destination": "/en/contact/",
+      "statusCode": 301
+    },
+    {
+      "source": "/privacy",
+      "destination": "/en/privacy/",
+      "statusCode": 301
+    },
+    {
+      "source": "/privacy/",
+      "destination": "/en/privacy/",
+      "statusCode": 301
+    },
+    {
+      "source": "/faq",
+      "destination": "/en/faq/",
+      "statusCode": 301
+    },
+    {
+      "source": "/faq/",
+      "destination": "/en/faq/",
+      "statusCode": 301
+    },
+    {
+      "source": "/lookbook",
+      "destination": "/en/lookbook/",
+      "statusCode": 301
+    },
+    {
+      "source": "/lookbook/",
+      "destination": "/en/lookbook/",
+      "statusCode": 301
+    }
   ]
 }

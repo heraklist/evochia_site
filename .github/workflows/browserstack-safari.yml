@@ -1,0 +1,34 @@
+name: BrowserStack Safari Sign-off
+
+on:
+  workflow_dispatch:
+
+jobs:
+  safari-signoff:
+    runs-on: ubuntu-latest
+    env:
+      BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+      BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+      BROWSERSTACK_PUBLIC_BASE_URL: https://www.evochia.gr
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run BrowserStack real-device smoke suite
+        run: npm run qa:browserstack:public
+
+      - name: Upload BrowserStack reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browserstack-safari-reports
+          path: .reports/browserstack

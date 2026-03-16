@@ -1,13 +1,24 @@
 (function () {
   'use strict';
 
-  /* ── Remove no-js class (enables CSS animations) ── */
+  /* Promote the preloaded main stylesheet after parse */
+  function loadMainStylesheet() {
+    var promote = function () {
+      var preload = document.getElementById('siteStylesPreload');
+      if (!preload) return;
+      preload.rel = 'stylesheet';
+      preload.removeAttribute('as');
+      preload.id = 'siteStylesheet';
+    };
+    promote();
+  }
+
+  loadMainStylesheet();
+
+  /* Remove no-js class (enables CSS animations) */
   document.documentElement.classList.remove('no-js');
 
-  /* ── Element refs (all defensive) ── */
-  var pre = document.getElementById('preloader');
-  var pLogo = document.getElementById('preloaderLogo');
-  var nLogo = document.getElementById('navLogo');
+  /* Element refs (all defensive) */
   var nav = document.getElementById('nav');
   var ham = document.getElementById('hamburger');
   var nLinks = document.getElementById('navLinks');
@@ -15,69 +26,98 @@
   var conc = document.getElementById('conciergerie');
   var concBtn = document.getElementById('conciergerieToggle');
 
+  function getPageType(pathname) {
+    var route = pathname.replace(/^\/(en|el)/, '') || '/';
+    if (route === '/' || route === '') return 'home';
+    if (route.indexOf('/private-chef/') === 0) return 'private_chef';
+    if (route.indexOf('/catering/') === 0) return 'catering';
+    if (route.indexOf('/menus/') === 0) return 'menus';
+    if (route.indexOf('/contact/') === 0) return 'contact';
+    if (route.indexOf('/about/') === 0) return 'about';
+    if (route.indexOf('/privacy/') === 0) return 'privacy';
+    if (route.indexOf('/faq/') === 0) return 'faq';
+    if (route.indexOf('/lookbook/') === 0) return 'lookbook';
+    if (route.indexOf('/404') === 0) return 'not_found';
+    return 'other';
+  }
+
+  function getServiceIntent(pageType) {
+    if (pageType === 'catering') return 'event_catering';
+    if (pageType === 'private_chef') return 'private_chef';
+    if (pageType === 'menus') return 'menu_inquiry';
+    if (pageType === 'contact') return 'lead_capture';
+    if (pageType === 'home') return 'mixed_services';
+    return 'general';
+  }
+
   /* GA4 helper */
   function gaEvent(name, params) {
     if (typeof gtag !== 'function') return;
-    var payload = params && typeof params === 'object' ? params : {};
-    if (!payload.page_path) payload.page_path = window.location.pathname;
+    var payload = params && typeof params === 'object' ? Object.assign({}, params) : {};
+    var currentPath = window.location.pathname;
+    var pageType = getPageType(currentPath);
+    if (!payload.page_path) payload.page_path = currentPath;
+    if (!payload.locale) payload.locale = lang;
+    if (!payload.page_type) payload.page_type = pageType;
+    if (!payload.service_intent) payload.service_intent = getServiceIntent(pageType);
     if (window.__GA_DEBUG__ === true) payload.debug_mode = true;
     gtag('event', name, payload);
   }
 
-  /* ── Preloader ── */
-  if (pre && nav) {
-    if (sessionStorage.getItem('evochia-visited')) {
-      pre.classList.add('skip');
-      nav.classList.add('visible');
-    } else {
-      var failsafe = setTimeout(function () {
-        pre.style.display = 'none';
-        nav.classList.add('visible');
-      }, 3500);
+  /* Nav visible */
+  if (nav) nav.classList.add('visible');
 
-      window.addEventListener('load', function () {
-        setTimeout(function () {
-          if (pLogo && nLogo) {
-            var lr = pLogo.getBoundingClientRect();
-            var nr = nLogo.getBoundingClientRect();
-            pLogo.style.setProperty('--logo-dx', (nr.left + nr.width / 2 - lr.left - lr.width / 2) + 'px');
-            pLogo.style.setProperty('--logo-dy', (nr.top + nr.height / 2 - lr.top - lr.height / 2) + 'px');
-          }
-          pre.classList.add('phase-rise');
-          setTimeout(function () {
-            pre.classList.add('phase-fade');
-            nav.classList.add('visible');
-          }, 600);
-          setTimeout(function () {
-            pre.style.display = 'none';
-            clearTimeout(failsafe);
-          }, 1500);
-        }, 1000);
-        sessionStorage.setItem('evochia-visited', '1');
-      });
-    }
-  }
-
-  /* ── Scroll — nav background ── */
+  /* Scroll - nav background */
   if (nav) {
     window.addEventListener('scroll', function () {
       nav.classList.toggle('scrolled', window.scrollY > 50);
     }, { passive: true });
   }
 
-  /* ── Mobile menu ── */
-  function closeMenu() {
+  /* Mobile menu */
+  function closeMenu(options) {
+    var wasOpen = !!(nLinks && nLinks.classList.contains('mobile-open'));
+    var restoreFocus = !!(options && options.restoreFocus);
     if (ham) ham.setAttribute('aria-expanded', 'false');
     if (nLinks) nLinks.classList.remove('mobile-open');
+    document.body.classList.remove('menu-open');
+    if (restoreFocus && wasOpen && ham) ham.focus();
   }
   function openMenu() {
     if (ham) ham.setAttribute('aria-expanded', 'true');
     if (nLinks) nLinks.classList.add('mobile-open');
+    document.body.classList.add('menu-open');
+    /* Move focus to first interactive item */
+    if (nLinks) {
+      var firstLink = nLinks.querySelector('a, button');
+      if (firstLink) firstLink.focus();
+    }
+  }
+
+  /* Focus trap inside mobile menu */
+  if (nLinks) {
+    nLinks.addEventListener('keydown', function (e) {
+      if (e.key !== 'Tab' || !nLinks.classList.contains('mobile-open')) return;
+      var focusable = nLinks.querySelectorAll('a, button, [tabindex]:not([tabindex="-1"])');
+      if (!focusable.length) return;
+      var first = focusable[0];
+      var last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    });
   }
 
   if (ham) {
-    ham.addEventListener('click', function () {
-      nLinks && nLinks.classList.contains('mobile-open') ? closeMenu() : openMenu();
+    ham.addEventListener('click', function (e) {
+      e.stopPropagation();
+      nLinks && nLinks.classList.contains('mobile-open')
+        ? closeMenu({ restoreFocus: false })
+        : openMenu();
     });
   }
   if (nLinks) {
@@ -86,21 +126,24 @@
     });
   }
 
-  /* ── Conciergerie helpers ── */
-  function closeConciergerie() {
+  /* Conciergerie helpers */
+  function closeConciergerie(options) {
+    var wasOpen = !!(conc && conc.classList.contains('open'));
+    var restoreFocus = !!(options && options.restoreFocus);
     if (conc) conc.classList.remove('open');
     if (concBtn) concBtn.setAttribute('aria-expanded', 'false');
+    if (restoreFocus && wasOpen && concBtn) concBtn.focus();
   }
 
-  /* ── Escape key — close menus ── */
+  /* Escape key - close menus */
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
-      closeMenu();
-      closeConciergerie();
+      closeMenu({ restoreFocus: true });
+      closeConciergerie({ restoreFocus: true });
     }
   });
 
-  /* ── Click outside mobile menu ── */
+  /* Click outside mobile menu */
   document.addEventListener('click', function (e) {
     if (nLinks && nLinks.classList.contains('mobile-open') &&
         !nLinks.contains(e.target) && ham && !ham.contains(e.target)) {
@@ -108,17 +151,34 @@
     }
   });
 
-  /* ── Language toggle ── */
-  var lang = document.documentElement.lang || 'en';
+  window.addEventListener('resize', function () {
+    if (window.innerWidth > 768) closeMenu();
+  });
 
-  /* 12A: Restore saved language preference */
-  var savedLang = localStorage.getItem('evochia-lang');
-  if (savedLang && savedLang !== lang) {
-    lang = savedLang;
-    document.documentElement.lang = lang;
+  /* Language toggle */
+  var staticLocaleMatch = window.location.pathname.match(/^\/(en|el)(?:\/|$)/);
+  var isStaticLocalized = !!staticLocaleMatch;
+  var lang = isStaticLocalized ? staticLocaleMatch[1] : (document.documentElement.lang || 'en');
+
+  /* 12A: Restore saved language preference only on legacy root pages */
+  var savedLang = null;
+  if (!isStaticLocalized) {
+    try { savedLang = localStorage.getItem('evochia-lang'); } catch { /* private browsing */ }
+    if (savedLang && savedLang !== lang) {
+      lang = savedLang;
+      document.documentElement.lang = lang;
+    }
+  }
+
+  function applyLocalizedAttribute(suffix, targetAttr) {
+    document.querySelectorAll('[data-' + lang + '-' + suffix + ']').forEach(function (el) {
+      var value = el.getAttribute('data-' + lang + '-' + suffix);
+      if (value) el.setAttribute(targetAttr || suffix, value);
+    });
   }
 
   function applyLanguage() {
+    document.documentElement.lang = lang;
     document.querySelectorAll('[data-' + lang + ']').forEach(function (el) {
       if (el.hasAttribute('data-' + lang + '-html')) return;
       var t = el.getAttribute('data-' + lang);
@@ -129,31 +189,52 @@
       if (!t) return;
       // Allow only the small inline tags used in localized headings.
       var allowed = t.replace(/<(?!\/?(?:em|span)(?:\s[^>]*)?>)[^>]+>/gi, '');
+      // Remove inline on* attributes on the remaining allowed tags.
+      allowed = allowed.replace(/(<(?:em|span)\b[^>]*?)\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)([^>]*>)/gi, '$1$2');
       el.innerHTML = allowed;
+    });
+    applyLocalizedAttribute('href');
+    applyLocalizedAttribute('aria-label', 'aria-label');
+    applyLocalizedAttribute('content');
+    applyLocalizedAttribute('lang');
+    applyLocalizedAttribute('alt');
+    /* Toggle language-specific hidden blocks (privacy page) */
+    document.querySelectorAll('[data-en-hidden],[data-el-hidden]').forEach(function (el) {
+      el.hidden = el.hasAttribute('data-' + lang + '-hidden');
     });
   }
 
-  if (ls) {
-    ls.addEventListener('click', function () {
-      lang = lang === 'en' ? 'el' : 'en';
+  function applyStaticLocalizedState() {
+    document.documentElement.lang = lang;
+    document.querySelectorAll('[data-en-hidden],[data-el-hidden]').forEach(function (el) {
+      el.hidden = el.hasAttribute('data-' + lang + '-hidden');
+    });
+  }
+
+  if (isStaticLocalized) {
+    applyStaticLocalizedState();
+  } else {
+    applyLanguage();
+  }
+
+  if (ls && !isStaticLocalized) {
+    if (ls.tagName !== 'A') {
       ls.textContent = lang === 'en' ? 'EL' : 'EN';
       ls.setAttribute('aria-label', lang === 'en' ? 'Αλλαγή σε Ελληνικά' : 'Switch to English');
-      document.documentElement.lang = lang;
-      localStorage.setItem('evochia-lang', lang);
+    }
+    ls.addEventListener('click', function (e) {
+      e.preventDefault();
+      lang = lang === 'en' ? 'el' : 'en';
+      if (ls.tagName !== 'A') {
+        ls.textContent = lang === 'en' ? 'EL' : 'EN';
+        ls.setAttribute('aria-label', lang === 'en' ? 'Αλλαγή σε Ελληνικά' : 'Switch to English');
+      }
+      try { localStorage.setItem('evochia-lang', lang); } catch { /* private browsing */ }
       applyLanguage();
     });
   }
 
-  /* Apply saved language on page load */
-  if (savedLang) {
-    if (ls) {
-      ls.textContent = lang === 'en' ? 'EL' : 'EN';
-      ls.setAttribute('aria-label', lang === 'en' ? 'Αλλαγή σε Ελληνικά' : 'Switch to English');
-    }
-    applyLanguage();
-  }
-
-  /* ── Service tabs (homepage) ── */
+  /* Service tabs (homepage) */
   var tabs = document.querySelectorAll('.services-tab');
   if (tabs.length) {
     tabs.forEach(function (tab) {
@@ -187,20 +268,26 @@
     });
   }
 
-  /* ── Conciergerie panel ── */
+  /* Conciergerie panel */
   if (concBtn && conc) {
     concBtn.addEventListener('click', function (e) {
       e.stopPropagation();
       conc.classList.toggle('open');
       var isOpen = conc.classList.contains('open');
       concBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      if (isOpen) {
+        var firstConciergerieAction = conc.querySelector('a, button');
+        if (firstConciergerieAction) firstConciergerieAction.focus();
+      } else {
+        concBtn.focus();
+      }
     });
     document.addEventListener('click', function (e) {
       if (!conc.contains(e.target)) closeConciergerie();
     });
   }
 
-  /* ── Scroll reveal (IntersectionObserver) ── */
+  /* Scroll reveal (IntersectionObserver) */
   if ('IntersectionObserver' in window) {
     var obs = new IntersectionObserver(function (entries) {
       entries.forEach(function (e) {
@@ -215,7 +302,7 @@
     document.querySelectorAll('.reveal').forEach(function (el) { el.classList.add('visible'); });
   }
 
-  /* ── Smooth scroll for anchor links (respects reduced-motion) ── */
+  /* Smooth scroll for anchor links (respects reduced-motion) */
   var prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   document.querySelectorAll('a[href^="#"]').forEach(function (a) {
     a.addEventListener('click', function (e) {
@@ -228,7 +315,7 @@
     });
   });
 
-  /* ── Contact form submit ── */
+  /* Contact form submit */
   /* GA4 click tracking: contact actions and CTA clicks */
   document.addEventListener('click', function (e) {
     var el = e.target && e.target.closest ? e.target.closest('a, button') : null;
@@ -248,7 +335,6 @@
         link_text: linkText,
         lead_source: 'site'
       });
-      return;
     }
 
     if (normalizedHref.indexOf('mailto:') === 0) {
@@ -258,7 +344,6 @@
         link_text: linkText,
         lead_source: 'site'
       });
-      return;
     }
 
     if (normalizedHref.indexOf('wa.me/') !== -1) {
@@ -268,7 +353,6 @@
         link_text: linkText,
         lead_source: 'site'
       });
-      return;
     }
 
     var ctaVariant = '';
@@ -294,15 +378,20 @@
   if (quoteForm) {
     quoteForm.addEventListener('submit', function (e) {
       e.preventDefault();
+      var eventTypeEl = document.getElementById('qf-event');
+      var eventType = eventTypeEl ? eventTypeEl.value : '';
       gaEvent('form_submit_attempt', {
         form_id: 'quoteForm',
-        lead_source: 'quote_form'
+        lead_source: 'quote_form',
+        event_type: eventType || ''
       });
       var btn = quoteForm.querySelector('button[type="submit"]');
       var status = document.getElementById('form-status');
-      var origText = btn.textContent;
-      btn.disabled = true;
-      btn.textContent = '...';
+      var origText = btn ? btn.textContent : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = '...';
+      }
       if (status) status.hidden = true;
 
       fetch(quoteForm.action, {
@@ -317,7 +406,7 @@
           if (status) {
             status.textContent = isEl
               ? 'Ευχαριστούμε! Θα επικοινωνήσουμε σύντομα.'
-              : 'Thank you! We\'ll be in touch soon.';
+              : "Thank you! We'll be in touch soon.";
             status.className = 'form-status success';
             status.hidden = false;
           }
@@ -340,14 +429,23 @@
           status.hidden = false;
         }
       }).finally(function () {
-        btn.disabled = false;
-        btn.textContent = origText;
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = origText;
+        }
       });
     });
   }
 
-  /* ── Dynamic copyright year ── */
+  /* Dynamic copyright year */
   var yearEl = document.getElementById('copyright-year');
   if (yearEl) yearEl.textContent = new Date().getFullYear();
+
+  /* Cookie preference buttons (CSP-safe delegation) */
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('.cc-show-prefs, .policy-cookie-btn')) {
+      if (typeof CookieConsent !== 'undefined') CookieConsent.showPreferences();
+    }
+  });
 
 })();

@@ -1,0 +1,12 @@
+{
+  "defaults": {
+    "standard": "WCAG2AA",
+    "timeout": 30000,
+    "wait": 1200,
+    "includeWarnings": false,
+    "hideElements": [
+      "footer a"
+    ]
+  },
+  "urls": []
+}
