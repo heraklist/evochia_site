@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import pa11y from "pa11y";
+import { chromium as playwrightChromium } from "playwright";
 
 import {
   ensurePreviewServer,
@@ -14,6 +15,7 @@ const baseConfigPath = path.join(repoRoot, ".pa11yci.base.json");
 
 const browserPath = pickExistingPath([
   process.env.CHROME_PATH ?? "",
+  getPlaywrightChromiumPath(),
   "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
   "C:/Program Files/Microsoft/Edge/Application/msedge.exe",
   "C:/Program Files/Google/Chrome/Application/chrome.exe",
@@ -131,4 +133,12 @@ try {
 
 function pickExistingPath(paths) {
   return paths.find((candidate) => candidate && existsSync(candidate));
+}
+
+function getPlaywrightChromiumPath() {
+  try {
+    return playwrightChromium.executablePath();
+  } catch {
+    return "";
+  }
 }

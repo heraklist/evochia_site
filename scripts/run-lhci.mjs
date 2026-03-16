@@ -4,6 +4,7 @@ import path from "node:path";
 
 import { launch } from "chrome-launcher";
 import lighthouse, { desktopConfig } from "lighthouse";
+import { chromium as playwrightChromium } from "playwright";
 
 import {
   ensurePreviewServer,
@@ -30,6 +31,7 @@ const reportDir = path.join(repoRoot, ".reports", "lhci", `${scope}-${profile}`)
 const profilesDir = path.join(reportDir, ".profiles");
 const chromePath = pickExistingPath([
   process.env.CHROME_PATH ?? "",
+  getPlaywrightChromiumPath(),
   "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
   "C:/Program Files/Microsoft/Edge/Application/msedge.exe",
   "C:/Program Files/Google/Chrome/Application/chrome.exe",
@@ -168,6 +170,14 @@ if (failingAssertions.length) {
 
 function pickExistingPath(paths) {
   return paths.find((candidate) => candidate && existsSync(candidate));
+}
+
+function getPlaywrightChromiumPath() {
+  try {
+    return playwrightChromium.executablePath();
+  } catch {
+    return "";
+  }
 }
 
 function score(value) {

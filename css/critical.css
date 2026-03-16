@@ -229,7 +229,7 @@ main { display: block; }
   text-decoration: none;
 }
 
-.breadcrumbs [aria-current] { color: var(--gold-pale); }
+.breadcrumbs [aria-current] { color: var(--gold); }
 
 .hero {
   position: relative;

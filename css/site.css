@@ -181,7 +181,7 @@ body.menu-open { overflow: hidden; }
 .breadcrumbs a { color: var(--cream-dim); text-decoration: none; transition: color .3s; }
 .breadcrumbs a:hover { color: var(--gold); }
 .breadcrumbs a:focus-visible { outline: 1px solid var(--gold); outline-offset: 2px; }
-.breadcrumbs [aria-current] { color: var(--gold-dim); }
+.breadcrumbs [aria-current] { color: var(--gold); }
 
 /* Hero */
 .hero {
@@ -349,7 +349,7 @@ body.menu-open { overflow: hidden; }
 .text-link svg { width: 18px; height: 18px; }
 .landing-link-group { margin-top: 1.5rem; display: grid; gap: .75rem; }
 .landing-link-group-top { margin-top: 1.5rem; }
-.landing-link-label { margin: 0; color: rgba(196,162,101,.55); font-size: .62rem; letter-spacing: .16em; text-transform: uppercase; }
+.landing-link-label { margin: 0; color: rgba(196,162,101,.82); font-size: .62rem; letter-spacing: .16em; text-transform: uppercase; }
 .landing-link-list { display: flex; flex-wrap: wrap; gap: .55rem; }
 .landing-link-chip {
   display: inline-flex; align-items: center; padding: .5rem .85rem; border-radius: 999px;
@@ -669,7 +669,7 @@ body.menu-open { overflow: hidden; }
   display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 3rem; margin-bottom: 3rem;
 }
 .footer-brand { font-family: var(--font-heading); font-size: 1.4rem; color: var(--gold); letter-spacing: .2em; text-transform: uppercase; margin-bottom: .75rem; }
-.footer-tagline { font-family: var(--font-body); font-size: .85rem; font-style: italic; letter-spacing: .02em; color: rgba(196,162,101,0.72); margin-bottom: 1rem; }
+.footer-tagline { font-family: var(--font-body); font-size: .85rem; font-style: italic; letter-spacing: .02em; color: rgba(196,162,101,0.75); margin-bottom: 1rem; }
 .footer-desc { color: var(--cream-dim); font-size: .82rem; max-width: 280px; margin-bottom: 1.5rem; }
 .footer-social-icons { display: flex; gap: 1rem; }
 .footer-social-icons a {
@@ -790,6 +790,7 @@ html[lang="el"] .trust-kicker { letter-spacing: .08em; text-transform: none; }
 .mb-xl { margin-bottom: 3rem; }
 .w-full { width: 100%; }
 .copy-muted { color: var(--cream-dim); }
+.copy-muted a { color: var(--gold); }
 .copy-italic { font-style: italic; }
 .gold-line-centered { margin: 0 auto 2rem; }
 .gold-line-centered-tight { margin: 0 auto 1.5rem; }
