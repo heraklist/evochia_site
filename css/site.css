@@ -312,6 +312,15 @@ body.menu-open { overflow: hidden; }
   margin-left: auto;
   margin-right: auto;
 }
+.cta-title-refined {
+  font-family: var(--font-page-hero);
+  font-style: normal;
+  line-height: 1.08;
+  text-wrap: balance;
+  max-width: 18ch;
+  margin-left: auto;
+  margin-right: auto;
+}
 .gold-line { width: 45px; height: 1px; background: var(--gold); margin-bottom: 2rem; }
 .section-divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(196,162,101,.25), transparent); }
 
@@ -1253,6 +1262,7 @@ html[lang="el"] .trust-kicker {
   .event-type-info { padding: 1rem 1.2rem 1.2rem; }
   .values-grid { grid-template-columns: 1fr; max-width: 320px; margin: 0 auto; }
   .text-center .section-title-refined { max-width: 17ch; }
+  .cta-title-refined { max-width: 14ch; }
 }
 
 /* Contact Form */
