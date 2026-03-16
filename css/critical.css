@@ -320,6 +320,16 @@ main { display: block; }
   font-style: normal;
 }
 
+html[lang="el"] .hero-subtitle {
+  letter-spacing: .12em;
+  text-transform: none;
+}
+
+html[lang="el"] .hero:not(.page-hero) .hero-title {
+  font-size: clamp(2.45rem, 6vw, 5rem);
+  line-height: 1.05;
+}
+
 .page-hero .hero-title {
   font-family: var(--font-page-hero);
   font-style: normal;
@@ -428,7 +438,13 @@ main { display: block; }
     letter-spacing: .12em;
   }
 
-.hamburger { display: flex; }
+  html[lang="el"] .nav-links.mobile-open a {
+    font-size: 1rem;
+    letter-spacing: .08em;
+    text-transform: none;
+  }
+
+  .hamburger { display: flex; }
 
   .nav.scrolled { backdrop-filter: none; }
 
@@ -476,7 +492,7 @@ main { display: block; }
     font-size: .9rem;
     line-height: 1.5;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 3;
   }
 
 .page-hero .hero-title {
@@ -491,6 +507,14 @@ main { display: block; }
 
   .page-hero .hero-description {
     margin-bottom: 0;
+  }
+
+  html[lang="el"] .hero-subtitle {
+    letter-spacing: .08em;
+  }
+
+  html[lang="el"] .hero:not(.page-hero) .hero-content {
+    padding-top: 5rem;
   }
 
   .hero-cta-group {

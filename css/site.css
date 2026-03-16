@@ -503,7 +503,7 @@ body.menu-open { overflow: hidden; }
 .stats-section { background: var(--green-dark); padding: 5rem var(--page-pad); }
 .stats-grid {
   max-width: 1000px; margin: 0 auto;
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 3rem; text-align: center;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 3rem; text-align: center;
 }
 .stat-item { position: relative; }
 .stat-item:not(:last-child)::after {
@@ -1224,7 +1224,7 @@ html[lang="el"] .trust-kicker {
     max-width: 28rem;
     margin-bottom: 1.7rem;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 3;
   }
   .page-hero .hero-title {
     font-family: var(--font-page-hero);
@@ -1255,7 +1255,7 @@ html[lang="el"] .trust-kicker {
 }
 
 @media (max-width: 480px) {
-  .venues-grid { grid-template-columns: 1fr; max-width: 280px; margin: 0 auto; }
+  .venues-grid { grid-template-columns: 1fr; max-width: 340px; margin: 0 auto; }
   .cuisine-select-grid { grid-template-columns: 1fr; max-width: 320px; margin: 0 auto; }
   .event-type-card { grid-template-columns: 1fr; }
   .event-type-img { width: 100%; min-height: 180px; }
