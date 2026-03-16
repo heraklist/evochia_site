@@ -65,10 +65,21 @@
   --cream: #f0e8d8;
   --cream-dim: #c4b9a8; /* bumped from #b8ad98 for WCAG AA on dark */
   --white: #faf6ef;
-  --font-heading: 'Alexander', Georgia, serif;
+  --font-brand: 'Alexander', Georgia, serif;
+  --font-heading-latin: 'Alexander', Georgia, serif;
+  --font-heading-greek: Georgia, 'Times New Roman', serif;
+  --font-heading: var(--font-heading-latin);
   --font-body: 'Bainsley', 'Helvetica Neue', sans-serif;
-  --font-accent: 'Miama', 'Brush Script MT', cursive;
+  --font-accent-latin: 'Miama', 'Brush Script MT', cursive;
+  --font-accent-greek: Georgia, 'Times New Roman', serif;
+  --font-accent: var(--font-accent-latin);
+  --font-page-hero: Georgia, 'Times New Roman', serif;
   --page-pad: 3rem;
+}
+
+html[lang="el"] {
+  --font-heading: var(--font-heading-greek);
+  --font-accent: var(--font-accent-greek);
 }
 
 /* Reset */
@@ -124,7 +135,7 @@ body.menu-open { overflow: hidden; }
 .nav-logo { display: flex; align-items: center; gap: .6rem; text-decoration: none; }
 .nav-logo-img { height: 42px; width: auto; }
 .nav-logo-text {
-  font-family: var(--font-heading); font-size: 1.6rem; font-weight: 400;
+  font-family: var(--font-brand); font-size: 1.6rem; font-weight: 400;
   color: var(--gold); letter-spacing: .25em; text-transform: uppercase;
 }
 .nav-links { display: flex; align-items: center; gap: 2.5rem; list-style: none; }
@@ -680,7 +691,7 @@ body.menu-open { overflow: hidden; }
   max-width: 1200px; margin: 0 auto;
   display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 3rem; margin-bottom: 3rem;
 }
-.footer-brand { font-family: var(--font-heading); font-size: 1.4rem; color: var(--gold); letter-spacing: .2em; text-transform: uppercase; margin-bottom: .75rem; }
+.footer-brand { font-family: var(--font-brand); font-size: 1.4rem; color: var(--gold); letter-spacing: .2em; text-transform: uppercase; margin-bottom: .75rem; }
 .footer-tagline { font-family: var(--font-body); font-size: .85rem; font-style: italic; letter-spacing: .02em; color: rgba(212,184,122,.92); margin-bottom: 1rem; }
 .footer-desc { color: var(--cream-dim); font-size: .82rem; max-width: 280px; margin-bottom: 1.5rem; }
 .footer-social-icons { display: flex; gap: 1rem; }
@@ -702,11 +713,11 @@ body.menu-open { overflow: hidden; }
 .footer ul button.cc-show-prefs { color: #fbfbff !important; text-decoration: none; font-size: .82rem; transition: color .3s, background-color .3s, border-color .3s; }
 .footer ul button.cc-show-prefs {
   display: inline-flex; align-items: center; justify-content: center;
-  background: rgba(100,121,111,.28);
-  border: 1px solid rgba(196,162,101,.3);
+  background: rgba(100,121,111,.18);
+  border: 1px solid rgba(196,162,101,.22);
   border-radius: 999px;
   cursor: pointer;
-  padding: .45rem .85rem;
+  padding: .3rem .68rem;
   font: inherit;
   line-height: 1.2;
 }
@@ -927,6 +938,12 @@ html[lang="el"] .trust-kicker { letter-spacing: .08em; text-transform: none; }
   margin-top: 2.5rem;
 }
 .cta > .section-label { text-align: center; }
+
+.page-hero .hero-title,
+.page-hero .hero-title em {
+  font-family: var(--font-page-hero);
+  font-style: normal;
+}
 
 /* Cuisine selection grid (Private Chef) */
 .cuisine-select-grid {
@@ -1193,7 +1210,7 @@ html[lang="el"] .trust-kicker { letter-spacing: .08em; text-transform: none; }
   }
   .page-hero .hero-title,
   .page-hero .hero-title em {
-    font-family: Georgia, serif;
+    font-family: var(--font-page-hero);
     font-style: normal;
   }
   .page-hero .hero-title {

@@ -49,10 +49,21 @@
   --cream: #f0e8d8;
   --cream-dim: #c4b9a8;
   --white: #faf6ef;
-  --font-heading: 'Alexander', Georgia, serif;
+  --font-brand: 'Alexander', Georgia, serif;
+  --font-heading-latin: 'Alexander', Georgia, serif;
+  --font-heading-greek: Georgia, 'Times New Roman', serif;
+  --font-heading: var(--font-heading-latin);
   --font-body: 'Bainsley', 'Helvetica Neue', sans-serif;
-  --font-accent: 'Miama', 'Brush Script MT', cursive;
+  --font-accent-latin: 'Miama', 'Brush Script MT', cursive;
+  --font-accent-greek: Georgia, 'Times New Roman', serif;
+  --font-accent: var(--font-accent-latin);
+  --font-page-hero: Georgia, 'Times New Roman', serif;
   --page-pad: 3rem;
+}
+
+html[lang="el"] {
+  --font-heading: var(--font-heading-greek);
+  --font-accent: var(--font-accent-greek);
 }
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -126,7 +137,7 @@ main { display: block; }
 
 .nav-logo-text {
   color: var(--gold);
-  font-family: var(--font-heading);
+  font-family: var(--font-brand);
   font-size: 1.6rem;
   font-weight: 400;
   letter-spacing: .25em;
@@ -309,6 +320,12 @@ main { display: block; }
   font-style: normal;
 }
 
+.page-hero .hero-title,
+.page-hero .hero-title em {
+  font-family: var(--font-page-hero);
+  font-style: normal;
+}
+
 .hero-tagline {
   margin-bottom: 2rem;
   color: var(--gold-pale);
@@ -471,7 +488,7 @@ main { display: block; }
 
   .page-hero .hero-title,
   .page-hero .hero-title em {
-    font-family: Georgia, serif;
+    font-family: var(--font-page-hero);
     font-style: normal;
   }
 
