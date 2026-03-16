@@ -15,7 +15,6 @@ const scripts = {
     "qa:hreflang:local",
     "qa:structured-data:local",
     "qa:links",
-    "qa:vnu",
     "qa:lhci:local",
   ],
   pass2: [

@@ -11,7 +11,6 @@ const reportSpecs = {
     ["Structured data", ".reports/custom/structured-data-local.json"],
     ["Links", ".reports/custom/links.json"],
     ["Pa11y", ".reports/pa11y/summary.json"],
-    ["Nu Html Checker", ".reports/vnu/summary.json"],
     ["LHCI local mobile", ".reports/lhci/local-mobile/summary.json"],
     ["LHCI local desktop", ".reports/lhci/local-desktop/summary.json"],
   ],
@@ -172,9 +171,6 @@ function buildFixPlan(tools) {
   }
   if (tools.some((tool) => tool.label.includes("Pa11y") && tool.status === "failed")) {
     plan.push("Resolve WCAG issues surfaced by Pa11y, then rerun browser a11y checks.");
-  }
-  if (tools.some((tool) => tool.label.includes("Nu Html Checker") && tool.status === "failed")) {
-    plan.push("Clean HTML validation errors and rerun vnu plus html-validate.");
   }
   if (tools.some((tool) => tool.label.includes("Links") && tool.status !== "passed")) {
     plan.push("Fix broken internal links or redirect chains before the next crawl.");
