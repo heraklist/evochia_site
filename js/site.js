@@ -1,13 +1,19 @@
 (function () {
   'use strict';
 
-  /* Load deferred CSS (CookieConsent, non-render-blocking) */
-  ['/css/cookieconsent.css', '/css/cookieconsent-evochia.css'].forEach(function (href) {
-    var link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = href;
-    document.head.appendChild(link);
-  });
+  /* Promote the preloaded main stylesheet after parse */
+  function loadMainStylesheet() {
+    var promote = function () {
+      var preload = document.getElementById('siteStylesPreload');
+      if (!preload) return;
+      preload.rel = 'stylesheet';
+      preload.removeAttribute('as');
+      preload.id = 'siteStylesheet';
+    };
+    promote();
+  }
+
+  loadMainStylesheet();
 
   /* Remove no-js class (enables CSS animations) */
   document.documentElement.classList.remove('no-js');
@@ -69,11 +75,13 @@
   }
 
   /* Mobile menu */
-  function closeMenu() {
+  function closeMenu(options) {
+    var wasOpen = !!(nLinks && nLinks.classList.contains('mobile-open'));
+    var restoreFocus = !!(options && options.restoreFocus);
     if (ham) ham.setAttribute('aria-expanded', 'false');
     if (nLinks) nLinks.classList.remove('mobile-open');
     document.body.classList.remove('menu-open');
-    if (ham) ham.focus();
+    if (restoreFocus && wasOpen && ham) ham.focus();
   }
   function openMenu() {
     if (ham) ham.setAttribute('aria-expanded', 'true');
@@ -107,7 +115,9 @@
   if (ham) {
     ham.addEventListener('click', function (e) {
       e.stopPropagation();
-      nLinks && nLinks.classList.contains('mobile-open') ? closeMenu() : openMenu();
+      nLinks && nLinks.classList.contains('mobile-open')
+        ? closeMenu({ restoreFocus: false })
+        : openMenu();
     });
   }
   if (nLinks) {
@@ -117,16 +127,19 @@
   }
 
   /* Conciergerie helpers */
-  function closeConciergerie() {
+  function closeConciergerie(options) {
+    var wasOpen = !!(conc && conc.classList.contains('open'));
+    var restoreFocus = !!(options && options.restoreFocus);
     if (conc) conc.classList.remove('open');
     if (concBtn) concBtn.setAttribute('aria-expanded', 'false');
+    if (restoreFocus && wasOpen && concBtn) concBtn.focus();
   }
 
   /* Escape key - close menus */
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
-      closeMenu();
-      closeConciergerie();
+      closeMenu({ restoreFocus: true });
+      closeConciergerie({ restoreFocus: true });
     }
   });
 
@@ -150,7 +163,7 @@
   /* 12A: Restore saved language preference only on legacy root pages */
   var savedLang = null;
   if (!isStaticLocalized) {
-    try { savedLang = localStorage.getItem('evochia-lang'); } catch (e) { /* private browsing */ }
+    try { savedLang = localStorage.getItem('evochia-lang'); } catch { /* private browsing */ }
     if (savedLang && savedLang !== lang) {
       lang = savedLang;
       document.documentElement.lang = lang;
@@ -176,7 +189,7 @@
       if (!t) return;
       // Allow only the small inline tags used in localized headings.
       var allowed = t.replace(/<(?!\/?(?:em|span)(?:\s[^>]*)?>)[^>]+>/gi, '');
-      // Strip any event-handler attributes from the remaining allowed tags.
+      // Remove inline on* attributes on the remaining allowed tags.
       allowed = allowed.replace(/(<(?:em|span)\b[^>]*?)\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)([^>]*>)/gi, '$1$2');
       el.innerHTML = allowed;
     });
@@ -191,7 +204,18 @@
     });
   }
 
-  applyLanguage();
+  function applyStaticLocalizedState() {
+    document.documentElement.lang = lang;
+    document.querySelectorAll('[data-en-hidden],[data-el-hidden]').forEach(function (el) {
+      el.hidden = el.hasAttribute('data-' + lang + '-hidden');
+    });
+  }
+
+  if (isStaticLocalized) {
+    applyStaticLocalizedState();
+  } else {
+    applyLanguage();
+  }
 
   if (ls && !isStaticLocalized) {
     if (ls.tagName !== 'A') {
@@ -205,7 +229,7 @@
         ls.textContent = lang === 'en' ? 'EL' : 'EN';
         ls.setAttribute('aria-label', lang === 'en' ? 'Αλλαγή σε Ελληνικά' : 'Switch to English');
       }
-      try { localStorage.setItem('evochia-lang', lang); } catch (e) { /* private browsing */ }
+      try { localStorage.setItem('evochia-lang', lang); } catch { /* private browsing */ }
       applyLanguage();
     });
   }
@@ -251,6 +275,12 @@
       conc.classList.toggle('open');
       var isOpen = conc.classList.contains('open');
       concBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      if (isOpen) {
+        var firstConciergerieAction = conc.querySelector('a, button');
+        if (firstConciergerieAction) firstConciergerieAction.focus();
+      } else {
+        concBtn.focus();
+      }
     });
     document.addEventListener('click', function (e) {
       if (!conc.contains(e.target)) closeConciergerie();
@@ -305,7 +335,6 @@
         link_text: linkText,
         lead_source: 'site'
       });
-      return;
     }
 
     if (normalizedHref.indexOf('mailto:') === 0) {
@@ -315,7 +344,6 @@
         link_text: linkText,
         lead_source: 'site'
       });
-      return;
     }
 
     if (normalizedHref.indexOf('wa.me/') !== -1) {
@@ -325,7 +353,6 @@
         link_text: linkText,
         lead_source: 'site'
       });
-      return;
     }
 
     var ctaVariant = '';
@@ -360,9 +387,11 @@
       });
       var btn = quoteForm.querySelector('button[type="submit"]');
       var status = document.getElementById('form-status');
-      var origText = btn.textContent;
-      btn.disabled = true;
-      btn.textContent = '...';
+      var origText = btn ? btn.textContent : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = '...';
+      }
       if (status) status.hidden = true;
 
       fetch(quoteForm.action, {
@@ -400,8 +429,10 @@
           status.hidden = false;
         }
       }).finally(function () {
-        btn.disabled = false;
-        btn.textContent = origText;
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = origText;
+        }
       });
     });
   }
