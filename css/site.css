@@ -301,6 +301,17 @@ body.menu-open { overflow: hidden; }
   font-weight: 400; line-height: 1.2; color: var(--white); margin-bottom: 1.5rem;
 }
 .section-title em { font-family: var(--font-accent); font-style: normal; color: var(--gold); }
+.section-title-refined {
+  font-family: var(--font-page-hero);
+  font-style: normal;
+  line-height: 1.12;
+  text-wrap: balance;
+}
+.text-center .section-title-refined {
+  max-width: 22ch;
+  margin-left: auto;
+  margin-right: auto;
+}
 .gold-line { width: 45px; height: 1px; background: var(--gold); margin-bottom: 2rem; }
 .section-divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(196,162,101,.25), transparent); }
 
@@ -753,6 +764,49 @@ body.menu-open { overflow: hidden; }
 .back-to-top:focus-visible { outline: 1px solid var(--gold); outline-offset: 2px; }
 .back-to-top svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
+/* Locale-specific spacing and hierarchy tuning */
+html[lang="el"] .nav-links a,
+html[lang="el"] .btn-primary,
+html[lang="el"] .btn-secondary,
+html[lang="el"] .section-label,
+html[lang="el"] .stat-label,
+html[lang="el"] .scroll-indicator span,
+html[lang="el"] .skip-link,
+html[lang="el"] .text-link,
+html[lang="el"] .landing-link-label,
+html[lang="el"] .landing-link-chip,
+html[lang="el"] .venue-card-cta,
+html[lang="el"] .kpi-card .kpi-title,
+html[lang="el"] .form-group label,
+html[lang="el"] .back-to-top {
+  letter-spacing: .08em;
+  text-transform: none;
+}
+
+html[lang="el"] .hero-subtitle {
+  letter-spacing: .12em;
+  text-transform: none;
+}
+
+html[lang="el"] .services-tab {
+  font-size: 1rem;
+  letter-spacing: .02em;
+}
+
+html[lang="el"] .hero:not(.page-hero) .hero-content {
+  padding-top: clamp(3.5rem, 8vh, 5rem);
+}
+
+html[lang="el"] .hero:not(.page-hero) .hero-title {
+  font-size: clamp(2.45rem, 6vw, 5rem);
+  line-height: 1.05;
+}
+
+html[lang="el"] .trust-kicker {
+  letter-spacing: .08em;
+  text-transform: none;
+}
+
 /* Scroll reveal */
 .reveal {
   opacity: 0; transform: translateY(35px);
@@ -1172,6 +1226,7 @@ body.menu-open { overflow: hidden; }
     line-height: 1.08;
   }
   .page-hero .hero-description { margin-bottom: 0; }
+  html[lang="el"] .hero-subtitle { letter-spacing: .08em; }
   html[lang="el"] .hero:not(.page-hero) .hero-content { padding-top: 5rem; }
   .venues { padding: 5rem var(--page-pad); }
   .trust-layer, .trust-layer-contact { padding: 5rem var(--page-pad); }
@@ -1197,6 +1252,7 @@ body.menu-open { overflow: hidden; }
   .event-type-img { width: 100%; min-height: 180px; }
   .event-type-info { padding: 1rem 1.2rem 1.2rem; }
   .values-grid { grid-template-columns: 1fr; max-width: 320px; margin: 0 auto; }
+  .text-center .section-title-refined { max-width: 17ch; }
 }
 
 /* Contact Form */
