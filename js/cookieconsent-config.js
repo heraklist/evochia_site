@@ -179,7 +179,7 @@ async function bootCookieConsent() {
 
 function scheduleCookieConsentBoot() {
   var run = function () {
-    var bootDelay = isMobileConsent ? 1800 : 0; /* 1.8s delay on mobile to prioritise FCP/LCP */
+    var bootDelay = isMobileConsent ? 1800 : 0;
     window.setTimeout(function () {
       if ('requestAnimationFrame' in window) {
         window.requestAnimationFrame(function () {
@@ -228,3 +228,4 @@ function ensureAnalyticsScript() {
     page_title: document.title
   });
 }
+

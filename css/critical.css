@@ -51,11 +51,11 @@
   --white: #faf6ef;
   --font-brand: 'Alexander', Georgia, serif;
   --font-heading-latin: 'Alexander', Georgia, serif;
-  --font-heading-greek: Georgia, 'Times New Roman', serif;
+  --font-heading-greek: var(--font-heading-latin);
   --font-heading: var(--font-heading-latin);
   --font-body: 'Bainsley', 'Helvetica Neue', sans-serif;
   --font-accent-latin: 'Miama', 'Brush Script MT', cursive;
-  --font-accent-greek: Georgia, 'Times New Roman', serif;
+  --font-accent-greek: var(--font-accent-latin);
   --font-accent: var(--font-accent-latin);
   --font-page-hero: Georgia, 'Times New Roman', serif;
   --page-pad: 3rem;
@@ -229,7 +229,7 @@ main { display: block; }
   text-decoration: none;
 }
 
-.breadcrumbs [aria-current] { color: var(--gold); }
+.breadcrumbs [aria-current] { color: var(--gold-pale); }
 
 .hero {
   position: relative;
@@ -293,7 +293,6 @@ main { display: block; }
   height: 1px;
   margin: 0 auto 2rem;
   background: var(--gold);
-  transform: scaleX(0);
 }
 
 .hero-subtitle {
@@ -304,7 +303,6 @@ main { display: block; }
   font-weight: 400;
   letter-spacing: .45em;
   text-transform: uppercase;
-  opacity: 0;
 }
 
 .hero-title {
@@ -314,7 +312,6 @@ main { display: block; }
   font-size: clamp(2.8rem, 6.5vw, 5.5rem);
   font-weight: 400;
   line-height: 1.1;
-  opacity: 0;
 }
 
 .hero-title em {
@@ -323,8 +320,7 @@ main { display: block; }
   font-style: normal;
 }
 
-.page-hero .hero-title,
-.page-hero .hero-title em {
+.page-hero .hero-title {
   font-family: var(--font-page-hero);
   font-style: normal;
 }
@@ -337,7 +333,6 @@ main { display: block; }
   font-style: italic;
   font-weight: 400;
   letter-spacing: .02em;
-  opacity: 0;
 }
 
 .hero-description {
@@ -346,15 +341,13 @@ main { display: block; }
   color: var(--cream-dim);
   font-size: 1rem;
   font-weight: 400;
-  opacity: 0;
 }
 
 .hero-cta-group {
   display: flex;
-  flex-flow: row wrap;
+  flex-wrap: wrap;
   justify-content: center;
   gap: 1.2rem;
-  opacity: 0;
 }
 
 .btn {
@@ -435,13 +428,7 @@ main { display: block; }
     letter-spacing: .12em;
   }
 
-  html[lang="el"] .nav-links.mobile-open a {
-    font-size: 1rem;
-    letter-spacing: .08em;
-    text-transform: none;
-  }
-
-  .hamburger { display: flex; }
+.hamburger { display: flex; }
 
   .nav.scrolled { backdrop-filter: none; }
 
@@ -492,11 +479,10 @@ main { display: block; }
     -webkit-line-clamp: 2;
   }
 
-  .page-hero .hero-title,
-  .page-hero .hero-title em {
-    font-family: var(--font-page-hero);
-    font-style: normal;
-  }
+.page-hero .hero-title {
+  font-family: var(--font-page-hero);
+  font-style: normal;
+}
 
   .page-hero .hero-title {
     font-size: clamp(2rem, 7vw, 3rem);
@@ -505,18 +491,6 @@ main { display: block; }
 
   .page-hero .hero-description {
     margin-bottom: 0;
-  }
-
-  .hero-title em {
-    font-family: var(--font-heading);
-  }
-
-  html[lang="el"] .hero-subtitle {
-    letter-spacing: .08em;
-  }
-
-  html[lang="el"] .hero:not(.page-hero) .hero-content {
-    padding-top: 5rem;
   }
 
   .hero-cta-group {

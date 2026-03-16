@@ -29,6 +29,12 @@
   function getPageType(pathname) {
     var route = pathname.replace(/^\/(en|el)/, '') || '/';
     if (route === '/' || route === '') return 'home';
+    if (route.indexOf('/wedding-catering/') === 0) return 'wedding_catering';
+    if (route.indexOf('/corporate-catering/') === 0) return 'corporate_catering';
+    if (route.indexOf('/villa-private-chef/') === 0) return 'villa_private_chef';
+    if (route.indexOf('/yacht-private-chef/') === 0) return 'yacht_private_chef';
+    if (route.indexOf('/athens-private-chef/') === 0) return 'athens_private_chef';
+    if (route.indexOf('/greek-islands-private-chef/') === 0) return 'greek_islands_private_chef';
     if (route.indexOf('/private-chef/') === 0) return 'private_chef';
     if (route.indexOf('/catering/') === 0) return 'catering';
     if (route.indexOf('/menus/') === 0) return 'menus';
@@ -42,8 +48,8 @@
   }
 
   function getServiceIntent(pageType) {
-    if (pageType === 'catering') return 'event_catering';
-    if (pageType === 'private_chef') return 'private_chef';
+    if (pageType === 'catering' || pageType === 'wedding_catering' || pageType === 'corporate_catering') return 'event_catering';
+    if (pageType === 'private_chef' || pageType === 'villa_private_chef' || pageType === 'yacht_private_chef' || pageType === 'athens_private_chef' || pageType === 'greek_islands_private_chef') return 'private_chef';
     if (pageType === 'menus') return 'menu_inquiry';
     if (pageType === 'contact') return 'lead_capture';
     if (pageType === 'home') return 'mixed_services';
@@ -164,7 +170,7 @@
   var savedLang = null;
   if (!isStaticLocalized) {
     try { savedLang = localStorage.getItem('evochia-lang'); } catch { /* private browsing */ }
-    if (savedLang && savedLang !== lang) {
+    if ((savedLang === 'en' || savedLang === 'el') && savedLang !== lang) {
       lang = savedLang;
       document.documentElement.lang = lang;
     }
@@ -220,14 +226,14 @@
   if (ls && !isStaticLocalized) {
     if (ls.tagName !== 'A') {
       ls.textContent = lang === 'en' ? 'EL' : 'EN';
-      ls.setAttribute('aria-label', lang === 'en' ? 'Αλλαγή σε Ελληνικά' : 'Switch to English');
+      ls.setAttribute('aria-label', lang === 'en' ? '\u0391\u03bb\u03bb\u03b1\u03b3\u03ae \u03c3\u03b5 \u0395\u03bb\u03bb\u03b7\u03bd\u03b9\u03ba\u03ac' : 'Switch to English');
     }
     ls.addEventListener('click', function (e) {
       e.preventDefault();
       lang = lang === 'en' ? 'el' : 'en';
       if (ls.tagName !== 'A') {
         ls.textContent = lang === 'en' ? 'EL' : 'EN';
-        ls.setAttribute('aria-label', lang === 'en' ? 'Αλλαγή σε Ελληνικά' : 'Switch to English');
+        ls.setAttribute('aria-label', lang === 'en' ? '\u0391\u03bb\u03bb\u03b1\u03b3\u03ae \u03c3\u03b5 \u0395\u03bb\u03bb\u03b7\u03bd\u03b9\u03ba\u03ac' : 'Switch to English');
       }
       try { localStorage.setItem('evochia-lang', lang); } catch { /* private browsing */ }
       applyLanguage();
@@ -303,7 +309,16 @@
   }
 
   /* Smooth scroll for anchor links (respects reduced-motion) */
-  var prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var prefersReducedMotion = reducedMotionQuery.matches;
+  var onReducedMotionChange = function (event) {
+    prefersReducedMotion = event.matches;
+  };
+  if (typeof reducedMotionQuery.addEventListener === 'function') {
+    reducedMotionQuery.addEventListener('change', onReducedMotionChange);
+  } else if (typeof reducedMotionQuery.addListener === 'function') {
+    reducedMotionQuery.addListener(onReducedMotionChange);
+  }
   document.querySelectorAll('a[href^="#"]').forEach(function (a) {
     a.addEventListener('click', function (e) {
       var target = document.querySelector(this.getAttribute('href'));
@@ -392,7 +407,13 @@
         btn.disabled = true;
         btn.textContent = '...';
       }
-      if (status) status.hidden = true;
+      if (status) {
+        status.hidden = true;
+        status.className = 'form-status';
+        status.setAttribute('role', 'status');
+        status.setAttribute('aria-live', 'polite');
+        status.textContent = '';
+      }
 
       fetch(quoteForm.action, {
         method: 'POST',
@@ -405,10 +426,13 @@
           var isEl = document.documentElement.lang === 'el';
           if (status) {
             status.textContent = isEl
-              ? 'Ευχαριστούμε! Θα επικοινωνήσουμε σύντομα.'
+              ? '\u0395\u03c5\u03c7\u03b1\u03c1\u03b9\u03c3\u03c4\u03bf\u03cd\u03bc\u03b5! \u0398\u03b1 \u03b5\u03c0\u03b9\u03ba\u03bf\u03b9\u03bd\u03c9\u03bd\u03ae\u03c3\u03bf\u03c5\u03bc\u03b5 \u03c3\u03cd\u03bd\u03c4\u03bf\u03bc\u03b1.'
               : "Thank you! We'll be in touch soon.";
             status.className = 'form-status success';
+            status.setAttribute('role', 'status');
+            status.setAttribute('aria-live', 'polite');
             status.hidden = false;
+            status.focus();
           }
           gaEvent('generate_lead', {
             lead_source: 'quote_form',
@@ -423,10 +447,13 @@
         var isEl = document.documentElement.lang === 'el';
         if (status) {
           status.textContent = isEl
-            ? 'Κάτι πήγε στραβά. Δοκιμάστε ξανά ή στείλτε email.'
+            ? '\u039a\u03ac\u03c4\u03b9 \u03c0\u03ae\u03b3\u03b5 \u03c3\u03c4\u03c1\u03b1\u03b2\u03ac. \u0394\u03bf\u03ba\u03b9\u03bc\u03ac\u03c3\u03c4\u03b5 \u03be\u03b1\u03bd\u03ac \u03ae \u03c3\u03c4\u03b5\u03af\u03bb\u03c4\u03b5 email.'
             : 'Something went wrong. Please try again or email us.';
           status.className = 'form-status error';
+          status.setAttribute('role', 'alert');
+          status.setAttribute('aria-live', 'assertive');
           status.hidden = false;
+          status.focus();
         }
       }).finally(function () {
         if (btn) {
