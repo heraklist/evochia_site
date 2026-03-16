@@ -229,7 +229,7 @@ main { display: block; }
   text-decoration: none;
 }
 
-.breadcrumbs [aria-current] { color: var(--gold-pale); }
+.breadcrumbs [aria-current] { color: var(--gold); }
 
 .hero {
   position: relative;
@@ -293,6 +293,7 @@ main { display: block; }
   height: 1px;
   margin: 0 auto 2rem;
   background: var(--gold);
+  transform: scaleX(0);
 }
 
 .hero-subtitle {
@@ -303,6 +304,7 @@ main { display: block; }
   font-weight: 400;
   letter-spacing: .45em;
   text-transform: uppercase;
+  opacity: 0;
 }
 
 .hero-title {
@@ -312,6 +314,7 @@ main { display: block; }
   font-size: clamp(2.8rem, 6.5vw, 5.5rem);
   font-weight: 400;
   line-height: 1.1;
+  opacity: 0;
 }
 
 .hero-title em {
@@ -334,6 +337,7 @@ main { display: block; }
   font-style: italic;
   font-weight: 400;
   letter-spacing: .02em;
+  opacity: 0;
 }
 
 .hero-description {
@@ -342,13 +346,15 @@ main { display: block; }
   color: var(--cream-dim);
   font-size: 1rem;
   font-weight: 400;
+  opacity: 0;
 }
 
 .hero-cta-group {
   display: flex;
-  flex-wrap: wrap;
+  flex-flow: row wrap;
   justify-content: center;
   gap: 1.2rem;
+  opacity: 0;
 }
 
 .btn {
