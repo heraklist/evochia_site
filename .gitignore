@@ -9,3 +9,6 @@ scripts/
 .DS_Store
 Thumbs.db
 package-lock.json
+assets/logo.png
+assets/logo-source-1080.png
+assets/logo-280-input.webp
