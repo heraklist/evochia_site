@@ -1,20 +1,11 @@
-# Node / test tooling
 node_modules/
-npm-debug.log*
-
-# Local temporary artifacts
-.codex_tmp/
-.lh-browser/
-.tmp-edge-profile*/
-browserstack.err
-
-# Lighthouse audit artifacts
-audit/live-lighthouse/
-
-# Local QA reports
-.reports/
-playwright-report/
-test-results/
-
-# Local environment files
-.env
+.codex-temp/
+photos/selected/
+photos/candidates/
+photos/site/
+reports/
+scripts/
+*.log
+.DS_Store
+Thumbs.db
+package-lock.json
