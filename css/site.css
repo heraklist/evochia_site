@@ -108,6 +108,48 @@ body.menu-open { overflow: hidden; }
 }
 .skip-link:focus { top: 0; }
 
+/* Splash intro */
+.splash {
+  position: fixed; inset: 0; z-index: 99999;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--green-deepest);
+  transition: transform .9s cubic-bezier(.77,0,.175,1), opacity .9s cubic-bezier(.77,0,.175,1);
+}
+.splash.lift {
+  transform: translateY(-100%);
+  opacity: 0;
+}
+.splash.done { display: none; }
+.splash-inner {
+  display: flex; flex-direction: column; align-items: center; gap: .6rem;
+}
+.splash-logo {
+  width: 140px; height: 140px;
+  opacity: 0;
+  transform: scale(.7);
+  animation: splashLogoIn .8s cubic-bezier(.25,.46,.45,.94) .3s forwards;
+}
+@keyframes splashLogoIn {
+  to { opacity: 1; transform: scale(1); }
+}
+.splash-brand {
+  font-family: var(--font-brand); font-size: 2.6rem; font-weight: 400;
+  letter-spacing: .4em; text-transform: uppercase;
+  padding-left: .4em;
+  color: var(--gold);
+  opacity: 0;
+  transform: translateY(10px);
+  animation: splashTextIn .7s cubic-bezier(.25,.46,.45,.94) .9s forwards;
+}
+@keyframes splashTextIn {
+  to { opacity: 1; transform: translateY(0); }
+}
+body.splash-active { overflow: hidden; }
+@media (max-width: 600px) {
+  .splash-logo  { width: 100px; height: 100px; }
+  .splash-brand { font-size: 1.8rem; letter-spacing: .32em; padding-left: .32em; }
+}
+
 /* Shared keyframes */
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
@@ -243,6 +285,18 @@ body.menu-open { overflow: hidden; }
   margin-bottom: .75rem;
 }
 .hero-title em { font-family: var(--font-accent); font-style: normal; color: var(--gold); }
+
+/* Gold gradient text for accent words */
+.hero-title em,
+.section-title em,
+.cta-title em,
+.service-info h3 em,
+.cuisine-card h3 em {
+  background: linear-gradient(135deg, #c4a265 0%, #e0cb97 45%, #d4b87a 55%, #c4a265 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 .hero-tagline {
   font-family: var(--font-body); font-size: clamp(1rem, 2vw, 1.25rem);
   font-weight: 400; font-style: italic; letter-spacing: .02em; color: var(--gold-pale);
@@ -483,6 +537,7 @@ body.menu-open { overflow: hidden; }
   padding: 2rem 2rem 2.25rem;
 }
 .cuisine-card h3 { font-family: var(--font-heading); font-size: 1.5rem; font-weight: 400; color: var(--white); margin-bottom: .75rem; }
+.cuisine-card h3 em { font-family: var(--font-accent); font-style: normal; }
 .cuisine-card p { color: var(--cream-dim); font-size: .88rem; line-height: 1.6; margin: 0; }
 
 /* Philosophy */
@@ -645,7 +700,8 @@ body.menu-open { overflow: hidden; }
 
 /* CTA section (homepage) */
 .cta {
-  background: linear-gradient(160deg, var(--green-dark), var(--green-main) 50%, var(--green-dark));
+  background: radial-gradient(ellipse at 50% 0%, rgba(196,162,101,.1) 0%, transparent 55%),
+              linear-gradient(160deg, var(--green-dark), var(--green-main) 50%, var(--green-dark));
   padding: 8rem var(--page-pad); text-align: center; position: relative;
 }
 .cta-title { font-family: var(--font-heading); font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 400; color: var(--white); margin-bottom: 1rem; }
@@ -711,7 +767,7 @@ body.menu-open { overflow: hidden; }
   max-width: 1200px; margin: 0 auto;
   display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 3rem; margin-bottom: 3rem;
 }
-.footer-brand { font-family: var(--font-brand); font-size: 1.4rem; color: var(--gold); letter-spacing: .2em; text-transform: uppercase; margin-bottom: .75rem; }
+.footer-brand { font-family: var(--font-brand); font-size: 1.8rem; color: var(--gold); letter-spacing: .35em; text-transform: uppercase; margin-bottom: .75rem; }
 .footer-tagline { font-family: var(--font-body); font-size: .85rem; font-style: italic; letter-spacing: .02em; color: rgba(212,184,122,.92); margin-bottom: 1rem; }
 .footer-desc { color: var(--cream-dim); font-size: .82rem; max-width: 280px; margin-bottom: 1.5rem; }
 .footer-social-icons { display: flex; gap: 1rem; }

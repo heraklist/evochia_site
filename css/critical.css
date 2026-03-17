@@ -529,6 +529,10 @@ html[lang="el"] .hero:not(.page-hero) .hero-title {
   }
 }
 
+/* Footer link contrast — prevents FOUC before deferred site.css loads */
+.footer { background: var(--green-deepest); }
+.footer a { color: #fbfbff; text-decoration: none; }
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
 }

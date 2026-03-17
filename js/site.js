@@ -18,6 +18,26 @@
   /* Remove no-js class (enables CSS animations) */
   document.documentElement.classList.remove('no-js');
 
+  /* Splash intro (once per session, homepage only) */
+  (function () {
+    var splash = document.getElementById('splash');
+    if (!splash) return;
+    var isHome = /^\/(en|el)(\/(?:index\.html)?)?$/.test(window.location.pathname);
+    if (!isHome || sessionStorage.getItem('evochia_splashed')) {
+      splash.parentNode.removeChild(splash);
+      return;
+    }
+    document.body.classList.add('splash-active');
+    sessionStorage.setItem('evochia_splashed', '1');
+    setTimeout(function () {
+      splash.classList.add('lift');
+      document.body.classList.remove('splash-active');
+    }, 3500);
+    setTimeout(function () {
+      splash.classList.add('done');
+    }, 4400);
+  })();
+
   /* Element refs (all defensive) */
   var nav = document.getElementById('nav');
   var ham = document.getElementById('hamburger');
