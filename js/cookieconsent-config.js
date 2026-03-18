@@ -214,18 +214,6 @@ function updateGtagConsent() {
 }
 
 function ensureAnalyticsScript() {
-  if (window.__EVOCHIA_GA4_LOADED__ || document.querySelector('script[data-ga4]')) return;
-  var s = document.createElement('script');
-  s.async = true;
-  s.dataset.ga4 = '1';
-  s.src = 'https://www.googletagmanager.com/gtag/js?id=G-DERZSDHHF1';
-  document.head.appendChild(s);
-  window.__EVOCHIA_GA4_LOADED__ = true;
-  gtag('js', new Date());
-  gtag('config', 'G-DERZSDHHF1', {
-    language: document.documentElement.lang || 'en',
-    page_path: window.location.pathname,
-    page_title: document.title
-  });
+  /* gtag.js is already loaded inline in <head> — no dynamic script needed */
 }
 

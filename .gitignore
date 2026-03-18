@@ -12,3 +12,5 @@ package-lock.json
 assets/logo.png
 assets/logo-source-1080.png
 assets/logo-280-input.webp
+playwright-report/
+test-results/
