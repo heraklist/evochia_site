@@ -484,6 +484,36 @@
     });
   }
 
+  /* Conditional form: contextual textarea placeholder based on Event Type */
+  var eventSelect = document.getElementById('qf-event');
+  var messageField = document.getElementById('qf-message');
+  if (eventSelect && messageField) {
+    var isEl = document.documentElement.lang === 'el';
+    var placeholders = {
+      'wedding': isEl
+        ? 'Πείτε μας για τον γάμο σας — χώρος, ατμόσφαιρα, διατροφικές ανάγκες, πολυήμερη κάλυψη (welcome dinner, brunch κτλ.)'
+        : 'Tell us about your wedding — venue, atmosphere, dietary needs, and whether you need multi-day coverage (welcome dinner, brunch, etc.)',
+      'baptism': isEl
+        ? 'Πείτε μας για τη γιορτή — χώρος, οικογενειακές παραδόσεις, αριθμός καλεσμένων και τυχόν διατροφικές ανάγκες.'
+        : 'Tell us about the celebration — venue, family traditions, guest count, and any dietary needs.',
+      'corporate': isEl
+        ? 'Πείτε μας για την εκδήλωση — format, πρόγραμμα, προφίλ καλεσμένων και τυχόν branding ή διατροφικές απαιτήσεις.'
+        : 'Tell us about the event — format, schedule, guest profile, and any branding or dietary considerations.',
+      'private-chef': isEl
+        ? 'Πείτε μας για τη διαμονή σας — πόσα βράδια, προτιμήσεις κουζίνας, σύνθεση παρέας και τυχόν διατροφικές ανάγκες.'
+        : 'Tell us about your stay — how many evenings, cuisine preferences, group dynamics, and any dietary requirements.',
+      'themed': isEl
+        ? 'Πείτε μας για την εμπειρία — το θέμα, τον χώρο, τη διάθεση που θέλετε να δημιουργήσετε.'
+        : 'Tell us about the experience — the theme, the setting, and the mood you want to create.'
+    };
+    var defaultPlaceholder = isEl
+      ? 'Πείτε μας λίγα λόγια για την εκδήλωσή σας.'
+      : 'Tell us about your event — date, setting, vision, dietary needs.';
+    eventSelect.addEventListener('change', function () {
+      messageField.setAttribute('placeholder', placeholders[this.value] || defaultPlaceholder);
+    });
+  }
+
   /* Dynamic copyright year */
   var yearEl = document.getElementById('copyright-year');
   if (yearEl) yearEl.textContent = new Date().getFullYear();
