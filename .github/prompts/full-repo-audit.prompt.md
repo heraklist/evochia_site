@@ -3,7 +3,7 @@
 Context:
 - Plain HTML/CSS/vanilla JS static site. No JS framework.
 - Production lead-generation website for Evochia (evochia.gr), deployed to Vercel from GitHub.
-- Bilingual: Greek (primary) and English.
+- Bilingual: Greek and English.
 - Key integrations: GA4, vanilla-cookieconsent v3.1.0 + Google Consent Mode v2,
   JSON-LD structured data, AVIF images with HTML fallbacks.
 - Business priorities: brand trust, lead conversion, SEO, accessibility, performance, reliability.
@@ -66,7 +66,6 @@ Headers, caching, redirects, asset handling.
 
 Rules:
 - Evidence-based only. Αν κάτι είναι υποθετικό, σήμανέ το ρητά.
-- Do not report runtime issues unless supported by actual file inclusion or observable code references.
 - Αναφορά σε exact file paths και γραμμές όπου είναι εφικτό.
 - Ανάφερε τους ελέγχους που έτρεξες και αυτούς που δεν μπόρεσες να τρέξεις.
 - Γράψε την αναφορά στα Ελληνικά. File paths, κώδικας, commands παραμένουν στα Αγγλικά.
