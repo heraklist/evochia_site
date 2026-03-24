@@ -32,6 +32,7 @@ When asked to review, audit, or analyze this repository:
 - Cookie consent implementation and GA4 firing correctness with Consent Mode v2
 - Vercel config: vercel.json headers, redirects, rewrites, caching rules
 - Dependency hygiene: any CDN scripts, versioning, integrity attributes
+- Broken internal links, missing asset references, wrong relative paths, and language-switching link integrity
 
 # Reporting Rules
 
