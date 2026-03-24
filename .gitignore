@@ -3,8 +3,9 @@ node_modules/
 photos/selected/
 photos/candidates/
 photos/site/
-reports/
+/reports/
 scripts/
+!docs/reports/
 *.log
 .DS_Store
 Thumbs.db
