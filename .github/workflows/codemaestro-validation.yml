@@ -1,0 +1,105 @@
+# codemaestro-validation-template: phase2-basic
+name: CodeMaestro Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: Validation suite to run.
+        required: true
+        type: choice
+        options:
+          - unit-tests
+          - typecheck
+          - lint
+          - dependency-audit
+          - secrets-scan
+          - security-baseline
+          - ci-review
+          - supabase-check
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate ${{ inputs.suite }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate suite input
+        shell: bash
+        env:
+          REQUESTED_SUITE: ${{ inputs.suite }}
+        run: |
+          case "$REQUESTED_SUITE" in
+            unit-tests|typecheck|lint|dependency-audit|secrets-scan|security-baseline|ci-review|supabase-check)
+              ;;
+            *)
+              echo "Unsupported validation suite: $REQUESTED_SUITE"
+              exit 1
+              ;;
+          esac
+
+      - name: Check out repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Node.js
+        if: ${{ inputs.suite == 'unit-tests' || inputs.suite == 'typecheck' || inputs.suite == 'lint' || inputs.suite == 'ci-review' }}
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        if: ${{ inputs.suite == 'unit-tests' || inputs.suite == 'typecheck' || inputs.suite == 'lint' || inputs.suite == 'ci-review' }}
+        run: npm ci
+
+      - name: Run typecheck
+        if: ${{ inputs.suite == 'typecheck' || inputs.suite == 'ci-review' }}
+        run: npm run typecheck
+
+      - name: Run build
+        if: ${{ inputs.suite == 'ci-review' }}
+        shell: bash
+        run: |
+          if npm pkg get scripts.build | grep -vq '^{}$'; then
+            npm run build
+          else
+            echo "No build script found; skipping build in ci-review."
+          fi
+
+      - name: Run lint
+        if: ${{ inputs.suite == 'lint' || inputs.suite == 'ci-review' }}
+        shell: bash
+        run: |
+          if npm pkg get scripts.lint | grep -vq '^{}$'; then
+            npm run lint
+          elif [ "${{ inputs.suite }}" = "lint" ]; then
+            echo "lint suite requested, but package.json has no lint script."
+            exit 1
+          else
+            echo "No lint script found; skipping lint in ci-review."
+          fi
+
+      - name: Run unit tests
+        if: ${{ inputs.suite == 'unit-tests' || inputs.suite == 'ci-review' }}
+        shell: bash
+        run: |
+          if npm pkg get scripts.test | grep -vq '^{}$'; then
+            npm test
+          elif [ "${{ inputs.suite }}" = "unit-tests" ]; then
+            echo "unit-tests suite requested, but package.json has no test script."
+            exit 1
+          else
+            echo "No test script found; skipping tests in ci-review."
+          fi
+
+      - name: Fail unimplemented suite safely
+        if: ${{ inputs.suite == 'dependency-audit' || inputs.suite == 'secrets-scan' || inputs.suite == 'security-baseline' || inputs.suite == 'supabase-check' }}
+        shell: bash
+        env:
+          REQUESTED_SUITE: ${{ inputs.suite }}
+        run: |
+          echo "Suite '$REQUESTED_SUITE' is accepted by the API but is not implemented in this workflow yet."
+          exit 1
