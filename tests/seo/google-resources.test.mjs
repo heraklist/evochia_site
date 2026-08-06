@@ -73,3 +73,16 @@ test('schema encodes the verified-without-UNVERIFIED invariant', () => {
     assert.deepEqual(verifiedProperties[key], { not: { const: 'UNVERIFIED' } });
   }
 });
+
+test('operator checklist preserves all eleven external verification gates', () => {
+  const checklist = fs.readFileSync('docs/seo/phase-0-verification.md', 'utf8');
+  const gateHeadings = checklist.match(/^### Gate \d+ — .+$/gm) ?? [];
+  assert.equal(gateHeadings.length, 11);
+  assert.deepEqual(
+    gateHeadings.map((heading) => Number(heading.match(/^### Gate (\d+)/)?.[1])),
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+  );
+  assert.equal((checklist.match(/^- Verifier:$/gm) ?? []).length, 11);
+  assert.equal((checklist.match(/^- Verified at:$/gm) ?? []).length, 11);
+  assert.equal((checklist.match(/^- Evidence:$/gm) ?? []).length, 11);
+});
