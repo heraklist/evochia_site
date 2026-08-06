@@ -93,10 +93,12 @@
     }
   }
 
-  /* GA4 helper */
+  /* GA4 helper. Returns true only when the event is actually dispatched, so
+     callers can gate one-shot flags on real delivery (not on a dropped,
+     pre-consent call). */
   function gaEvent(name, params) {
-    if (typeof gtag !== 'function') return;
-    if (!analyticsConsented()) return;
+    if (typeof gtag !== 'function') return false;
+    if (!analyticsConsented()) return false;
     var payload = params && typeof params === 'object' ? Object.assign({}, params) : {};
     var currentPath = window.location.pathname;
     var pageType = getPageType(currentPath);
@@ -106,6 +108,7 @@
     if (!payload.service_intent) payload.service_intent = getServiceIntent(pageType);
     if (window.__GA_DEBUG__ === true) payload.debug_mode = true;
     gtag('event', name, payload);
+    return true;
   }
 
   /* Nav visible */
@@ -427,11 +430,15 @@
     var formStartSent = false;
     var sendFormStart = function () {
       if (formStartSent) return;
-      formStartSent = true;
-      gaEvent('form_start', {
+      /* Only latch the flag once the event was actually dispatched. If the
+         visitor interacts before accepting analytics, gaEvent() returns false
+         and we retry on the next interaction after consent is granted. */
+      if (gaEvent('form_start', {
         form_id: 'quoteForm',
         lead_source: 'quote_form'
-      });
+      })) {
+        formStartSent = true;
+      }
     };
     quoteForm.addEventListener('focusin', sendFormStart);
     quoteForm.addEventListener('input', sendFormStart);
@@ -491,7 +498,8 @@
       }).catch(function () {
         gaEvent('form_submit_error', {
           form_id: 'quoteForm',
-          lead_source: 'quote_form'
+          lead_source: 'quote_form',
+          event_type: eventType || ''
         });
         var isEl = document.documentElement.lang === 'el';
         if (status) {
