@@ -122,10 +122,78 @@ docs/seo/                    # Operator runbooks and Phase 0 verification record
 docs/superpowers/plans/      # This plan set
 ```
 
+## Parallel Operating Model
+
+Implementation must proceed at the same time as the existing read-only SEO checks and the established Monday SEO reporting workflow.
+
+### Lane A — Continuous SEO observation
+
+This lane remains active throughout implementation and may run concurrently with all five plans:
+
+- existing Evochia SEO Weekly report every Monday at 09:00 Europe/Athens;
+- current public production checks;
+- approved GSC and GA4 exports or imports as they become available;
+- indexing, canonical, double-slash, availability and priority-page observations;
+- later, the scheduled monitoring introduced by Plans 1–4.
+
+Lane A is read-only with respect to site code, `main`, GSC, GA4 and GTM configuration. Its outputs go to the production Sheet, workflow artifacts, findings or review notes—not directly into code commits.
+
+A new Critical or High observation may pause the next implementation commit for review, but it must not bypass finding validation, batch limits or owner approval.
+
+### Lane B — Controlled implementation
+
+Implementation uses the Subagent-Driven workflow:
+
+- multiple agents may inspect independent files, research APIs, write review notes or run read-only checks in parallel;
+- tasks with disjoint outputs may be prepared concurrently;
+- only one agent may write or commit to `seo-system` at any moment;
+- commits are serialized in plan order and reviewed before the next write task;
+- no task may modify files that another active task is editing;
+- every writer must re-read the current `seo-system` head and working diff immediately before applying changes;
+- a shared writer lock named `seo-system-writer` governs all automated commits and draft-PR updates.
+
+### GitHub Actions concurrency
+
+Workflows must use separate concurrency groups so observation does not cancel implementation validation:
+
+```yaml
+concurrency:
+  group: seo-observation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+```
+
+Read-only PR validation uses:
+
+```yaml
+concurrency:
+  group: seo-validation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+```
+
+The future write workflow uses the single global writer group:
+
+```yaml
+concurrency:
+  group: seo-system-writer
+  cancel-in-progress: false
+```
+
+No scheduled observation workflow may acquire `seo-system-writer`.
+
+### Conflict and promotion rules
+
+- Observation continues while implementation is paused for owner input.
+- A failing observation does not mutate code automatically before Phase 5.
+- Findings discovered during an active 1–3 finding batch enter the ledger but wait for the next batch unless the owner explicitly replaces the current batch.
+- Monitoring runs may read `main`, `seo-system` and Vercel previews, but production conclusions must identify which ref or deployment was observed.
+- The Monday report must distinguish production results from preview or implementation findings.
+
 ## Execution Rules
 
 - [ ] Execute plans in numeric order.
-- [ ] Complete every plan's gate before starting the next plan.
+- [ ] Keep Lane A running while Lane B executes the implementation tasks.
+- [ ] Use Subagent-Driven execution for Lane B, with parallel read-only investigation and serialized writes.
+- [ ] Complete every plan's gate before starting the next plan's write tasks.
 - [ ] Use TDD for pure functions, validators, finding identity and fix implementations.
 - [ ] Commit after every independently testable task.
 - [ ] Keep write permissions absent until Plan 5.
