@@ -8,7 +8,7 @@
     "noEmit": true,
     "skipLibCheck": true,
     "allowImportingTsExtensions": true,
-    "types": ["google-apps-script"]
+    "types": ["node", "google-apps-script"]
   },
   "include": [
     "middleware.ts",
