@@ -73,6 +73,8 @@ export function importSearchAnalyticsDay(
     siteUrl: config.siteUrl,
     startDate: dataAsOf,
     endDate: dataAsOf,
+    dimensions: [...GSC_KEY_COLUMNS],
+    aggregationType: 'auto',
     transport: dependencies.transport,
     accessToken: dependencies.accessToken,
   });
