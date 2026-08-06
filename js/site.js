@@ -1,6 +1,10 @@
 (function () {
   'use strict';
 
+  /* Guard against double initialization (e.g. script included twice) */
+  if (window.__EVOCHIA_SITE_INIT__) return;
+  window.__EVOCHIA_SITE_INIT__ = true;
+
   /* Promote the preloaded main stylesheet after parse */
   function loadMainStylesheet() {
     var promote = function () {
@@ -76,9 +80,23 @@
     return 'general';
   }
 
+  /* Only report analytics while the visitor has accepted the analytics
+     category. Consent Mode defaults to denied in <head>; we additionally
+     suppress custom events here so nothing is queued or replayed pre-consent. */
+  function analyticsConsented() {
+    try {
+      return typeof CookieConsent !== 'undefined' &&
+        typeof CookieConsent.acceptedCategory === 'function' &&
+        CookieConsent.acceptedCategory('analytics');
+    } catch (e) {
+      return false;
+    }
+  }
+
   /* GA4 helper */
   function gaEvent(name, params) {
     if (typeof gtag !== 'function') return;
+    if (!analyticsConsented()) return;
     var payload = params && typeof params === 'object' ? Object.assign({}, params) : {};
     var currentPath = window.location.pathname;
     var pageType = getPageType(currentPath);
@@ -363,29 +381,20 @@
     var linkText = (el.textContent || '').trim().replace(/\s+/g, ' ');
     var normalizedHref = href.toLowerCase();
 
+    var contactMethod = '';
     if (normalizedHref.indexOf('tel:') === 0) {
-      gaEvent('contact_click', {
-        method: 'phone',
-        link_url: href,
-        link_text: linkText,
-        lead_source: 'site'
-      });
+      contactMethod = 'phone';
+    } else if (normalizedHref.indexOf('mailto:') === 0) {
+      contactMethod = 'email';
+    } else if (normalizedHref.indexOf('wa.me/') !== -1) {
+      contactMethod = 'whatsapp';
     }
 
-    if (normalizedHref.indexOf('mailto:') === 0) {
+    if (contactMethod) {
+      /* Do NOT send link_url/link_text here: tel:/mailto:/wa.me values are
+         phone numbers and email addresses (PII) and must never reach GA4. */
       gaEvent('contact_click', {
-        method: 'email',
-        link_url: href,
-        link_text: linkText,
-        lead_source: 'site'
-      });
-    }
-
-    if (normalizedHref.indexOf('wa.me/') !== -1) {
-      gaEvent('contact_click', {
-        method: 'whatsapp',
-        link_url: href,
-        link_text: linkText,
+        contact_method: contactMethod,
         lead_source: 'site'
       });
     }
@@ -400,17 +409,33 @@
     }
 
     if (ctaVariant) {
-      gaEvent('cta_click', {
+      var ctaParams = {
         cta_variant: ctaVariant,
-        link_url: href,
-        link_text: linkText,
+        link_text: linkText.slice(0, 100),
         lead_source: 'site'
-      });
+      };
+      /* Only attach link_url for non-contact (internal) links, so a phone/email
+         CTA can never leak PII through the URL parameter. */
+      if (!contactMethod) ctaParams.link_url = href;
+      gaEvent('cta_click', ctaParams);
     }
   });
 
   var quoteForm = document.getElementById('quoteForm');
   if (quoteForm) {
+    /* form_start: fire once on the first meaningful interaction */
+    var formStartSent = false;
+    var sendFormStart = function () {
+      if (formStartSent) return;
+      formStartSent = true;
+      gaEvent('form_start', {
+        form_id: 'quoteForm',
+        lead_source: 'quote_form'
+      });
+    };
+    quoteForm.addEventListener('focusin', sendFormStart);
+    quoteForm.addEventListener('input', sendFormStart);
+
     quoteForm.addEventListener('submit', function (e) {
       e.preventDefault();
       var eventTypeEl = document.getElementById('qf-event');
@@ -464,6 +489,10 @@
           throw new Error('Server error');
         }
       }).catch(function () {
+        gaEvent('form_submit_error', {
+          form_id: 'quoteForm',
+          lead_source: 'quote_form'
+        });
         var isEl = document.documentElement.lang === 'el';
         if (status) {
           status.textContent = isEl
