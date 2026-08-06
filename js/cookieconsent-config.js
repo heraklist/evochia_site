@@ -21,15 +21,11 @@ function initializeGtagStub() {
   }
 }
 
-function applyDefaultConsent() {
-  initializeGtagStub();
-  gtag('consent', 'default', {
-    'analytics_storage': 'denied',
-    'ad_storage': 'denied',
-    'ad_user_data': 'denied',
-    'ad_personalization': 'denied'
-  });
-}
+// Consent Mode defaults (all denied) are set INLINE in the document <head>,
+// before the GTM / Google tag loads — see the "Consent Mode v2 defaults" block
+// in each HTML file. This module must only UPDATE consent, never (re)apply a
+// late default, which would otherwise run after the Google tag has already
+// initialized and defeat the purpose of the default-denied state.
 
 function ensureCookieConsentStyles() {
   if (window.__EVOCHIA_COOKIECONSENT_STYLES_PROMISE__) {
@@ -200,7 +196,7 @@ function scheduleCookieConsentBoot() {
   document.addEventListener('DOMContentLoaded', run, { once: true });
 }
 
-applyDefaultConsent();
+initializeGtagStub();
 scheduleCookieConsentBoot();
 
 function updateGtagConsent() {
@@ -214,6 +210,8 @@ function updateGtagConsent() {
 }
 
 function ensureAnalyticsScript() {
-  /* gtag.js is already loaded inline in <head> — no dynamic script needed */
+  /* GA4 is delivered through the GTM container (GTM-578JXRXS). The GA4
+     configuration tag fires inside GTM and respects Consent Mode, so there is
+     no separate gtag.js to inject here. */
 }
 
