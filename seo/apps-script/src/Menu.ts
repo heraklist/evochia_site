@@ -30,11 +30,10 @@ export function setupWorkbookFromMenu(): void {
   const ui = SpreadsheetApp.getUi();
 
   try {
-    getConfig();
-    const result = setupWorkbook();
+    setupWorkbook();
     ui.alert(
       'Evochia SEO workbook',
-      `Created: ${result.created.length}\nAlready present: ${result.existing.length}`,
+      'Required sheets are present. Re-running setup is safe.',
       ui.ButtonSet.OK,
     );
   } catch (error) {
