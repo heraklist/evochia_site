@@ -1,0 +1,131 @@
+export type CellValue = string | number | boolean | Date | null;
+export type RowRecord = Record<string, CellValue>;
+
+export interface WriteSummary {
+  inserted: number;
+  updated: number;
+  unchanged: number;
+  total: number;
+}
+
+export interface MergeResult {
+  rows: RowRecord[];
+  summary: WriteSummary;
+}
+
+function keyPart(value: CellValue | undefined): string {
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  return value == null ? '' : String(value);
+}
+
+export function buildCompositeKey(row: RowRecord, keyColumns: string[]): string {
+  return keyColumns.map((column) => keyPart(row[column])).join('\u001f');
+}
+
+function rowsEqual(headers: string[], left: RowRecord, right: RowRecord): boolean {
+  return headers.every((header) => keyPart(left[header]) === keyPart(right[header]));
+}
+
+export function mergeRowRecords(
+  headers: string[],
+  existingRows: RowRecord[],
+  keyColumns: string[],
+  incomingRows: RowRecord[],
+): MergeResult {
+  for (const key of keyColumns) {
+    if (!headers.includes(key)) {
+      throw new Error(`Key column is not present in headers: ${key}`);
+    }
+  }
+
+  const rows = existingRows.map((row) => ({ ...row }));
+  const indexes = new Map<string, number>();
+  rows.forEach((row, index) => indexes.set(buildCompositeKey(row, keyColumns), index));
+
+  const deduplicatedIncoming = new Map<string, RowRecord>();
+  for (const row of incomingRows) {
+    deduplicatedIncoming.set(buildCompositeKey(row, keyColumns), { ...row });
+  }
+
+  let inserted = 0;
+  let updated = 0;
+  let unchanged = 0;
+
+  for (const [key, incoming] of deduplicatedIncoming) {
+    const existingIndex = indexes.get(key);
+    if (existingIndex == null) {
+      indexes.set(key, rows.length);
+      rows.push(incoming);
+      inserted += 1;
+      continue;
+    }
+
+    if (rowsEqual(headers, rows[existingIndex], incoming)) {
+      unchanged += 1;
+      continue;
+    }
+
+    rows[existingIndex] = incoming;
+    updated += 1;
+  }
+
+  return {
+    rows,
+    summary: {
+      inserted,
+      updated,
+      unchanged,
+      total: rows.length,
+    },
+  };
+}
+
+export function upsertRows(
+  sheetName: string,
+  keyColumns: string[],
+  incomingRows: RowRecord[],
+): WriteSummary {
+  if (incomingRows.length === 0) {
+    return { inserted: 0, updated: 0, unchanged: 0, total: 0 };
+  }
+
+  const workbook = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = workbook?.getSheetByName(sheetName);
+  if (!sheet) {
+    throw new Error(`Missing required sheet: ${sheetName}`);
+  }
+
+  const existingValues = sheet.getLastRow() > 0
+    ? sheet.getDataRange().getValues()
+    : [];
+  const existingHeaders = existingValues.length > 0
+    ? existingValues[0].map(String)
+    : [];
+  const incomingHeaders = Object.keys(incomingRows[0]);
+  const headers = [...existingHeaders];
+  for (const header of incomingHeaders) {
+    if (!headers.includes(header)) {
+      headers.push(header);
+    }
+  }
+
+  const existingRows: RowRecord[] = existingValues.slice(1).map((values) => {
+    const row: RowRecord = {};
+    headers.forEach((header, index) => {
+      row[header] = (values[index] as CellValue | undefined) ?? null;
+    });
+    return row;
+  });
+
+  const merged = mergeRowRecords(headers, existingRows, keyColumns, incomingRows);
+  const output = [
+    headers,
+    ...merged.rows.map((row) => headers.map((header) => row[header] ?? '')),
+  ];
+
+  sheet.clearContents();
+  sheet.getRange(1, 1, output.length, headers.length).setValues(output);
+  return merged.summary;
+}
