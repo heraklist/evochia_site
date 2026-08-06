@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://www.evochia.gr/schemas/seo/google-resources.schema.json",
+  "title": "Evochia GoogleResourcesConfig",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "gscProperty",
+    "ga4AccountId",
+    "ga4PropertyId",
+    "gtmPublicContainerId",
+    "gtmAccountId",
+    "gtmContainerId",
+    "sheetId",
+    "driveFolderId",
+    "ownerEmail",
+    "verificationStatus"
+  ],
+  "properties": {
+    "gscProperty": { "type": "string", "minLength": 1 },
+    "ga4AccountId": { "type": "string", "minLength": 1 },
+    "ga4PropertyId": { "type": "string", "minLength": 1 },
+    "gtmPublicContainerId": {
+      "type": "string",
+      "pattern": "^GTM-[A-Z0-9]+$"
+    },
+    "gtmAccountId": { "type": "string", "minLength": 1 },
+    "gtmContainerId": { "type": "string", "minLength": 1 },
+    "sheetId": { "type": "string", "minLength": 1 },
+    "driveFolderId": { "type": "string", "minLength": 1 },
+    "ownerEmail": {
+      "type": "string",
+      "format": "email",
+      "const": "heraklis@evochia.gr"
+    },
+    "verificationStatus": {
+      "type": "string",
+      "enum": ["pending", "verified"]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "verificationStatus": { "const": "verified" }
+        },
+        "required": ["verificationStatus"]
+      },
+      "then": {
+        "properties": {
+          "gscProperty": { "not": { "const": "UNVERIFIED" } },
+          "ga4AccountId": { "not": { "const": "UNVERIFIED" } },
+          "ga4PropertyId": { "not": { "const": "UNVERIFIED" } },
+          "gtmPublicContainerId": { "not": { "const": "UNVERIFIED" } },
+          "gtmAccountId": { "not": { "const": "UNVERIFIED" } },
+          "gtmContainerId": { "not": { "const": "UNVERIFIED" } },
+          "sheetId": { "not": { "const": "UNVERIFIED" } },
+          "driveFolderId": { "not": { "const": "UNVERIFIED" } }
+        }
+      }
+    }
+  ]
+}
