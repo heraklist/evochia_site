@@ -1,3 +1,5 @@
+import { getConfig } from './Config.ts';
+
 export const REQUIRED_SHEET_NAMES = [
   'Config',
   'Run Log',
@@ -15,17 +17,17 @@ export const REQUIRED_SHEET_NAMES = [
   'Findings Summary',
 ] as const;
 
+export interface WorkbookLike {
+  getSheetByName(name: string): unknown | null;
+  insertSheet(name: string): unknown;
+}
+
 export interface WorkbookSetupResult {
   created: string[];
   existing: string[];
 }
 
-export function setupWorkbook(): WorkbookSetupResult {
-  const workbook = SpreadsheetApp.getActiveSpreadsheet();
-  if (!workbook) {
-    throw new Error('The SEO Apps Script project must be bound to a Google Sheet.');
-  }
-
+export function ensureWorkbookSheets(workbook: WorkbookLike): WorkbookSetupResult {
   const created: string[] = [];
   const existing: string[] = [];
 
@@ -40,4 +42,15 @@ export function setupWorkbook(): WorkbookSetupResult {
   }
 
   return { created, existing };
+}
+
+export function setupWorkbook(): void {
+  getConfig();
+
+  const workbook = SpreadsheetApp.getActiveSpreadsheet();
+  if (!workbook) {
+    throw new Error('The SEO Apps Script project must be bound to a Google Sheet.');
+  }
+
+  ensureWorkbookSheets(workbook);
 }
