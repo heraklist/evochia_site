@@ -1,0 +1,77 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import test from 'node:test';
+import { verifyConfig, type SeoConfig } from '../../../seo/apps-script/src/Config.ts';
+import {
+  ensureWorkbookSheets,
+  REQUIRED_SHEET_NAMES,
+  type WorkbookLike,
+} from '../../../seo/apps-script/src/Setup.ts';
+
+const verifiedConfig: SeoConfig = {
+  gscProperty: 'https://www.evochia.gr/',
+  ga4AccountId: '388030118',
+  ga4PropertyId: '528945896',
+  gtmPublicContainerId: 'GTM-578JXRXS',
+  gtmAccountId: '123456789',
+  gtmContainerId: '987654321',
+  sheetId: 'sheet-resource-id',
+  driveFolderId: 'drive-folder-resource-id',
+  ownerEmail: 'heraklis@evochia.gr',
+  verificationStatus: 'verified',
+};
+
+test('rejects unverified production identifiers', () => {
+  const result = verifyConfig({ verificationStatus: 'pending' });
+  assert.equal(result.ok, false);
+  assert.equal(result.errors.includes('verificationStatus must be verified'), true);
+});
+
+test('rejects verified status while a resource remains unresolved', () => {
+  const result = verifyConfig({
+    ...verifiedConfig,
+    gtmAccountId: 'UNVERIFIED',
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.errors.includes('gtmAccountId is unverified'), true);
+});
+
+test('accepts a complete verified production configuration', () => {
+  assert.deepEqual(verifyConfig(verifiedConfig), { ok: true, errors: [] });
+});
+
+test('creates every required sheet once and is idempotent', () => {
+  const sheets = new Set<string>(['Config']);
+  const workbook: WorkbookLike = {
+    getSheetByName(name) {
+      return sheets.has(name) ? { name } : null;
+    },
+    insertSheet(name) {
+      sheets.add(name);
+      return { name };
+    },
+  };
+
+  const first = ensureWorkbookSheets(workbook);
+  assert.deepEqual(first.existing, ['Config']);
+  assert.equal(first.created.length, REQUIRED_SHEET_NAMES.length - 1);
+
+  const second = ensureWorkbookSheets(workbook);
+  assert.deepEqual(second.created, []);
+  assert.deepEqual(second.existing, [...REQUIRED_SHEET_NAMES]);
+});
+
+test('manifest contains only the approved least-privilege scopes', () => {
+  const manifest = JSON.parse(fs.readFileSync('seo/apps-script/appsscript.json', 'utf8'));
+  assert.deepEqual(manifest.oauthScopes, [
+    'https://www.googleapis.com/auth/webmasters.readonly',
+    'https://www.googleapis.com/auth/analytics.readonly',
+    'https://www.googleapis.com/auth/tagmanager.readonly',
+    'https://www.googleapis.com/auth/spreadsheets.currentonly',
+    'https://www.googleapis.com/auth/drive.file',
+    'https://www.googleapis.com/auth/script.external_request',
+    'https://www.googleapis.com/auth/script.scriptapp',
+    'https://www.googleapis.com/auth/script.container.ui',
+  ]);
+  assert.equal(manifest.oauthScopes.some((scope: string) => /tagmanager\.edit|analytics\.edit|webmasters(?!\.readonly)/.test(scope)), false);
+});
