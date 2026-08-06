@@ -64,7 +64,11 @@ export class PipelineError extends Error {
   }
 }
 
-export interface SearchAnalyticsRequest {
+interface AuthenticatedRequest {
+  accessToken?: string;
+}
+
+export interface SearchAnalyticsRequest extends AuthenticatedRequest {
   siteUrl: string;
   startDate: string;
   endDate: string;
@@ -74,7 +78,7 @@ export interface SearchAnalyticsRequest {
   transport?: HttpTransport;
 }
 
-export interface UrlInspectionRequest {
+export interface UrlInspectionRequest extends AuthenticatedRequest {
   siteUrl: string;
   inspectionUrl: string;
   languageCode?: string;
@@ -86,9 +90,10 @@ function defaultTransport(url: string, options: FetchOptionsLike): HttpResponseL
   return UrlFetchApp.fetch(url, options as GoogleAppsScript.URL_Fetch.URLFetchRequestOptions);
 }
 
-function authHeaders(): Record<string, string> {
+function authHeaders(accessToken?: string): Record<string, string> {
+  const token = accessToken ?? ScriptApp.getOAuthToken();
   return {
-    Authorization: `Bearer ${ScriptApp.getOAuthToken()}`,
+    Authorization: `Bearer ${token}`,
   };
 }
 
@@ -161,7 +166,7 @@ export function fetchSearchAnalytics(request: SearchAnalyticsRequest): GscRow[] 
       {
         method: 'post',
         contentType: 'application/json',
-        headers: authHeaders(),
+        headers: authHeaders(request.accessToken),
         payload: JSON.stringify({
           startDate: request.startDate,
           endDate: request.endDate,
@@ -203,7 +208,7 @@ export function fetchUrlInspection(request: UrlInspectionRequest): InspectionRow
     {
       method: 'post',
       contentType: 'application/json',
-      headers: authHeaders(),
+      headers: authHeaders(request.accessToken),
       payload: JSON.stringify({
         inspectionUrl: request.inspectionUrl,
         siteUrl: request.siteUrl,
