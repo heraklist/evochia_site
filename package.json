@@ -5,6 +5,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test:unit": "node --test tests/seo/*.test.mjs",
+    "test:analytics": "node --test tests/analytics/*.test.mjs",
     "seo:test:apps-script": "tsx --test tests/seo/apps-script/*.test.ts",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",

@@ -197,7 +197,32 @@ function scheduleCookieConsentBoot() {
 }
 
 initializeGtagStub();
+/* Restore a returning visitor's stored analytics choice immediately, decoupled
+   from the (possibly delayed) banner boot, so a previously-consented user is
+   not measured as 'denied' during the first page while the mobile banner is
+   still waiting on its 1.8s display delay. */
+restoreStoredConsent();
 scheduleCookieConsentBoot();
+
+/* Read the persisted vanilla-cookieconsent state (cookie name: cc_cookie) and,
+   if analytics was previously accepted, issue the consent update right away.
+   Runs at module execution time — not behind the banner's display timer. */
+function restoreStoredConsent() {
+  try {
+    var match = document.cookie.match(/(?:^|;\s*)cc_cookie=([^;]+)/);
+    if (!match) return;
+    var stored = JSON.parse(decodeURIComponent(match[1]));
+    var categories = stored && stored.categories;
+    if (Array.isArray(categories) && categories.indexOf('analytics') > -1) {
+      ensureAnalyticsScript();
+      if (typeof gtag === 'function') {
+        gtag('consent', 'update', { 'analytics_storage': 'granted' });
+      }
+    }
+  } catch (e) {
+    /* Malformed or absent cookie: leave the inline defaults (denied) in place. */
+  }
+}
 
 function updateGtagConsent() {
   var accepted = CookieConsent.acceptedCategory('analytics');
