@@ -30,6 +30,7 @@ export interface GscImportResult {
 
 export interface GscImportDependencies {
   transport?: HttpTransport;
+  accessToken?: string;
   collectedAt?: string;
   writeRows?: (
     sheetName: string,
@@ -73,6 +74,7 @@ export function importSearchAnalyticsDay(
     startDate: dataAsOf,
     endDate: dataAsOf,
     transport: dependencies.transport,
+    accessToken: dependencies.accessToken,
   });
   const rows = deduplicateGscRows(fetched).map((row) => ({
     ...row,
@@ -95,6 +97,7 @@ export function inspectMonitoredUrls(
   requestedUrls: string[],
   dependencies: {
     transport?: HttpTransport;
+    accessToken?: string;
     inspectedAt?: string;
   } = {},
 ): InspectionRow[] {
@@ -109,6 +112,7 @@ export function inspectMonitoredUrls(
     siteUrl: config.siteUrl,
     inspectionUrl: url,
     transport: dependencies.transport,
+    accessToken: dependencies.accessToken,
     inspectedAt: dependencies.inspectedAt,
   }));
 }
