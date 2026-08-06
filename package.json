@@ -15,6 +15,7 @@
   "devDependencies": {
     "@playwright/test": "^1.52.0",
     "@types/google-apps-script": "^1.0.99",
+    "@types/node": "^22.15.0",
     "http-server": "^14.1.1",
     "tsx": "^4.20.3",
     "typescript": "^5.9.2"
