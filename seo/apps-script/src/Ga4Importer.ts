@@ -2,8 +2,8 @@ import {
   runGa4Report,
   type Ga4ReportBody,
   type Ga4Row,
-  type HttpTransport,
 } from './Ga4Client.ts';
+import type { HttpTransport } from './GscClient.ts';
 
 export interface Ga4ReportRange {
   propertyResource: string;
