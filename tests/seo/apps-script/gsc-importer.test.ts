@@ -24,6 +24,15 @@ function response(body: unknown, status = 200): HttpResponseLike {
   };
 }
 
+const ALL_GSC_DIMENSIONS = [
+  'date',
+  'query',
+  'page',
+  'country',
+  'device',
+  'searchAppearance',
+] as const;
+
 const rowA = {
   keys: ['2026-08-01', 'private chef greece', 'https://www.evochia.gr/en/private-chef/', 'grc', 'MOBILE', 'WEB_RESULT'],
   clicks: 1,
@@ -48,6 +57,37 @@ const rowC = {
   position: 18,
 };
 
+test('sends explicit dimensions and aggregation type on every Search Analytics request', () => {
+  const payloads: Array<{
+    dimensions: string[];
+    aggregationType: string;
+    startRow: number;
+    dataState: string;
+  }> = [];
+
+  const transport: HttpTransport = (_url, options) => {
+    payloads.push(JSON.parse(options.payload));
+    return response({ rows: [] });
+  };
+
+  fetchSearchAnalytics({
+    siteUrl: 'https://www.evochia.gr/',
+    startDate: '2026-08-02',
+    endDate: '2026-08-02',
+    dimensions: ['date'],
+    aggregationType: 'byProperty',
+    accessToken: 'test-token',
+    transport,
+  });
+
+  assert.deepEqual(payloads, [{
+    dimensions: ['date'],
+    aggregationType: 'byProperty',
+    startRow: 0,
+    dataState: 'final',
+  }]);
+});
+
 test('paginates Search Analytics until a short page is returned', () => {
   const starts: number[] = [];
   const transport: HttpTransport = (_url, options: FetchOptionsLike) => {
@@ -65,6 +105,8 @@ test('paginates Search Analytics until a short page is returned', () => {
     siteUrl: 'https://www.evochia.gr/',
     startDate: '2026-08-01',
     endDate: '2026-08-01',
+    dimensions: [...ALL_GSC_DIMENSIONS],
+    aggregationType: 'auto',
     rowLimit: 2,
     accessToken: 'test-token',
     transport,
@@ -161,6 +203,8 @@ test('non-2xx Search Console responses throw a typed pipeline error', () => {
       siteUrl: 'https://www.evochia.gr/',
       startDate: '2026-08-01',
       endDate: '2026-08-01',
+      dimensions: ['date'],
+      aggregationType: 'byProperty',
       accessToken: 'test-token',
       transport: () => response('{"error":"quota"}', 429),
     }),
