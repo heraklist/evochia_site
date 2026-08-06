@@ -6,6 +6,8 @@ export type GscDimension =
   | 'device'
   | 'searchAppearance';
 
+export type GscAggregationType = 'auto' | 'byPage' | 'byProperty';
+
 export interface GscRow {
   date: string;
   query: string;
@@ -72,7 +74,8 @@ export interface SearchAnalyticsRequest extends AuthenticatedRequest {
   siteUrl: string;
   startDate: string;
   endDate: string;
-  dimensions?: GscDimension[];
+  dimensions: readonly GscDimension[];
+  aggregationType: GscAggregationType;
   rowLimit?: number;
   startRow?: number;
   transport?: HttpTransport;
@@ -117,7 +120,7 @@ function numberOrZero(value: unknown): number {
 }
 
 export function normalizeSearchAnalyticsRow(
-  dimensions: GscDimension[],
+  dimensions: readonly GscDimension[],
   raw: {
     keys?: unknown[];
     clicks?: unknown;
@@ -147,14 +150,7 @@ export function normalizeSearchAnalyticsRow(
 }
 
 export function fetchSearchAnalytics(request: SearchAnalyticsRequest): GscRow[] {
-  const dimensions = request.dimensions ?? [
-    'date',
-    'query',
-    'page',
-    'country',
-    'device',
-    'searchAppearance',
-  ];
+  const dimensions = [...request.dimensions];
   const rowLimit = request.rowLimit ?? 25_000;
   const transport = request.transport ?? defaultTransport;
   const rows: GscRow[] = [];
@@ -171,6 +167,7 @@ export function fetchSearchAnalytics(request: SearchAnalyticsRequest): GscRow[] 
           startDate: request.startDate,
           endDate: request.endDate,
           dimensions,
+          aggregationType: request.aggregationType,
           rowLimit,
           startRow,
           dataState: 'final',
