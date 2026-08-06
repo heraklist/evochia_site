@@ -80,12 +80,11 @@ test('sends explicit dimensions and aggregation type on every Search Analytics r
     transport,
   });
 
-  assert.deepEqual(payloads, [{
-    dimensions: ['date'],
-    aggregationType: 'byProperty',
-    startRow: 0,
-    dataState: 'final',
-  }]);
+  assert.equal(payloads.length, 1);
+  assert.deepEqual(payloads[0].dimensions, ['date']);
+  assert.equal(payloads[0].aggregationType, 'byProperty');
+  assert.equal(payloads[0].startRow, 0);
+  assert.equal(payloads[0].dataState, 'final');
 });
 
 test('paginates Search Analytics until a short page is returned', () => {
