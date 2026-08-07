@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { classifyUrlQuality } from '../../../seo/apps-script/src/Ga4Importer.ts';
+import {
+  classifyPagePath,
+  classifyUrlQuality,
+} from '../../../seo/apps-script/src/Ga4Importer.ts';
 
 test('common Google attribution and linker params are tracking, not unexpected', () => {
   const params = [
@@ -25,4 +28,15 @@ test('common Google attribution and linker params are tracking, not unexpected',
       query,
     );
   }
+});
+
+test('404 classification does not swallow ordinary paths with a 404 prefix', () => {
+  assert.deepEqual(
+    classifyPagePath('/en/404/'),
+    { language: 'en', service: 'not_found' },
+  );
+  assert.deepEqual(
+    classifyPagePath('/en/404-guide/'),
+    { language: 'en', service: 'other' },
+  );
 });
