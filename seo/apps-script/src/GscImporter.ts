@@ -108,10 +108,15 @@ export function getAvailableGscDate(now: Date, delayDays = 3): string {
     .slice(0, 10);
 }
 
-export function deduplicateGscRows(rows: GscRow[]): GscRow[] {
+export function deduplicateGscRows(
+  rows: GscRow[],
+  keyColumns: readonly string[],
+): GscRow[] {
   const byKey = new Map<string, GscRow>();
   for (const row of rows) {
-    const key = GSC_KEY_COLUMNS.map((column) => String(row[column] ?? '')).join('\u001f');
+    const key = keyColumns
+      .map((column) => String(row[column as keyof GscRow] ?? ''))
+      .join('\u001f');
     byKey.set(key, row);
   }
   return [...byKey.values()];
@@ -133,7 +138,7 @@ export function importSearchAnalyticsDay(
     transport: dependencies.transport,
     accessToken: dependencies.accessToken,
   });
-  const rows = deduplicateGscRows(fetched).map((row) => ({
+  const rows = deduplicateGscRows(fetched, GSC_KEY_COLUMNS).map((row) => ({
     ...row,
     dataAsOf,
     collectedAt,
