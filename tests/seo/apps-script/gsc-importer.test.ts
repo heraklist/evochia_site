@@ -180,8 +180,36 @@ test('treats a Sheet Date key as the same date as an incoming YYYY-MM-DD string'
   });
 });
 
-test('uses a three-day availability delay by default', () => {
-  assert.equal(getAvailableGscDate(new Date('2026-08-06T05:00:00Z')), '2026-08-03');
+test('uses the Los Angeles calendar before local midnight', () => {
+  assert.equal(
+    getAvailableGscDate(new Date('2026-08-06T05:00:00Z')),
+    '2026-08-02',
+  );
+});
+
+test('uses the Los Angeles calendar after local midnight', () => {
+  assert.equal(
+    getAvailableGscDate(new Date('2026-08-06T08:00:00Z')),
+    '2026-08-03',
+  );
+});
+
+test('rejects invalid GSC availability delays', () => {
+  assert.throws(
+    () => getAvailableGscDate(new Date('2026-08-06T08:00:00Z'), -1),
+    /non-negative integer/,
+  );
+  assert.throws(
+    () => getAvailableGscDate(new Date('2026-08-06T08:00:00Z'), 1.5),
+    /non-negative integer/,
+  );
+});
+
+test('uses the named timezone across the daylight-saving boundary', () => {
+  assert.equal(
+    getAvailableGscDate(new Date('2026-11-02T07:30:00Z'), 0),
+    '2026-11-01',
+  );
 });
 
 test('URL Inspection is limited to the monitored allowlist and stores canonicals', () => {
