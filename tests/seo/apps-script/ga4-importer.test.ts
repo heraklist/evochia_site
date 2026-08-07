@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  runGa4Report,
+} from '../../../seo/apps-script/src/Ga4Client.ts';
+import {
   runGa4Reports,
   getAvailableGa4Date,
 } from '../../../seo/apps-script/src/Ga4Importer.ts';
@@ -19,6 +22,56 @@ function response(body: unknown, status = 200): HttpResponseLike {
 
 test('uses an independent two-day GA4 processing delay', () => {
   assert.equal(getAvailableGa4Date(new Date('2026-08-06T05:00:00Z')), '2026-08-04');
+});
+
+test('continues GA4 pagination when rowCount is omitted from a full page', () => {
+  const offsets: number[] = [];
+  const transport: HttpTransport = (_url, options: FetchOptionsLike) => {
+    const body = JSON.parse(options.payload) as { offset: number };
+    offsets.push(body.offset);
+
+    if (body.offset === 0) {
+      return response({
+        dimensionHeaders: [{ name: 'date' }],
+        metricHeaders: [{ name: 'sessions' }],
+        rows: [
+          {
+            dimensionValues: [{ value: '20260804' }],
+            metricValues: [{ value: '10' }],
+          },
+          {
+            dimensionValues: [{ value: '20260805' }],
+            metricValues: [{ value: '20' }],
+          },
+        ],
+      });
+    }
+
+    return response({
+      dimensionHeaders: [{ name: 'date' }],
+      metricHeaders: [{ name: 'sessions' }],
+      rows: [{
+        dimensionValues: [{ value: '20260806' }],
+        metricValues: [{ value: '30' }],
+      }],
+    });
+  };
+
+  const rows = runGa4Report({
+    propertyResource: 'properties/528945896',
+    body: {
+      dateRanges: [{ startDate: '2026-08-04', endDate: '2026-08-06' }],
+      dimensions: [{ name: 'date' }],
+      metrics: [{ name: 'sessions' }],
+    },
+    accessToken: 'test-token',
+    transport,
+    pageLimit: 2,
+  });
+
+  assert.deepEqual(offsets, [0, 2]);
+  assert.equal(rows.length, 3);
+  assert.equal(rows[2].sessions, 30);
 });
 
 test('normalizes four GA4 report families without fabricating missing zeroes', () => {
