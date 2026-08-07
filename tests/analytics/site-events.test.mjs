@@ -36,6 +36,52 @@ function storedConsentCookie(categories) {
   return 'cc_cookie=' + encodeURIComponent(JSON.stringify({ categories }));
 }
 
+function clickTrackingRegion() {
+  const startMarker = '/* GA4 click tracking: contact actions and CTA clicks */';
+  const endMarker = "var quoteForm = document.getElementById('quoteForm');";
+  const start = site.indexOf(startMarker);
+  const end = site.indexOf(endMarker, start);
+  assert.ok(start !== -1 && end !== -1, 'GA4 click tracking region must exist');
+  return site.slice(start, end);
+}
+
+function evaluateTrackedClick({ href, text, classes = [] }) {
+  let clickHandler = null;
+  const events = [];
+  const context = {
+    document: {
+      addEventListener: (type, handler) => {
+        if (type === 'click') clickHandler = handler;
+      },
+    },
+    gaEvent: (name, params) => {
+      events.push({ name, params });
+      return true;
+    },
+  };
+
+  runInNewContext(clickTrackingRegion(), context);
+  assert.equal(typeof clickHandler, 'function', 'click tracking handler must register');
+
+  const classSet = new Set(classes);
+  const element = {
+    tagName: 'A',
+    textContent: text,
+    getAttribute: (name) => name === 'href' ? href : null,
+    classList: {
+      contains: (name) => classSet.has(name),
+    },
+  };
+
+  clickHandler({
+    target: {
+      closest: () => element,
+    },
+  });
+
+  return events;
+}
+
 test('site.js guards against double initialization', () => {
   assert.match(site, /if \(window\.__EVOCHIA_SITE_INIT__\) return;/);
 });
@@ -110,6 +156,25 @@ test('contact_click never sends PII (no link_url/link_text on contact links)', (
   assert.doesNotMatch(obj, /link_url/, 'contact_click must not include link_url (PII)');
   assert.doesNotMatch(obj, /link_text/, 'contact_click must not include link_text (PII)');
   assert.match(obj, /contact_method/, 'contact_click should send contact_method');
+});
+
+test('contact-scheme CTA never sends link URL or visible text to GA4', () => {
+  const events = evaluateTrackedClick({
+    href: 'tel:+306931170245',
+    text: '+30 693 117 0245',
+    classes: ['btn-primary'],
+  });
+  const contact = events.find((event) => event.name === 'contact_click');
+  const cta = events.find((event) => event.name === 'cta_click');
+
+  assert.ok(contact, 'contact CTA must still emit contact_click');
+  assert.ok(cta, 'contact CTA may still emit cta_click for CTA performance');
+  assert.equal(Object.prototype.hasOwnProperty.call(cta.params, 'link_url'), false);
+  assert.equal(
+    Object.prototype.hasOwnProperty.call(cta.params, 'link_text'),
+    false,
+    'contact CTA visible text can contain phone/email PII and must not be sent',
+  );
 });
 
 test('cta_click does not attach link_url for contact-scheme links', () => {
