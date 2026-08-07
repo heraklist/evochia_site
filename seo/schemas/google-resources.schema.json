@@ -8,6 +8,8 @@
     "gscProperty",
     "ga4AccountId",
     "ga4PropertyId",
+    "ga4PropertyTimeZone",
+    "productionHostname",
     "gtmPublicContainerId",
     "gtmAccountId",
     "gtmContainerId",
@@ -20,6 +22,11 @@
     "gscProperty": { "type": "string", "minLength": 1 },
     "ga4AccountId": { "type": "string", "minLength": 1 },
     "ga4PropertyId": { "type": "string", "minLength": 1 },
+    "ga4PropertyTimeZone": { "type": "string", "minLength": 1 },
+    "productionHostname": {
+      "type": "string",
+      "pattern": "^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*$"
+    },
     "gtmPublicContainerId": {
       "type": "string",
       "pattern": "^GTM-[A-Z0-9]+$"
@@ -51,6 +58,8 @@
           "gscProperty": { "not": { "const": "UNVERIFIED" } },
           "ga4AccountId": { "not": { "const": "UNVERIFIED" } },
           "ga4PropertyId": { "not": { "const": "UNVERIFIED" } },
+          "ga4PropertyTimeZone": { "not": { "const": "UNVERIFIED" } },
+          "productionHostname": { "not": { "const": "UNVERIFIED" } },
           "gtmPublicContainerId": { "not": { "const": "UNVERIFIED" } },
           "gtmAccountId": { "not": { "const": "UNVERIFIED" } },
           "gtmContainerId": { "not": { "const": "UNVERIFIED" } },
