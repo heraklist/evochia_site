@@ -14,6 +14,9 @@ Implemented in the scaffold:
 - isolated Search Console daily, page, and query report grains;
 - source-specific Search Console date selection using the `America/Los_Angeles` calendar;
 - fetch-before-write GSC orchestration so no Sheet writer runs unless all three report fetches succeed;
+- GA4 page-performance reporting at query-free page grain;
+- GA4 URL-quality classification for query/path/hostname anomalies;
+- GA4 source-date selection from a verified named property timezone;
 - Node-executable regression tests for configuration, API clients, importers, and Sheet merge/write behavior.
 
 Not yet implemented or authorized for production:
@@ -34,6 +37,15 @@ SEO_GOOGLE_RESOURCES_JSON
 ```
 
 Use `seo/config/google-resources.example.json` as the shape contract. Do not change `verificationStatus` to `verified` while any resource is `UNVERIFIED` or any Phase 0 gate is incomplete.
+
+The GA4 reporting contract additionally requires:
+
+```text
+ga4PropertyTimeZone
+productionHostname
+```
+
+`ga4PropertyTimeZone` must be a verified named IANA timezone such as `Europe/Athens`; no fixed UTC offset is used. `productionHostname` is a lowercase hostname only, without scheme, path, port, or trailing dot.
 
 Do not store the following in the Sheet or repository:
 
@@ -72,6 +84,8 @@ GA4 Daily
 GA4 Acquisition
 GA4 Landing Pages
 GA4 Events
+GA4 Pages
+GA4 URL Quality
 GTM Versions
 GTM Changes
 Findings Summary
@@ -89,7 +103,61 @@ Direct invocation is fail-closed: `setupWorkbook()` first requires a complete ve
 
 Dates are selected from the `America/Los_Angeles` calendar with a default three-day final-data delay. Query rows are not used to reconstruct property totals. The importer fetches all three reports before writing any Sheet. Empty successful API responses remain empty; no synthetic zero rows are created.
 
-The implementation is still code-only and undeployed. A production GSC import, authorization flow, trigger, or Sheet write must not be performed without explicit owner approval.
+## GA4 page reporting contracts
+
+### `GA4 Pages`
+
+Primary metrics are requested directly at:
+
+```text
+date + hostName + pagePath
+```
+
+That same tuple is the unique page-performance key. Query strings are excluded from identity so campaign parameters do not fragment one logical page. The primary metrics are:
+
+```text
+screenPageViews
+activeUsers
+sessions
+engagedSessions
+userEngagementDuration
+keyEvents
+```
+
+`pageTitle` is not part of the primary metrics request or key. It is selected from a separate metadata-only GA4 report (`date + hostName + pagePath + pageTitle`, metric `screenPageViews`). For each page key, the highest-view non-empty title wins; equal-view ties use lexical order. Missing title metadata remains `null`.
+
+`language` and `service` are deterministic local attributes derived from the raw `pagePath`. Trailing slash normalization may be used only for classification matching; it never rewrites the stored path or page key.
+
+### `GA4 URL Quality`
+
+URL-quality rows use:
+
+```text
+date + hostName + pagePathPlusQueryString
+```
+
+and are retained only when at least one classification applies. Version 1 classifications, in deterministic order, are:
+
+```text
+tracking_query_params
+unexpected_query_params
+double_slash
+legacy_html
+preview_host
+non_production_host
+```
+
+Known tracking keys include `utm_*`, `gclid`, `gbraid`, `wbraid`, `fbclid`, and `msclkid`. Tracking parameters are informational variants, not automatically defects. Preview hosts such as `*.vercel.app` are identified separately from other non-production hosts.
+
+The URL-quality dataset must not be summed to reconstruct page users or sessions. Its query/path variants remain separate evidence for anomaly monitoring.
+
+### GA4 date semantics and sparse data
+
+GA4 dates use the verified `ga4PropertyTimeZone` calendar with a default two-day processing delay. The calculation is DST-aware and does not fall back to UTC or a fixed `+02:00`/`+03:00` offset.
+
+Empty or thresholded GA4 responses stay missing. The importer does not synthesize zero rows, does not fabricate missing titles, and does not reconstruct hidden totals by summing title or query variants.
+
+The implementation is still code-only and undeployed. A production GSC/GA4 import, authorization flow, trigger, Sheet mutation, or Google configuration write must not be performed without explicit owner approval.
 
 ## Local verification
 
