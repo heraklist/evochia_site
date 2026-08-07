@@ -70,6 +70,9 @@ test('accepts a complete verified production configuration', () => {
 });
 
 test('creates every required sheet once and is idempotent', () => {
+  assert.equal(REQUIRED_SHEET_NAMES.includes('GA4 Pages'), true);
+  assert.equal(REQUIRED_SHEET_NAMES.includes('GA4 URL Quality'), true);
+
   const sheets = new Set<string>(['Config']);
   const workbook: WorkbookLike = {
     getSheetByName(name) {
