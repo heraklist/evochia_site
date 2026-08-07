@@ -115,7 +115,7 @@ test('paginates Search Analytics until a short page is returned', () => {
   assert.equal(rows.length, 4);
   assert.equal(rows[0].query, 'private chef greece');
   assert.equal(rows[3].page, 'https://www.evochia.gr/en/athens-private-chef/');
-  assert.equal(deduplicateGscRows(rows).length, 3);
+  assert.equal(deduplicateGscRows(rows, [...ALL_GSC_DIMENSIONS]).length, 3);
 });
 
 test('repeated row merge is idempotent for the composite GSC key', () => {
