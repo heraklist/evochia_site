@@ -2,7 +2,7 @@
 
 **Status:** Approved for written-spec review
 
-**Scope:** Reproducible Apps Script build output, bundle-equivalence CI, shared runtime utilities, and a data-free non-production GAS V8 smoke gate for PR #35 (`seo-system` -> `main`).
+**Scope:** Reproducible Apps Script build output, committed-bundle equivalence CI, shared runtime utilities, and a data-free non-production GAS V8 smoke gate for PR #35 (`seo-system` -> `main`).
 
 ## Context
 
@@ -15,7 +15,7 @@ This batch deliberately separates runtime/build readiness from later production 
 ## Goals
 
 1. Produce deterministic Apps Script-compatible build artifacts from the version-controlled TypeScript source.
-2. Make stale or hand-edited generated output impossible to pass CI through a bundle-equivalence check.
+2. Commit the deployable generated bundle and make stale or hand-edited output impossible to pass CI through an exact bundle-equivalence check.
 3. Keep Node unit/type/regression tests as the fast everyday gate while adding a documented real GAS V8 smoke gate before production trust.
 4. Run the GAS smoke only in a dedicated non-production Apps Script project bound to a synthetic test Sheet.
 5. Keep the runtime smoke data-free: no real GA4/GSC/GTM calls and no production Sheet access.
@@ -44,10 +44,10 @@ The design has four layers:
 
 1. **TypeScript source** under `seo/apps-script/src/` remains the source of truth.
 2. **Deterministic build** transforms that source into Apps Script-compatible generated output with no runtime `import`/`export` statements.
-3. **Bundle-equivalence CI** rebuilds from source and fails if the checked-in/generated artifact differs from the fresh deterministic build.
+3. **Committed deploy artifact + equivalence CI** stores the generated deploy bundle in the repository and fails CI unless a fresh clean build is byte-for-byte identical to it.
 4. **Real GAS V8 smoke** executes selected data-free entrypoints in a dedicated non-production Apps Script project only after explicit owner approval for the Google-side push.
 
-The generated bundle is never an independent source of truth. It is a reproducible derivative of the TypeScript source.
+The committed bundle is never an independent source of truth. It is a reproducible derivative of the TypeScript source and must never be hand-edited.
 
 ## Build contract
 
@@ -70,28 +70,28 @@ The generated Apps Script artifact must:
 
 The implementation plan may choose a minimal bundler such as esbuild or an equivalent deterministic tool. The build tool must be lockfile-pinned as a development dependency.
 
-## Bundle-equivalence CI invariant
+## Committed bundle-equivalence CI invariant
 
-A committed/generated Apps Script artifact is acceptable only when it is exactly the deterministic output of the current source tree.
+The deployable Apps Script bundle is a tracked repository artifact. It is acceptable only when it is exactly the deterministic output of the current source tree.
 
-CI must include a check equivalent to:
+CI must:
 
-1. build into a clean temporary output location;
-2. compare the fresh output byte-for-byte against the tracked/generated deploy artifact;
+1. build from source into a clean temporary output location;
+2. compare that fresh output byte-for-byte against the committed deploy artifact;
 3. fail if any difference exists.
 
-This check must catch both stale generated files and manual edits to generated output.
+This check must catch both stale generated files and manual edits to generated output. A build that succeeds but differs from the committed bundle is a CI failure.
 
-The repository should expose a single reproducible command for this invariant, for example conceptually:
+The repository should expose reproducible commands conceptually equivalent to:
 
 ```text
 npm run seo:build:apps-script
 npm run seo:check:apps-script-bundle
 ```
 
-Exact command names are implementation details, but the invariant is mandatory.
+Exact command names are implementation details, but the invariant is mandatory. The normal `SEO Data Hub Validation` workflow must run the bundle-equivalence check after dependency installation and before reporting success.
 
-The normal `SEO Data Hub Validation` workflow must run the bundle-equivalence check after dependency installation and before reporting success.
+The committed deploy artifact should live under a clearly generated directory within `seo/apps-script/`; the implementation plan will choose the exact path once the bundler output shape is known. Whatever path is chosen becomes the sole tracked deploy artifact and is covered by the equivalence check.
 
 ## Generated-artifact policy
 
@@ -143,7 +143,7 @@ If pure/runtime tests can run without Sheet access, they should. Any Sheet asser
 
 The real GAS V8 smoke must execute bundled production logic, not a separate reimplementation of it.
 
-It must verify at least the following inside the actual GAS V8 runtime:
+It must verify at least:
 
 1. **Named-timezone calendar behavior** — the shared timezone helper handles `Europe/Athens` and known DST/calendar boundary cases correctly.
 2. **Apps-Script-safe query parsing** — URL-quality classification works without relying on `URLSearchParams` or another browser-only global.
@@ -164,7 +164,7 @@ The smoke must not:
 
 ## Smoke entrypoint design
 
-Provide one explicit test-only GAS entrypoint, for example conceptually `runRuntimeSmoke()`, that:
+Provide one explicit test-only GAS entrypoint, conceptually `runRuntimeSmoke()`, that:
 
 - executes a fixed suite of deterministic assertions;
 - returns or logs a compact structured result containing pass/fail, individual check names, and the source/build revision identifier if available;
@@ -207,14 +207,12 @@ The first evidence note is created only after an owner-authorized real smoke exe
 
 The repository must not contain credentials.
 
-A `.clasp.json` containing a real test Script ID should not be committed by default. Provide either:
+A `.clasp.json` containing a real test Script ID must not be committed by default. Provide either:
 
 - a clearly marked `.clasp.json.example` with placeholder values; or
 - documented local creation/configuration commands.
 
-Any real local `.clasp.json` and equivalent operator-specific files must be ignored by git.
-
-The same default applies to synthetic Sheet IDs and operator-specific smoke configuration.
+Any real local `.clasp.json` and equivalent operator-specific files must be ignored by git. The same default applies to synthetic Sheet IDs and operator-specific smoke configuration.
 
 ## Shared runtime utilities
 
@@ -257,7 +255,7 @@ Before this batch is considered code-complete, repository CI must verify:
 4. site analytics regression tests remain green;
 5. Apps Script build succeeds from a clean dependency install;
 6. generated output contains no unresolved module syntax;
-7. bundle-equivalence/build-diff check passes;
+7. committed-bundle equivalence/build-diff check passes;
 8. generated output contains no obvious committed credentials/real local clasp configuration;
 9. shared calendar refactor preserves all current source-calendar/DST behavior;
 10. shared hostname refactor preserves existing validation behavior.
@@ -275,7 +273,7 @@ These may be implemented and executed without Google-side authorization:
 1. install locked dependencies;
 2. run source tests/typecheck;
 3. build Apps Script artifact;
-4. run bundle-equivalence check;
+4. run committed-bundle equivalence check;
 5. inspect generated manifest/output;
 6. prepare placeholder/local clasp configuration instructions.
 
@@ -294,7 +292,7 @@ The runbook must explicitly warn against substituting the production Apps Script
 ## Error behavior
 
 - Build failure blocks the batch.
-- Bundle-equivalence mismatch blocks CI.
+- Committed-bundle equivalence mismatch blocks CI.
 - Presence of unresolved module syntax blocks CI.
 - Smoke assertion failure blocks production-readiness status.
 - Missing/invalid local test-project configuration blocks only the Google-side smoke step, not source CI.
@@ -306,7 +304,8 @@ The runbook must explicitly warn against substituting the production Apps Script
 The repository portion of this design is accepted when:
 
 - Apps Script source builds deterministically into a deployable V8-compatible artifact;
-- CI proves the tracked/generated artifact is exactly the fresh build output;
+- the deployable generated bundle is committed to the repository;
+- CI proves that committed bundle is byte-for-byte identical to a clean fresh build from the current source;
 - generated output cannot silently drift from tested TypeScript source;
 - shared hostname and calendar helpers replace the targeted duplication without behavior changes;
 - a documented data-free smoke entrypoint and runbook exist;
