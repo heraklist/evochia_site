@@ -169,7 +169,6 @@ export function upsertRows(
     ...merged.rows.map((row) => headers.map((header) => row[header] ?? '')),
   ];
 
-  sheet.clearContents();
   sheet.getRange(1, 1, output.length, headers.length).setValues(output);
   return merged.summary;
 }
