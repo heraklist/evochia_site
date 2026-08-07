@@ -176,7 +176,18 @@ export function selectPageTitles(rows: Ga4Row[]): Map<string, string | null> {
   return new Map([...selected.entries()].map(([key, value]) => [key, value.title]));
 }
 
-const TRACKING_QUERY_KEYS = new Set(['gclid', 'gbraid', 'wbraid', 'fbclid', 'msclkid']);
+const TRACKING_QUERY_KEYS = new Set([
+  'gclid',
+  'gclsrc',
+  'dclid',
+  'gbraid',
+  'wbraid',
+  'gad_source',
+  '_gl',
+  'srsltid',
+  'fbclid',
+  'msclkid',
+]);
 
 function queryParameterKeys(query: string): string[] {
   if (!query) return [];
