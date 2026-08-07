@@ -177,12 +177,17 @@ test('contact-scheme CTA never sends link URL or visible text to GA4', () => {
   );
 });
 
-test('cta_click does not attach link_url for contact-scheme links', () => {
-  assert.match(
-    site,
-    /if \(!contactMethod\) ctaParams\.link_url = href;/,
-    'cta_click must only attach link_url for non-contact links'
-  );
+test('non-contact CTA keeps useful link URL and visible text metadata', () => {
+  const events = evaluateTrackedClick({
+    href: '/en/contact/',
+    text: 'Plan your event',
+    classes: ['btn-primary'],
+  });
+  const cta = events.find((event) => event.name === 'cta_click');
+
+  assert.ok(cta, 'non-contact CTA must emit cta_click');
+  assert.equal(cta.params.link_url, '/en/contact/');
+  assert.equal(cta.params.link_text, 'Plan your event');
 });
 
 test('cookieconsent module only updates consent (no late default)', () => {
