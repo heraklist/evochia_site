@@ -127,8 +127,10 @@ export function runGa4Report(request: Ga4ReportRequest): Ga4Row[] {
     const pageRows = normalizeGa4Response(parsed);
     rows.push(...pageRows);
 
-    const rowCount = parsed.rowCount ?? rows.length;
-    if (pageRows.length < pageLimit || rows.length >= rowCount) {
+    if (
+      pageRows.length < pageLimit
+      || (parsed.rowCount != null && rows.length >= parsed.rowCount)
+    ) {
       break;
     }
 
