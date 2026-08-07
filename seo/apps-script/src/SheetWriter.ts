@@ -13,19 +13,61 @@ export interface MergeResult {
   summary: WriteSummary;
 }
 
-function keyPart(value: CellValue | undefined): string {
+function cellPart(value: CellValue | undefined): string {
   if (value instanceof Date) {
     return value.toISOString();
   }
   return value == null ? '' : String(value);
 }
 
-export function buildCompositeKey(row: RowRecord, keyColumns: string[]): string {
-  return keyColumns.map((column) => keyPart(row[column])).join('\u001f');
+function formatCalendarDate(value: Date, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(value);
+  const values = new Map(parts.map((part) => [part.type, part.value]));
+  const year = values.get('year');
+  const month = values.get('month');
+  const day = values.get('day');
+
+  if (!year || !month || !day) {
+    throw new Error(`Unable to format date key in timezone: ${timeZone}`);
+  }
+
+  return `${year}-${month}-${day}`;
 }
 
-function rowsEqual(headers: string[], left: RowRecord, right: RowRecord): boolean {
-  return headers.every((header) => keyPart(left[header]) === keyPart(right[header]));
+function keyPart(value: CellValue | undefined, timeZone: string): string {
+  if (value instanceof Date) {
+    return formatCalendarDate(value, timeZone);
+  }
+  return value == null ? '' : String(value);
+}
+
+export function buildCompositeKey(
+  row: RowRecord,
+  keyColumns: string[],
+  timeZone = 'UTC',
+): string {
+  return keyColumns.map((column) => keyPart(row[column], timeZone)).join('\u001f');
+}
+
+function rowsEqual(
+  headers: string[],
+  left: RowRecord,
+  right: RowRecord,
+  keyColumns: string[],
+  timeZone: string,
+): boolean {
+  const keySet = new Set(keyColumns);
+  return headers.every((header) => {
+    if (keySet.has(header)) {
+      return keyPart(left[header], timeZone) === keyPart(right[header], timeZone);
+    }
+    return cellPart(left[header]) === cellPart(right[header]);
+  });
 }
 
 export function mergeRowRecords(
@@ -33,6 +75,7 @@ export function mergeRowRecords(
   existingRows: RowRecord[],
   keyColumns: string[],
   incomingRows: RowRecord[],
+  timeZone = 'UTC',
 ): MergeResult {
   for (const key of keyColumns) {
     if (!headers.includes(key)) {
@@ -42,11 +85,11 @@ export function mergeRowRecords(
 
   const rows = existingRows.map((row) => ({ ...row }));
   const indexes = new Map<string, number>();
-  rows.forEach((row, index) => indexes.set(buildCompositeKey(row, keyColumns), index));
+  rows.forEach((row, index) => indexes.set(buildCompositeKey(row, keyColumns, timeZone), index));
 
   const deduplicatedIncoming = new Map<string, RowRecord>();
   for (const row of incomingRows) {
-    deduplicatedIncoming.set(buildCompositeKey(row, keyColumns), { ...row });
+    deduplicatedIncoming.set(buildCompositeKey(row, keyColumns, timeZone), { ...row });
   }
 
   let inserted = 0;
@@ -62,7 +105,7 @@ export function mergeRowRecords(
       continue;
     }
 
-    if (rowsEqual(headers, rows[existingIndex], incoming)) {
+    if (rowsEqual(headers, rows[existingIndex], incoming, keyColumns, timeZone)) {
       unchanged += 1;
       continue;
     }
@@ -119,7 +162,8 @@ export function upsertRows(
     return row;
   });
 
-  const merged = mergeRowRecords(headers, existingRows, keyColumns, incomingRows);
+  const timeZone = workbook.getSpreadsheetTimeZone();
+  const merged = mergeRowRecords(headers, existingRows, keyColumns, incomingRows, timeZone);
   const output = [
     headers,
     ...merged.rows.map((row) => headers.map((header) => row[header] ?? '')),
