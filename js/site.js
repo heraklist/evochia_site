@@ -430,12 +430,14 @@
     if (ctaVariant) {
       var ctaParams = {
         cta_variant: ctaVariant,
-        link_text: linkText.slice(0, 100),
         lead_source: 'site'
       };
-      /* Only attach link_url for non-contact (internal) links, so a phone/email
-         CTA can never leak PII through the URL parameter. */
-      if (!contactMethod) ctaParams.link_url = href;
+      /* Contact links can expose phone/email PII in both URL and visible text.
+         Only enrich non-contact CTAs with those fields. */
+      if (!contactMethod) {
+        ctaParams.link_text = linkText.slice(0, 100);
+        ctaParams.link_url = href;
+      }
       gaEvent('cta_click', ctaParams);
     }
   });
