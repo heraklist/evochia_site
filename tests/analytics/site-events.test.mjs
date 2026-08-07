@@ -8,7 +8,7 @@ const site = readFileSync(ROOT + 'js/site.js', 'utf8');
 const cc = readFileSync(ROOT + 'js/cookieconsent-config.js', 'utf8');
 
 function analyticsConsentRegion() {
-  const startMarker = '/* Only report analytics while the visitor has accepted the analytics';
+  const startMarker = 'function storedAnalyticsConsented() {';
   const endMarker = '/* GA4 helper.';
   const start = site.indexOf(startMarker);
   const end = site.indexOf(endMarker, start);
