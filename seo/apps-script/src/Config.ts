@@ -4,6 +4,8 @@ export const RESOURCE_KEYS = [
   'gscProperty',
   'ga4AccountId',
   'ga4PropertyId',
+  'ga4PropertyTimeZone',
+  'productionHostname',
   'gtmPublicContainerId',
   'gtmAccountId',
   'gtmContainerId',
@@ -15,6 +17,8 @@ export interface SeoConfig {
   gscProperty: string;
   ga4AccountId: string;
   ga4PropertyId: string;
+  ga4PropertyTimeZone: string;
+  productionHostname: string;
   gtmPublicContainerId: string;
   gtmAccountId: string;
   gtmContainerId: string;
@@ -27,6 +31,19 @@ export interface SeoConfig {
 export interface VerificationResult {
   ok: boolean;
   errors: string[];
+}
+
+function validTimeZone(value: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en-CA', { timeZone: value }).format(new Date(0));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function validProductionHostname(value: string): boolean {
+  return /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*$/.test(value);
 }
 
 export function verifyConfig(config: Partial<SeoConfig>): VerificationResult {
@@ -47,6 +64,22 @@ export function verifyConfig(config: Partial<SeoConfig>): VerificationResult {
 
   if (config.verificationStatus !== 'verified') {
     errors.push('verificationStatus must be verified');
+  }
+
+  if (
+    typeof config.ga4PropertyTimeZone === 'string'
+    && config.ga4PropertyTimeZone !== 'UNVERIFIED'
+    && !validTimeZone(config.ga4PropertyTimeZone)
+  ) {
+    errors.push('ga4PropertyTimeZone must be a valid IANA timezone');
+  }
+
+  if (
+    typeof config.productionHostname === 'string'
+    && config.productionHostname !== 'UNVERIFIED'
+    && !validProductionHostname(config.productionHostname)
+  ) {
+    errors.push('productionHostname must be a lowercase hostname without scheme, path, port, or trailing dot');
   }
 
   if (
