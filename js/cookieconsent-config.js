@@ -204,23 +204,20 @@ initializeGtagStub();
 restoreStoredConsent();
 scheduleCookieConsentBoot();
 
-/* Read the persisted vanilla-cookieconsent state (cookie name: cc_cookie) and,
-   if analytics was previously accepted, issue the consent update right away.
-   Runs at module execution time — not behind the banner's display timer. */
+/* Reuse site.js as the single parser for persisted vanilla-cookieconsent state.
+   If the shared helper is unavailable for any reason, fail closed and leave
+   the inline Consent Mode defaults at denied. */
 function restoreStoredConsent() {
   try {
-    var match = document.cookie.match(/(?:^|;\s*)cc_cookie=([^;]+)/);
-    if (!match) return;
-    var stored = JSON.parse(decodeURIComponent(match[1]));
-    var categories = stored && stored.categories;
-    if (Array.isArray(categories) && categories.indexOf('analytics') > -1) {
-      ensureAnalyticsScript();
-      if (typeof gtag === 'function') {
-        gtag('consent', 'update', { 'analytics_storage': 'granted' });
-      }
+    var consentState = window.__EVOCHIA_CONSENT_STATE__;
+    var storedAnalyticsConsented = consentState && consentState.storedAnalyticsConsented;
+    if (typeof storedAnalyticsConsented !== 'function' || !storedAnalyticsConsented()) return;
+    ensureAnalyticsScript();
+    if (typeof gtag === 'function') {
+      gtag('consent', 'update', { 'analytics_storage': 'granted' });
     }
   } catch (e) {
-    /* Malformed or absent cookie: leave the inline defaults (denied) in place. */
+    /* Missing or invalid shared state: leave the inline defaults denied. */
   }
 }
 
@@ -239,4 +236,3 @@ function ensureAnalyticsScript() {
      configuration tag fires inside GTM and respects Consent Mode, so there is
      no separate gtag.js to inject here. */
 }
-
