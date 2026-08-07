@@ -16,6 +16,8 @@ export const GSC_KEY_COLUMNS = [
   'searchAppearance',
 ] as const;
 
+export const GSC_TIME_ZONE = 'America/Los_Angeles';
+
 export interface GscImportConfig {
   siteUrl: string;
   monitoredUrls: string[];
@@ -39,8 +41,24 @@ export interface GscImportDependencies {
   ) => WriteSummary;
 }
 
-function formatUtcDate(date: Date): string {
-  return date.toISOString().slice(0, 10);
+function calendarDateParts(date: Date, timeZone: string): {
+  year: number;
+  month: number;
+  day: number;
+} {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const values = new Map(parts.map((part) => [part.type, part.value]));
+
+  return {
+    year: Number(values.get('year')),
+    month: Number(values.get('month')),
+    day: Number(values.get('day')),
+  };
 }
 
 export function getAvailableGscDate(now: Date, delayDays = 3): string {
@@ -48,9 +66,10 @@ export function getAvailableGscDate(now: Date, delayDays = 3): string {
     throw new Error('delayDays must be a non-negative integer');
   }
 
-  const available = new Date(now.getTime());
-  available.setUTCDate(available.getUTCDate() - delayDays);
-  return formatUtcDate(available);
+  const { year, month, day } = calendarDateParts(now, GSC_TIME_ZONE);
+  return new Date(Date.UTC(year, month - 1, day - delayDays))
+    .toISOString()
+    .slice(0, 10);
 }
 
 export function deduplicateGscRows(rows: GscRow[]): GscRow[] {
