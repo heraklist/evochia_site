@@ -9,15 +9,6 @@ import {
 } from './GscClient.ts';
 import { upsertRows, type RowRecord, type WriteSummary } from './SheetWriter.ts';
 
-export const GSC_KEY_COLUMNS = [
-  'date',
-  'query',
-  'page',
-  'country',
-  'device',
-  'searchAppearance',
-] as const;
-
 export type GscReportId = 'daily' | 'pages' | 'queries';
 
 export interface GscReportSpec {
@@ -59,11 +50,15 @@ export interface GscImportConfig {
   monitoredUrls: string[];
 }
 
+export interface GscReportImportResult {
+  fetched: number;
+  write: WriteSummary;
+}
+
 export interface GscImportResult {
   dataAsOf: string;
   collectedAt: string;
-  fetched: number;
-  write: WriteSummary;
+  reports: Record<GscReportId, GscReportImportResult>;
 }
 
 export interface GscImportDependencies {
@@ -129,29 +124,37 @@ export function importSearchAnalyticsDay(
 ): GscImportResult {
   const dataAsOf = getAvailableGscDate(now, 3);
   const collectedAt = dependencies.collectedAt ?? now.toISOString();
-  const fetched = fetchSearchAnalytics({
-    siteUrl: config.siteUrl,
-    startDate: dataAsOf,
-    endDate: dataAsOf,
-    dimensions: [...GSC_KEY_COLUMNS],
-    aggregationType: 'auto',
-    transport: dependencies.transport,
-    accessToken: dependencies.accessToken,
-  });
-  const rows = deduplicateGscRows(fetched, GSC_KEY_COLUMNS).map((row) => ({
-    ...row,
-    dataAsOf,
-    collectedAt,
-  }));
-  const writer = dependencies.writeRows ?? upsertRows;
-  const write = writer('GSC Daily', [...GSC_KEY_COLUMNS], rows as RowRecord[]);
 
-  return {
-    dataAsOf,
-    collectedAt,
-    fetched: fetched.length,
-    write,
-  };
+  const fetchedReports = GSC_REPORT_SPECS.map((spec) => ({
+    spec,
+    rows: fetchSearchAnalytics({
+      siteUrl: config.siteUrl,
+      startDate: dataAsOf,
+      endDate: dataAsOf,
+      dimensions: spec.dimensions,
+      aggregationType: spec.aggregationType,
+      transport: dependencies.transport,
+      accessToken: dependencies.accessToken,
+    }),
+  }));
+
+  const writer = dependencies.writeRows ?? upsertRows;
+  const reports = {} as Record<GscReportId, GscReportImportResult>;
+
+  for (const { spec, rows: fetched } of fetchedReports) {
+    const rows = deduplicateGscRows(fetched, spec.keyColumns).map((row) => ({
+      ...row,
+      dataAsOf,
+      collectedAt,
+    }));
+
+    reports[spec.id] = {
+      fetched: fetched.length,
+      write: writer(spec.sheetName, [...spec.keyColumns], rows as RowRecord[]),
+    };
+  }
+
+  return { dataAsOf, collectedAt, reports };
 }
 
 export function inspectMonitoredUrls(
