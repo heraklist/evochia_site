@@ -1,13 +1,72 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { runInNewContext } from 'node:vm';
 
 const ROOT = new URL('../../', import.meta.url).pathname;
 const site = readFileSync(ROOT + 'js/site.js', 'utf8');
 const cc = readFileSync(ROOT + 'js/cookieconsent-config.js', 'utf8');
 
+function analyticsConsentRegion() {
+  const startMarker = '/* Only report analytics while the visitor has accepted the analytics';
+  const endMarker = '/* GA4 helper.';
+  const start = site.indexOf(startMarker);
+  const end = site.indexOf(endMarker, start);
+  assert.ok(start !== -1 && end !== -1, 'analytics consent helper region must exist');
+  return site.slice(start, end);
+}
+
+function evaluateAnalyticsConsented({ cookie = '', cookieConsent } = {}) {
+  const context = {
+    document: { cookie },
+    result: null,
+  };
+  if (cookieConsent !== undefined) {
+    context.CookieConsent = cookieConsent;
+  }
+
+  runInNewContext(
+    `${analyticsConsentRegion()}\nresult = analyticsConsented();`,
+    context,
+  );
+  return context.result;
+}
+
+function storedConsentCookie(categories) {
+  return 'cc_cookie=' + encodeURIComponent(JSON.stringify({ categories }));
+}
+
 test('site.js guards against double initialization', () => {
   assert.match(site, /if \(window\.__EVOCHIA_SITE_INIT__\) return;/);
+});
+
+test('analytics consent behavior handles pre-boot state and live withdrawal', () => {
+  assert.equal(
+    evaluateAnalyticsConsented({
+      cookie: storedConsentCookie(['necessary', 'analytics']),
+    }),
+    true,
+    'returning analytics-consented visitors must be allowed before CookieConsent boots',
+  );
+
+  assert.equal(
+    evaluateAnalyticsConsented({
+      cookie: storedConsentCookie(['necessary']),
+    }),
+    false,
+    'pre-boot visitors without analytics consent must remain denied',
+  );
+
+  assert.equal(
+    evaluateAnalyticsConsented({
+      cookie: storedConsentCookie(['necessary', 'analytics']),
+      cookieConsent: {
+        acceptedCategory: (category) => category === 'analytics' ? false : false,
+      },
+    }),
+    false,
+    'once CookieConsent is live, withdrawal must override stale persisted consent',
+  );
 });
 
 test('gaEvent is gated on analytics consent (no dispatch before consent)', () => {
