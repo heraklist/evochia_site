@@ -10,6 +10,7 @@ import {
 import {
   deduplicateGscRows,
   getAvailableGscDate,
+  importSearchAnalyticsDay,
   inspectMonitoredUrls,
 } from '../../../seo/apps-script/src/GscImporter.ts';
 import {
@@ -210,6 +211,111 @@ test('uses the named timezone across the daylight-saving boundary', () => {
     getAvailableGscDate(new Date('2026-11-02T07:30:00Z'), 0),
     '2026-11-01',
   );
+});
+
+test('fetches and writes daily, page, and query reports at their own grains', () => {
+  const requests: Array<{ dimensions: string[]; aggregationType: string }> = [];
+  const writes: Array<{ sheetName: string; keyColumns: string[]; rows: RowRecord[] }> = [];
+
+  const transport: HttpTransport = (_url, options) => {
+    const payload = JSON.parse(options.payload) as {
+      dimensions: string[];
+      aggregationType: string;
+    };
+    requests.push({
+      dimensions: payload.dimensions,
+      aggregationType: payload.aggregationType,
+    });
+
+    const key = payload.dimensions.join(',');
+    const rowsByDimensions: Record<string, unknown[]> = {
+      date: [{ keys: ['2026-08-02'], clicks: 5, impressions: 50, ctr: 0.1, position: 4 }],
+      'date,page': [{ keys: ['2026-08-02', 'https://www.evochia.gr/en/private-chef.html'], clicks: 3, impressions: 30, ctr: 0.1, position: 5 }],
+      'date,query': [{ keys: ['2026-08-02', 'private chef greece'], clicks: 2, impressions: 20, ctr: 0.1, position: 6 }],
+    };
+    return response({ rows: rowsByDimensions[key] ?? [] });
+  };
+
+  const result = importSearchAnalyticsDay(
+    { siteUrl: 'https://www.evochia.gr/', monitoredUrls: [] },
+    new Date('2026-08-06T05:00:00Z'),
+    {
+      accessToken: 'test-token',
+      collectedAt: '2026-08-06T05:00:00Z',
+      transport,
+      writeRows: (sheetName, keyColumns, rows) => {
+        writes.push({ sheetName, keyColumns, rows });
+        return { inserted: rows.length, updated: 0, unchanged: 0, total: rows.length };
+      },
+    },
+  );
+
+  assert.deepEqual(requests, [
+    { dimensions: ['date'], aggregationType: 'byProperty' },
+    { dimensions: ['date', 'page'], aggregationType: 'auto' },
+    { dimensions: ['date', 'query'], aggregationType: 'byProperty' },
+  ]);
+  assert.deepEqual(writes.map(({ sheetName, keyColumns }) => ({ sheetName, keyColumns })), [
+    { sheetName: 'GSC Daily', keyColumns: ['date'] },
+    { sheetName: 'GSC Pages', keyColumns: ['date', 'page'] },
+    { sheetName: 'GSC Queries', keyColumns: ['date', 'query'] },
+  ]);
+  for (const write of writes) {
+    assert.equal(write.rows.length, 1);
+    assert.equal(write.rows[0].dataAsOf, '2026-08-02');
+    assert.equal(write.rows[0].collectedAt, '2026-08-06T05:00:00Z');
+  }
+  assert.equal(result.dataAsOf, '2026-08-02');
+  assert.equal(result.reports.daily.fetched, 1);
+  assert.equal(result.reports.pages.fetched, 1);
+  assert.equal(result.reports.queries.fetched, 1);
+});
+
+test('does not write any report when a later GSC fetch fails', () => {
+  let requestCount = 0;
+  let writerCalls = 0;
+
+  assert.throws(() => importSearchAnalyticsDay(
+    { siteUrl: 'https://www.evochia.gr/', monitoredUrls: [] },
+    new Date('2026-08-06T08:00:00Z'),
+    {
+      accessToken: 'test-token',
+      transport: () => {
+        requestCount += 1;
+        return requestCount === 2
+          ? response('{"error":"quota"}', 429)
+          : response({ rows: [] });
+      },
+      writeRows: () => {
+        writerCalls += 1;
+        return { inserted: 0, updated: 0, unchanged: 0, total: 0 };
+      },
+    },
+  ), (error: unknown) => error instanceof PipelineError && error.status === 429);
+
+  assert.equal(writerCalls, 0);
+});
+
+test('keeps empty successful reports empty without synthetic rows', () => {
+  const writtenRowCounts: number[] = [];
+
+  const result = importSearchAnalyticsDay(
+    { siteUrl: 'https://www.evochia.gr/', monitoredUrls: [] },
+    new Date('2026-08-06T08:00:00Z'),
+    {
+      accessToken: 'test-token',
+      transport: () => response({ rows: [] }),
+      writeRows: (_sheetName, _keyColumns, rows) => {
+        writtenRowCounts.push(rows.length);
+        return { inserted: 0, updated: 0, unchanged: 0, total: 0 };
+      },
+    },
+  );
+
+  assert.deepEqual(writtenRowCounts, [0, 0, 0]);
+  assert.equal(result.reports.daily.fetched, 0);
+  assert.equal(result.reports.pages.fetched, 0);
+  assert.equal(result.reports.queries.fetched, 0);
 });
 
 test('URL Inspection is limited to the monitored allowlist and stores canonicals', () => {
