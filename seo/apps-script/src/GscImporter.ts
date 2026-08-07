@@ -1,6 +1,8 @@
 import {
   fetchSearchAnalytics,
   fetchUrlInspection,
+  type GscAggregationType,
+  type GscDimension,
   type GscRow,
   type HttpTransport,
   type InspectionRow,
@@ -15,6 +17,40 @@ export const GSC_KEY_COLUMNS = [
   'device',
   'searchAppearance',
 ] as const;
+
+export type GscReportId = 'daily' | 'pages' | 'queries';
+
+export interface GscReportSpec {
+  id: GscReportId;
+  dimensions: readonly GscDimension[];
+  aggregationType: GscAggregationType;
+  sheetName: 'GSC Daily' | 'GSC Pages' | 'GSC Queries';
+  keyColumns: readonly string[];
+}
+
+export const GSC_REPORT_SPECS = [
+  {
+    id: 'daily',
+    dimensions: ['date'],
+    aggregationType: 'byProperty',
+    sheetName: 'GSC Daily',
+    keyColumns: ['date'],
+  },
+  {
+    id: 'pages',
+    dimensions: ['date', 'page'],
+    aggregationType: 'auto',
+    sheetName: 'GSC Pages',
+    keyColumns: ['date', 'page'],
+  },
+  {
+    id: 'queries',
+    dimensions: ['date', 'query'],
+    aggregationType: 'byProperty',
+    sheetName: 'GSC Queries',
+    keyColumns: ['date', 'query'],
+  },
+] as const satisfies readonly GscReportSpec[];
 
 export const GSC_TIME_ZONE = 'America/Los_Angeles';
 
