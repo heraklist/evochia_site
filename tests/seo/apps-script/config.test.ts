@@ -8,10 +8,12 @@ import {
   type WorkbookLike,
 } from '../../../seo/apps-script/src/Setup.ts';
 
-const verifiedConfig: SeoConfig = {
+const verifiedConfig = {
   gscProperty: 'https://www.evochia.gr/',
   ga4AccountId: '388030118',
   ga4PropertyId: '528945896',
+  ga4PropertyTimeZone: 'Europe/Athens',
+  productionHostname: 'www.evochia.gr',
   gtmPublicContainerId: 'GTM-578JXRXS',
   gtmAccountId: '123456789',
   gtmContainerId: '987654321',
@@ -19,7 +21,7 @@ const verifiedConfig: SeoConfig = {
   driveFolderId: 'drive-folder-resource-id',
   ownerEmail: 'heraklis@evochia.gr',
   verificationStatus: 'verified',
-};
+} as unknown as SeoConfig;
 
 test('rejects unverified production identifiers', () => {
   const result = verifyConfig({ verificationStatus: 'pending' });
@@ -34,6 +36,33 @@ test('rejects verified status while a resource remains unresolved', () => {
   });
   assert.equal(result.ok, false);
   assert.equal(result.errors.includes('gtmAccountId is unverified'), true);
+});
+
+test('requires a verified GA4 property timezone and production hostname', () => {
+  const missing = verifyConfig({
+    ...verifiedConfig,
+    ga4PropertyTimeZone: 'UNVERIFIED',
+    productionHostname: 'UNVERIFIED',
+  } as Partial<SeoConfig>);
+  assert.equal(missing.ok, false);
+  assert.equal(missing.errors.includes('ga4PropertyTimeZone is unverified'), true);
+  assert.equal(missing.errors.includes('productionHostname is unverified'), true);
+
+  const invalidTimezone = verifyConfig({
+    ...verifiedConfig,
+    ga4PropertyTimeZone: 'Athens/GMT+3',
+  } as Partial<SeoConfig>);
+  assert.equal(invalidTimezone.ok, false);
+  assert.equal(invalidTimezone.errors.includes('ga4PropertyTimeZone must be a valid IANA timezone'), true);
+
+  for (const hostname of ['https://www.evochia.gr', 'www.evochia.gr/path', 'www.evochia.gr:443', 'www.evochia.gr.']) {
+    const invalidHostname = verifyConfig({
+      ...verifiedConfig,
+      productionHostname: hostname,
+    } as Partial<SeoConfig>);
+    assert.equal(invalidHostname.ok, false, hostname);
+    assert.equal(invalidHostname.errors.includes('productionHostname must be a lowercase hostname without scheme, path, port, or trailing dot'), true);
+  }
 });
 
 test('accepts a complete verified production configuration', () => {
