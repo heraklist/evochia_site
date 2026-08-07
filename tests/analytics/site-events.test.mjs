@@ -16,8 +16,9 @@ function analyticsConsentRegion() {
   return site.slice(start, end);
 }
 
-function evaluateAnalyticsConsented({ cookie = '', cookieConsent } = {}) {
+function evaluateAnalyticsConsentContext({ cookie = '', cookieConsent } = {}) {
   const context = {
+    window: {},
     document: { cookie },
     result: null,
   };
@@ -29,11 +30,46 @@ function evaluateAnalyticsConsented({ cookie = '', cookieConsent } = {}) {
     `${analyticsConsentRegion()}\nresult = analyticsConsented();`,
     context,
   );
-  return context.result;
+  return context;
+}
+
+function evaluateAnalyticsConsented(options = {}) {
+  return evaluateAnalyticsConsentContext(options).result;
 }
 
 function storedConsentCookie(categories) {
   return 'cc_cookie=' + encodeURIComponent(JSON.stringify({ categories }));
+}
+
+function restoreStoredConsentRegion() {
+  const startMarker = 'function restoreStoredConsent() {';
+  const endMarker = 'function updateGtagConsent() {';
+  const start = cc.indexOf(startMarker);
+  const end = cc.indexOf(endMarker, start);
+  assert.ok(start !== -1 && end !== -1, 'stored consent restoration region must exist');
+  return cc.slice(start, end);
+}
+
+function evaluateRestoreStoredConsent({ sharedAccepted, cookie }) {
+  const gtagCalls = [];
+  const gtag = (...args) => gtagCalls.push(args);
+  const context = {
+    window: {
+      __EVOCHIA_CONSENT_STATE__: {
+        storedAnalyticsConsented: () => sharedAccepted,
+      },
+      gtag,
+    },
+    document: { cookie },
+    gtag,
+    ensureAnalyticsScript: () => {},
+  };
+
+  runInNewContext(
+    `${restoreStoredConsentRegion()}\nrestoreStoredConsent();`,
+    context,
+  );
+  return gtagCalls;
 }
 
 function clickTrackingRegion() {
@@ -113,6 +149,16 @@ test('analytics consent behavior handles pre-boot state and live withdrawal', ()
     false,
     'once CookieConsent is live, withdrawal must override stale persisted consent',
   );
+});
+
+test('site exposes the persisted analytics consent helper as the shared source', () => {
+  const context = evaluateAnalyticsConsentContext({
+    cookie: storedConsentCookie(['necessary', 'analytics']),
+  });
+  const helper = context.window.__EVOCHIA_CONSENT_STATE__?.storedAnalyticsConsented;
+
+  assert.equal(typeof helper, 'function', 'cookie consent module needs the shared stored-consent helper');
+  assert.equal(helper(), true);
 });
 
 test('gaEvent is gated on analytics consent (no dispatch before consent)', () => {
@@ -212,9 +258,26 @@ test('stored consent is restored immediately, before the delayed banner boot', (
     restoreIdx < scheduleIdx,
     'consent restoration must run before (and independently of) the banner boot'
   );
-  assert.match(
-    cc,
-    /categories\.indexOf\('analytics'\) > -1[\s\S]*?'analytics_storage': 'granted'/,
-    'a returning analytics-consented visitor must be restored to granted'
+});
+
+test('cookieconsent restoration uses the shared stored-consent source, not its own cookie parser', () => {
+  const acceptedCalls = evaluateRestoreStoredConsent({
+    sharedAccepted: true,
+    cookie: storedConsentCookie(['necessary']),
+  });
+  assert.deepEqual(
+    acceptedCalls,
+    [['consent', 'update', { analytics_storage: 'granted' }]],
+    'shared accepted state must restore analytics even when the raw cookie fixture disagrees',
+  );
+
+  const deniedCalls = evaluateRestoreStoredConsent({
+    sharedAccepted: false,
+    cookie: storedConsentCookie(['necessary', 'analytics']),
+  });
+  assert.deepEqual(
+    deniedCalls,
+    [],
+    'shared denied state must prevent stale raw-cookie analytics restoration',
   );
 });
