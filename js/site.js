@@ -80,14 +80,30 @@
     return 'general';
   }
 
+  function storedAnalyticsConsented() {
+    try {
+      var match = document.cookie.match(/(?:^|;\s*)cc_cookie=([^;]+)/);
+      if (!match) return false;
+      var stored = JSON.parse(decodeURIComponent(match[1]));
+      var categories = stored && stored.categories;
+      return Array.isArray(categories) && categories.indexOf('analytics') > -1;
+    } catch (e) {
+      return false;
+    }
+  }
+
   /* Only report analytics while the visitor has accepted the analytics
-     category. Consent Mode defaults to denied in <head>; we additionally
-     suppress custom events here so nothing is queued or replayed pre-consent. */
+     category. Once CookieConsent is live, its current state is authoritative
+     so withdrawal is respected immediately. Before boot, fall back to the
+     persisted cc_cookie for returning visitors; malformed/absent state fails
+     closed. */
   function analyticsConsented() {
     try {
-      return typeof CookieConsent !== 'undefined' &&
-        typeof CookieConsent.acceptedCategory === 'function' &&
-        CookieConsent.acceptedCategory('analytics');
+      if (typeof CookieConsent !== 'undefined' &&
+          typeof CookieConsent.acceptedCategory === 'function') {
+        return CookieConsent.acceptedCategory('analytics');
+      }
+      return storedAnalyticsConsented();
     } catch (e) {
       return false;
     }
