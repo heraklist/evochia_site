@@ -178,6 +178,23 @@ export function selectPageTitles(rows: Ga4Row[]): Map<string, string | null> {
 
 const TRACKING_QUERY_KEYS = new Set(['gclid', 'gbraid', 'wbraid', 'fbclid', 'msclkid']);
 
+function queryParameterKeys(query: string): string[] {
+  if (!query) return [];
+
+  return query
+    .split('&')
+    .filter((part) => part.length > 0)
+    .map((part) => {
+      const separatorIndex = part.indexOf('=');
+      const encodedKey = separatorIndex === -1 ? part : part.slice(0, separatorIndex);
+      try {
+        return decodeURIComponent(encodedKey.replace(/\+/g, ' '));
+      } catch {
+        return encodedKey;
+      }
+    });
+}
+
 export function classifyUrlQuality(
   hostName: string,
   pagePathPlusQueryString: string,
@@ -191,11 +208,10 @@ export function classifyUrlQuality(
     ? pagePathPlusQueryString
     : pagePathPlusQueryString.slice(0, queryIndex);
   const query = queryIndex === -1 ? '' : pagePathPlusQueryString.slice(queryIndex + 1);
-  const params = new URLSearchParams(query);
   let hasTracking = false;
   let hasUnexpected = false;
 
-  for (const key of params.keys()) {
+  for (const key of queryParameterKeys(query)) {
     const normalizedKey = key.toLowerCase();
     if (normalizedKey.startsWith('utm_') || TRACKING_QUERY_KEYS.has(normalizedKey)) {
       hasTracking = true;
