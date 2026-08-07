@@ -92,6 +92,9 @@
     }
   }
 
+  window.__EVOCHIA_CONSENT_STATE__ = window.__EVOCHIA_CONSENT_STATE__ || {};
+  window.__EVOCHIA_CONSENT_STATE__.storedAnalyticsConsented = storedAnalyticsConsented;
+
   /* Only report analytics while the visitor has accepted the analytics
      category. Once CookieConsent is live, its current state is authoritative
      so withdrawal is respected immediately. Before boot, fall back to the
