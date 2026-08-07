@@ -133,7 +133,7 @@ export function classifyPagePath(pagePath: string): {
     ['/faq/', 'faq'],
     ['/lookbook/', 'lookbook'],
     ['/privacy/', 'privacy'],
-    ['/404', 'not_found'],
+    ['/404/', 'not_found'],
   ];
 
   if (comparison === '/') {
