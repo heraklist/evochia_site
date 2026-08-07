@@ -12,6 +12,8 @@ export const REQUIRED_SHEET_NAMES = [
   'GA4 Acquisition',
   'GA4 Landing Pages',
   'GA4 Events',
+  'GA4 Pages',
+  'GA4 URL Quality',
   'GTM Versions',
   'GTM Changes',
   'Findings Summary',
