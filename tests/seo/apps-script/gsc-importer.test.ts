@@ -156,6 +156,30 @@ test('repeated row merge is idempotent for the composite GSC key', () => {
   assert.equal(changed.rows[0].clicks, 3);
 });
 
+test('treats a Sheet Date key as the same date as an incoming YYYY-MM-DD string', () => {
+  const headers = ['date', 'page', 'clicks'];
+  const keyColumns = ['date', 'page'];
+  const existing: RowRecord = {
+    date: new Date('2026-08-01T00:00:00.000Z'),
+    page: 'https://www.evochia.gr/en/private-chef/',
+    clicks: 3,
+  };
+  const incoming: RowRecord = {
+    date: '2026-08-01',
+    page: 'https://www.evochia.gr/en/private-chef/',
+    clicks: 3,
+  };
+
+  const merged = mergeRowRecords(headers, [existing], keyColumns, [incoming]);
+
+  assert.deepEqual(merged.summary, {
+    inserted: 0,
+    updated: 0,
+    unchanged: 1,
+    total: 1,
+  });
+});
+
 test('uses a three-day availability delay by default', () => {
   assert.equal(getAvailableGscDate(new Date('2026-08-06T05:00:00Z')), '2026-08-03');
 });
