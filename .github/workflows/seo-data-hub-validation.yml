@@ -55,3 +55,6 @@ jobs:
 
       - name: Run Apps Script TypeScript validation
         run: npm run typecheck:gas
+
+      - name: Verify committed Apps Script bundles
+        run: npm run seo:check:apps-script-bundle
