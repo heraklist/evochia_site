@@ -1,3 +1,5 @@
+import { isValidHostname, isValidIanaTimeZone } from './RuntimeCompat.ts';
+
 export const CONFIG_PROPERTY_KEY = 'SEO_GOOGLE_RESOURCES_JSON';
 
 export const RESOURCE_KEYS = [
@@ -33,19 +35,6 @@ export interface VerificationResult {
   errors: string[];
 }
 
-function validTimeZone(value: string): boolean {
-  try {
-    new Intl.DateTimeFormat('en-CA', { timeZone: value }).format(new Date(0));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function validProductionHostname(value: string): boolean {
-  return /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*$/.test(value);
-}
-
 export function verifyConfig(config: Partial<SeoConfig>): VerificationResult {
   const errors: string[] = [];
 
@@ -69,7 +58,7 @@ export function verifyConfig(config: Partial<SeoConfig>): VerificationResult {
   if (
     typeof config.ga4PropertyTimeZone === 'string'
     && config.ga4PropertyTimeZone !== 'UNVERIFIED'
-    && !validTimeZone(config.ga4PropertyTimeZone)
+    && !isValidIanaTimeZone(config.ga4PropertyTimeZone)
   ) {
     errors.push('ga4PropertyTimeZone must be a valid IANA timezone');
   }
@@ -77,7 +66,7 @@ export function verifyConfig(config: Partial<SeoConfig>): VerificationResult {
   if (
     typeof config.productionHostname === 'string'
     && config.productionHostname !== 'UNVERIFIED'
-    && !validProductionHostname(config.productionHostname)
+    && !isValidHostname(config.productionHostname)
   ) {
     errors.push('productionHostname must be a lowercase hostname without scheme, path, port, or trailing dot');
   }
