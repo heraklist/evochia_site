@@ -47,5 +47,8 @@ jobs:
       - name: Run Apps Script unit tests
         run: npm run seo:test:apps-script
 
+      - name: Run Apps Script contract tests
+        run: npm run seo:test:apps-script-contracts
+
       - name: Run TypeScript validation
         run: npm run typecheck
