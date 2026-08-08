@@ -7,6 +7,7 @@ import {
   type HttpTransport,
   type InspectionRow,
 } from './GscClient.ts';
+import { calendarDateParts } from './RuntimeCompat.ts';
 import { upsertRows, type RowRecord, type WriteSummary } from './SheetWriter.ts';
 
 export type GscReportId = 'daily' | 'pages' | 'queries';
@@ -70,26 +71,6 @@ export interface GscImportDependencies {
     keyColumns: string[],
     rows: RowRecord[],
   ) => WriteSummary;
-}
-
-function calendarDateParts(date: Date, timeZone: string): {
-  year: number;
-  month: number;
-  day: number;
-} {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(date);
-  const values = new Map(parts.map((part) => [part.type, part.value]));
-
-  return {
-    year: Number(values.get('year')),
-    month: Number(values.get('month')),
-    day: Number(values.get('day')),
-  };
 }
 
 export function getAvailableGscDate(now: Date, delayDays = 3): string {
