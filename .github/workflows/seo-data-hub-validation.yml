@@ -52,3 +52,6 @@ jobs:
 
       - name: Run TypeScript validation
         run: npm run typecheck
+
+      - name: Run Apps Script TypeScript validation
+        run: npm run typecheck:gas
