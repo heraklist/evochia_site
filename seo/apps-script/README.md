@@ -4,7 +4,7 @@ This directory contains the version-controlled source for the owner-authorized G
 
 ## Current scaffold status
 
-Implemented in the scaffold:
+Implemented in the repository:
 
 - fail-closed production resource configuration;
 - read-only OAuth manifest;
@@ -17,16 +17,39 @@ Implemented in the scaffold:
 - GA4 page-performance reporting at query-free page grain;
 - GA4 URL-quality classification for query/path/hostname anomalies;
 - GA4 source-date selection from a verified named property timezone;
-- Node-executable regression tests for configuration, API clients, importers, and Sheet merge/write behavior.
+- a GAS-only no-DOM TypeScript gate;
+- deterministic separate production and smoke bundles;
+- a data-free `runRuntimeSmoke()` suite using synthetic transports and injected writers;
+- byte-for-byte committed-bundle equivalence CI under pinned Node.js `22.23.2` and exact `esbuild@0.25.9`.
 
-Not yet implemented or authorized for production:
+Not yet authorized or runtime-verified:
 
+- any push to a Google Apps Script project;
+- real Apps Script V8 execution of the smoke bundle;
 - trigger installation;
-- source bundling and deployment into the bound Apps Script project;
 - production authorization or baseline imports;
-- external reconciliation against live GSC/GA4 interfaces.
+- external reconciliation against live GSC/GA4 interfaces;
+- production deployment.
 
-The source remains intentionally undeployed. Production authorization, imports, triggers, and any Google-side changes require explicit owner approval.
+The source remains intentionally undeployed. Repository-green means **repository-accepted**, not Google Apps Script runtime-verified. Real V8 smoke requires a separate explicit owner instruction and must use a dedicated non-production Apps Script project.
+
+## Source and generated artifacts
+
+TypeScript under `seo/apps-script/src/`, `entrypoints/`, and `smoke/` is authoritative. Never hand-edit generated artifacts.
+
+- `generated/Code.gs` + `generated/appsscript.json` are the production bundle and production manifest copy.
+- `generated-smoke/Code.gs` + `generated-smoke/appsscript.json` are the non-production runtime-smoke bundle and minimal smoke manifest.
+- `runRuntimeSmoke()` must never appear in the production bundle.
+- The smoke manifest intentionally contains no GA4, GSC, or GTM OAuth scopes.
+
+Build and equivalence commands:
+
+```bash
+npm run seo:build:apps-script
+npm run seo:check:apps-script-bundle
+```
+
+The equivalence checker rebuilds into an OS temporary directory and compares fresh outputs byte-for-byte with the committed artifacts. It never overwrites the committed baseline before comparison.
 
 ## Configuration
 
@@ -47,26 +70,13 @@ productionHostname
 
 `ga4PropertyTimeZone` must be a verified named IANA timezone such as `Europe/Athens`; no fixed UTC offset is used. `productionHostname` is a lowercase hostname only, without scheme, path, port, or trailing dot.
 
-Do not store the following in the Sheet or repository:
+Do not store OAuth access or refresh tokens, API keys, service-account JSON, GitHub tokens, cookies, session data, real `.clasp.json`, Script IDs, or Sheet IDs in the repository.
 
-- OAuth access or refresh tokens;
-- API keys;
-- service-account JSON;
-- GitHub tokens;
-- cookies or session data.
+## Approved production scopes
 
-## Approved scopes
+`appsscript.json` is the production source of truth. It contains only Search Console read-only, Analytics read-only, Tag Manager read-only, current bound spreadsheet access, Drive access limited to files created or managed by the script, external-request, trigger-management, and container-UI scopes. No indexing, sitemap submission, Analytics administration, or GTM edit scope is allowed.
 
-`appsscript.json` is the source of truth. It contains only:
-
-- Search Console read-only;
-- Analytics read-only;
-- Tag Manager read-only;
-- current bound spreadsheet access;
-- Drive access limited to files created or managed by the script;
-- external-request, trigger-management and container-UI scopes.
-
-No indexing, sitemap submission, Analytics administration or GTM edit scope is allowed.
+The non-production smoke manifest is separate and does not require GA4/GSC/GTM scopes because the smoke uses fixed synthetic transports.
 
 ## Workbook tabs
 
@@ -105,70 +115,34 @@ Dates are selected from the `America/Los_Angeles` calendar with a default three-
 
 ## GA4 page reporting contracts
 
-### `GA4 Pages`
+`GA4 Pages` requests primary metrics at `date + hostName + pagePath`, which is also the unique page-performance key. Query strings are excluded from identity. `pageTitle` comes from a separate metadata-only report and is selected deterministically by highest views with lexical tie-breaking. Missing title metadata remains `null`.
 
-Primary metrics are requested directly at:
+`language` and `service` are deterministic local attributes derived from the raw `pagePath`. Classification matching may normalize a trailing slash but never rewrites the stored page key.
 
-```text
-date + hostName + pagePath
-```
+`GA4 URL Quality` uses `date + hostName + pagePathPlusQueryString` and retains only classified anomalies. Version 1 classifications are `tracking_query_params`, `unexpected_query_params`, `double_slash`, `legacy_html`, `preview_host`, and `non_production_host`. Known tracking keys include `utm_*`, `gclid`, `gclsrc`, `dclid`, `gbraid`, `wbraid`, `gad_source`, `_gl`, `srsltid`, `fbclid`, and `msclkid`.
 
-That same tuple is the unique page-performance key. Query strings are excluded from identity so campaign parameters do not fragment one logical page. The primary metrics are:
+GA4 dates use the verified `ga4PropertyTimeZone` calendar with a default two-day processing delay. Empty or thresholded responses stay missing; no synthetic zero rows or reconstructed hidden totals are created.
 
-```text
-screenPageViews
-activeUsers
-sessions
-engagedSessions
-userEngagementDuration
-keyEvents
-```
+## Repository verification
 
-`pageTitle` is not part of the primary metrics request or key. It is selected from a separate metadata-only GA4 report (`date + hostName + pagePath + pageTitle`, metric `screenPageViews`). For each page key, the highest-view non-empty title wins; equal-view ties use lexical order. Missing title metadata remains `null`.
-
-`language` and `service` are deterministic local attributes derived from the raw `pagePath`. Trailing slash normalization may be used only for classification matching; it never rewrites the stored path or page key.
-
-### `GA4 URL Quality`
-
-URL-quality rows use:
-
-```text
-date + hostName + pagePathPlusQueryString
-```
-
-and are retained only when at least one classification applies. Version 1 classifications, in deterministic order, are:
-
-```text
-tracking_query_params
-unexpected_query_params
-double_slash
-legacy_html
-preview_host
-non_production_host
-```
-
-Known tracking keys include `utm_*`, `gclid`, `gbraid`, `wbraid`, `fbclid`, and `msclkid`. Tracking parameters are informational variants, not automatically defects. Preview hosts such as `*.vercel.app` are identified separately from other non-production hosts.
-
-The URL-quality dataset must not be summed to reconstruct page users or sessions. Its query/path variants remain separate evidence for anomaly monitoring.
-
-### GA4 date semantics and sparse data
-
-GA4 dates use the verified `ga4PropertyTimeZone` calendar with a default two-day processing delay. The calculation is DST-aware and does not fall back to UTC or a fixed `+02:00`/`+03:00` offset.
-
-Empty or thresholded GA4 responses stay missing. The importer does not synthesize zero rows, does not fabricate missing titles, and does not reconstruct hidden totals by summing title or query variants.
-
-The implementation is still code-only and undeployed. A production GSC/GA4 import, authorization flow, trigger, Sheet mutation, or Google configuration write must not be performed without explicit owner approval.
-
-## Local verification
-
-After dependencies are installed from the committed lockfile:
+After installing dependencies from the committed lockfile:
 
 ```bash
+node --version  # v22.23.2
 npm ci --ignore-scripts
 npm run test:unit
 npm run seo:test:apps-script
 npm run typecheck
+npm run typecheck:gas
 npm run test:analytics
+npm run seo:build:apps-script
+npm run seo:check:apps-script-bundle
 ```
 
-The bound-script build/deployment procedure will be added before triggers are permitted.
+These repository commands do not authorize or perform Google-side writes.
+
+## Real GAS V8 smoke boundary
+
+See `docs/seo/apps-script-runtime-smoke-runbook.md`. The future smoke must use only `generated-smoke/`, a dedicated non-production Apps Script project, no triggers, no production identifiers, and no live GA4/GSC/GTM requests. A real `.clasp.json` is local/ignored; `.clasp.json.example` contains only the literal placeholder `NON_PRODUCTION_TEST_SCRIPT_ID`.
+
+No Google-side smoke has been executed merely because this repository layer is green. Production deployment, authorization, imports, triggers, and any Google configuration or Sheet mutation remain separately owner-gated.
