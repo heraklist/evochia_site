@@ -7,6 +7,7 @@
     "test:unit": "node --test tests/seo/*.test.mjs",
     "test:analytics": "node --test tests/analytics/*.test.mjs",
     "seo:test:apps-script": "tsx --test tests/seo/apps-script/*.test.ts",
+    "seo:test:apps-script-contracts": "node --test tests/seo/apps-script/*.test.mjs",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:ui": "playwright test --ui",
