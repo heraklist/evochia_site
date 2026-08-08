@@ -4,6 +4,7 @@ import {
   type Ga4Row,
 } from './Ga4Client.ts';
 import type { HttpTransport } from './GscClient.ts';
+import { calendarDateParts, isValidHostname } from './RuntimeCompat.ts';
 
 export interface Ga4ReportRange {
   propertyResource: string;
@@ -32,31 +33,6 @@ export interface Ga4ImportBundle {
   urlQuality: Ga4Row[];
 }
 
-function calendarDateParts(date: Date, timeZone: string): {
-  year: number;
-  month: number;
-  day: number;
-} {
-  let parts: Intl.DateTimeFormatPart[];
-  try {
-    parts = new Intl.DateTimeFormat('en-CA', {
-      timeZone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).formatToParts(date);
-  } catch {
-    throw new Error('ga4PropertyTimeZone must be a valid IANA timezone');
-  }
-
-  const values = new Map(parts.map((part) => [part.type, part.value]));
-  return {
-    year: Number(values.get('year')),
-    month: Number(values.get('month')),
-    day: Number(values.get('day')),
-  };
-}
-
 export function getAvailableGa4Date(
   now: Date,
   propertyTimeZone: string,
@@ -66,7 +42,14 @@ export function getAvailableGa4Date(
     throw new Error('delayDays must be a non-negative integer');
   }
 
-  const { year, month, day } = calendarDateParts(now, propertyTimeZone);
+  let parts: { year: number; month: number; day: number };
+  try {
+    parts = calendarDateParts(now, propertyTimeZone);
+  } catch {
+    throw new Error('ga4PropertyTimeZone must be a valid IANA timezone');
+  }
+
+  const { year, month, day } = parts;
   return new Date(Date.UTC(year, month - 1, day - delayDays))
     .toISOString()
     .slice(0, 10);
@@ -244,10 +227,6 @@ export function classifyUrlQuality(
   return { normalizedPagePath, anomalyTypes };
 }
 
-function validProductionHostname(value: string): boolean {
-  return /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*$/.test(value);
-}
-
 export function runGa4Reports(
   range: Ga4ReportRange,
   dependencies: Ga4ImportDependencies = {},
@@ -259,7 +238,7 @@ export function runGa4Reports(
   if (!/^properties\/\d+$/.test(range.propertyResource)) {
     throw new Error(`Invalid GA4 property resource: ${range.propertyResource}`);
   }
-  if (!validProductionHostname(range.productionHostname)) {
+  if (!isValidHostname(range.productionHostname)) {
     throw new Error('productionHostname must be a lowercase hostname without scheme, path, port, or trailing dot');
   }
 
