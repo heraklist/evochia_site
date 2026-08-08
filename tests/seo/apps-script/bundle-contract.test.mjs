@@ -38,3 +38,13 @@ test('bundle checker rejects a stale committed artifact copy', () => {
   assert.notEqual(result.status, 0);
   assert.match(result.stdout + result.stderr, /bundle mismatch.*generated\/Code\.gs/i);
 });
+
+test('clasp configuration stays placeholder-only and real local config is ignored', () => {
+  const example = JSON.parse(readFileSync('seo/apps-script/.clasp.json.example', 'utf8'));
+  assert.equal(example.scriptId, 'NON_PRODUCTION_TEST_SCRIPT_ID');
+  assert.equal(example.rootDir, 'generated-smoke');
+
+  const ignore = readFileSync('.gitignore', 'utf8');
+  assert.match(ignore, /^seo\/apps-script\/\.clasp\.json$/m);
+  assert.match(ignore, /^seo\/apps-script\/\.runtime-smoke\.local\.json$/m);
+});
