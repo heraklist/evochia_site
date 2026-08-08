@@ -14,7 +14,8 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:report": "playwright show-report",
-    "seo:build:apps-script": "node seo/apps-script/build.mjs"
+    "seo:build:apps-script": "node seo/apps-script/build.mjs",
+    "seo:check:apps-script-bundle": "node seo/apps-script/check-bundle.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.52.0",
