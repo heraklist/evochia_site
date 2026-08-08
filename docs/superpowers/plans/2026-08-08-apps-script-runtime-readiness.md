@@ -23,6 +23,10 @@
 - Shared calendar/hostname refactors must preserve existing behavior exactly.
 - Site analytics consent-state cleanup remains out of scope.
 
+## Required execution order
+
+The approved dependency order is **Task 1 → Task 2 → Task 4 → Task 3 → Task 5 → Task 6 → Task 7**. Task 4 must precede Task 3 because the smoke bundle consumes `RuntimeSmoke.ts`; the smoke source remains independently testable at source level with injected transports and therefore does not depend on the bundler. The numbered task sections below retain their original numbering for traceability, but execution and acceptance follow this topological order.
+
 ---
 
 ## File Structure
