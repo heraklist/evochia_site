@@ -10,7 +10,6 @@
     body { font-family: system-ui, sans-serif; margin: 24px; line-height: 1.45; }
     .controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
     button { padding: 8px 12px; }
-    iframe { width: 100%; height: 520px; border: 1px solid #bbb; margin-top: 16px; }
     pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #f6f6f6; padding: 12px; }
     .note { max-width: 80ch; }
   </style>
@@ -18,33 +17,48 @@
 <body>
   <h1>B0.5 diagnostic</h1>
   <p class="note">
-    Preview-only, read-only analytics probe. It does not replace <code>gtag</code>,
-    <code>dataLayer.push</code>, <code>fetch</code>, or <code>sendBeacon</code>, and it never submits
-    the lead form. The synthetic interaction writes only the literal character <code>x</code>
-    into the first field in the embedded contact page.
+    Preview-only analytics probe. Open the real same-origin contact page in a popup,
+    grant analytics consent there if needed, return here, inspect, then run one synthetic
+    input. The probe never replaces analytics functions, never serializes lead data, and
+    never submits the form.
   </p>
 
   <div class="controls">
-    <button id="inspect" type="button">Inspect current state</button>
+    <button id="open" type="button">Open contact target</button>
+    <button id="inspect" type="button">Inspect target</button>
     <button id="run" type="button">Run one synthetic input</button>
   </div>
 
-  <pre id="output">Waiting for embedded contact page…</pre>
-
-  <iframe
-    id="target"
-    title="Evochia contact page B0.5 target"
-    src="/en/contact/?ga_diag_target=1"
-  ></iframe>
+  <pre id="output">Open the contact target first.</pre>
 
   <script>
     (function () {
       'use strict';
 
-      var frame = document.getElementById('target');
+      var target = null;
       var output = document.getElementById('output');
+      var openButton = document.getElementById('open');
       var inspectButton = document.getElementById('inspect');
       var runButton = document.getElementById('run');
+
+      function render(label, state) {
+        output.textContent = label + '\n' + JSON.stringify(state, null, 2);
+      }
+
+      function requireTarget() {
+        if (!target || target.closed) {
+          throw new Error('Contact target is not open');
+        }
+        try {
+          void target.document;
+        } catch (error) {
+          throw new Error('Contact target is not yet same-origin/ready');
+        }
+        if (!target.document || target.document.readyState !== 'complete') {
+          throw new Error('Contact target is still loading');
+        }
+        return target;
+      }
 
       function customFormStartEntries(win) {
         var layer = win.dataLayer;
@@ -75,10 +89,7 @@
       }
 
       function readState() {
-        var win = frame.contentWindow;
-        var doc = frame.contentDocument;
-        if (!win || !doc) throw new Error('Embedded contact page is not ready');
-
+        var win = requireTarget();
         var cc = win.CookieConsent;
         var consent = null;
         if (cc && typeof cc.acceptedCategory === 'function') {
@@ -97,8 +108,20 @@
         };
       }
 
-      function render(label, state) {
-        output.textContent = label + '\n' + JSON.stringify(state, null, 2);
+      function openTarget() {
+        target = window.open(
+          '/en/contact/?ga_diag_target=1',
+          'evochiaB05Target'
+        );
+        if (!target) {
+          render('B0.5 popup blocked', {
+            action: 'Allow this user-initiated popup and try again.'
+          });
+          return;
+        }
+        render('B0.5 contact target opened', {
+          next: 'Grant analytics consent in the contact tab if needed, wait for full load, then return and click Inspect target.'
+        });
       }
 
       function inspect() {
@@ -111,17 +134,31 @@
 
       function runSyntheticInput() {
         try {
-          var win = frame.contentWindow;
-          var doc = frame.contentDocument;
+          var win = requireTarget();
           var before = readState();
-          var form = doc.getElementById('quoteForm');
+          if (before.analytics_consent !== true) {
+            render('B0.5 synthetic input blocked', {
+              interpretation: 'CONSENT_NOT_GRANTED',
+              state: before
+            });
+            return;
+          }
+          if (before.gtag_type !== 'function') {
+            render('B0.5 synthetic input blocked', {
+              interpretation: 'GTAG_NOT_AVAILABLE',
+              state: before
+            });
+            return;
+          }
+
+          var form = win.document.getElementById('quoteForm');
           if (!form) throw new Error('quoteForm not found');
           var field = form.querySelector('input');
           if (!field) throw new Error('first input not found');
 
           field.value = 'x';
           field.focus();
-          field.dispatchEvent(new win.Event('input', { bubbles: true }));
+          field.dispatchEvent(new target.Event('input', { bubbles: true }));
 
           win.setTimeout(function () {
             try {
@@ -147,7 +184,7 @@
         }
       }
 
-      frame.addEventListener('load', inspect);
+      openButton.addEventListener('click', openTarget);
       inspectButton.addEventListener('click', inspect);
       runButton.addEventListener('click', runSyntheticInput);
     })();
