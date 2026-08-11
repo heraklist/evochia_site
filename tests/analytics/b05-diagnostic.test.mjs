@@ -19,9 +19,10 @@ test('B0.5 diagnostic observes the real contact page through a same-origin popup
 
   assert.match(html, /window\.open\(\s*'\/en\/contact\/\?ga_diag_target=1'/);
   assert.doesNotMatch(html, /<iframe\b/i, 'Vercel protection can block framed diagnostics');
-  assert.match(html, /target\.dataLayer/);
-  assert.match(html, /target\.CookieConsent/);
-  assert.match(html, /typeof target\.gtag/);
+  assert.match(html, /var win = requireTarget\(\)/);
+  assert.match(html, /win\.dataLayer/);
+  assert.match(html, /win\.CookieConsent/);
+  assert.match(html, /typeof win\.gtag/);
 
   assert.doesNotMatch(html, /window\.gtag\s*=/, 'diagnostic must not replace gtag');
   assert.doesNotMatch(html, /dataLayer\.push\s*=/, 'diagnostic must not replace dataLayer.push');
