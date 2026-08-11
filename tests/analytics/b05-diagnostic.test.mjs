@@ -41,7 +41,11 @@ test('B0.5 diagnostic uses a synthetic non-submit interaction and detects the Ev
   assert.match(html, /getElementById\('quoteForm'\)/);
   assert.match(html, /querySelector\('input'/);
   assert.match(html, /field\.value = 'x'/);
-  assert.match(html, /new Event\('input', \{ bubbles: true \}\)/);
+  assert.match(
+    html,
+    /new win\.Event\('input', \{ bubbles: true \}\)/,
+    'synthetic event must be created in the embedded page realm',
+  );
   assert.doesNotMatch(html, /\.submit\s*\(/, 'diagnostic must never submit the lead form');
   assert.doesNotMatch(html, /requestSubmit\s*\(/, 'diagnostic must never request form submission');
 
