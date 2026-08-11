@@ -88,6 +88,51 @@
         }, []);
       }
 
+      function isGoogleAnalyticsHost(hostname) {
+        return hostname === 'google-analytics.com' ||
+          hostname === 'www.google-analytics.com' ||
+          hostname.endsWith('.google-analytics.com');
+      }
+
+      function isGaCollectPath(pathname) {
+        return pathname.indexOf('/g/collect') !== -1 || pathname.endsWith('/collect');
+      }
+
+      function gaCollectEntries(win) {
+        var resources = win.performance && typeof win.performance.getEntriesByType === 'function'
+          ? win.performance.getEntriesByType('resource')
+          : [];
+
+        return resources.reduce(function (matches, resource) {
+          try {
+            var url = new win.URL(resource.name);
+            if (!isGoogleAnalyticsHost(url.hostname) || !isGaCollectPath(url.pathname)) return matches;
+
+            matches.push({
+              host: url.hostname,
+              pathname: url.pathname,
+              measurement_id: url.searchParams.get('tid'),
+              event_name: url.searchParams.get('en'),
+              initiator_type: resource.initiatorType || null,
+              start_time: resource.startTime
+            });
+          } catch (error) {
+            // Ignore malformed or unreadable resource names without mutating the timeline.
+          }
+          return matches;
+        }, []);
+      }
+
+      function gaCollectKey(entry) {
+        return [
+          entry.host,
+          entry.pathname,
+          entry.measurement_id || '',
+          entry.event_name || '',
+          String(entry.start_time)
+        ].join('|');
+      }
+
       function readState() {
         var win = requireTarget();
         var cc = win.CookieConsent;
@@ -151,6 +196,12 @@
             return;
           }
 
+          var gaBefore = gaCollectEntries(win);
+          var gaBeforeKeys = new Set(gaBefore.map(gaCollectKey));
+          var observationStartedAt = win.performance.now();
+          var observationWindowMs = 5000;
+          var pollIntervalMs = 250;
+
           var form = win.document.getElementById('quoteForm');
           if (!form) throw new Error('quoteForm not found');
           var field = form.querySelector('input');
@@ -160,25 +211,54 @@
           field.focus();
           field.dispatchEvent(new target.Event('input', { bubbles: true }));
 
-          win.setTimeout(function () {
+          function finishObservation() {
             try {
               var after = readState();
-              render('B0.5 synthetic input result', {
+              var gaAfter = gaCollectEntries(win);
+              var newGa = gaAfter.filter(function (entry) {
+                return !gaBeforeKeys.has(gaCollectKey(entry));
+              });
+              var exactMatch = newGa.some(function (entry) {
+                return entry.measurement_id === 'G-2R3S78PTDL' && entry.event_name === 'form_start';
+              });
+              var elapsed = win.performance.now() - observationStartedAt;
+
+              if (!exactMatch && elapsed < observationWindowMs) {
+                var remaining = observationWindowMs - elapsed;
+                win.setTimeout(finishObservation, Math.min(pollIntervalMs, remaining));
+                return;
+              }
+
+              var transportInterpretation = exactMatch
+                ? 'GA4_COLLECT_URL_MATCH_PASS'
+                : newGa.length > 0
+                  ? 'GA4_COLLECT_NEW_REQUEST_NO_FORM_START_MATCH'
+                  : 'GA4_COLLECT_NOT_OBSERVED';
+
+              render('B0.5 synthetic input + GA collect result', {
                 before: before,
                 after: after,
                 delta_custom_form_start:
                   after.evochia_custom_form_start_count - before.evochia_custom_form_start_count,
-                interpretation:
+                site_interpretation:
                   after.evochia_custom_form_start_count > before.evochia_custom_form_start_count
                     ? 'SITE_TO_DATALAYER_PASS'
-                    : 'SITE_TO_DATALAYER_FAIL'
+                    : 'SITE_TO_DATALAYER_FAIL',
+                ga_collect_before_count: gaBefore.length,
+                ga_collect_after_count: gaAfter.length,
+                new_ga_collect_count: newGa.length,
+                new_ga_collect_sanitized: newGa,
+                ga_collect_interpretation: transportInterpretation,
+                observation_window_ms: Math.min(Math.round(elapsed), observationWindowMs)
               });
             } catch (error) {
               render('B0.5 post-interaction inspection error', {
                 message: String(error && error.message || error)
               });
             }
-          }, 250);
+          }
+
+          win.setTimeout(finishObservation, pollIntervalMs);
         } catch (error) {
           render('B0.5 synthetic input error', { message: String(error && error.message || error) });
         }
