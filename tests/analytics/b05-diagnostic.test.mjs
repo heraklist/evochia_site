@@ -23,9 +23,10 @@ test('B0.5 diagnostic observes the real contact page without monkey-patching ana
   const html = readFileSync(diagnosticPath, 'utf8');
 
   assert.match(html, /src="\/en\/contact\/\?ga_diag_target=1"/);
-  assert.match(html, /contentWindow\.dataLayer/);
-  assert.match(html, /contentWindow\.CookieConsent/);
-  assert.match(html, /contentWindow\.gtag/);
+  assert.match(html, /frame\.contentWindow/);
+  assert.match(html, /win\.dataLayer/);
+  assert.match(html, /win\.CookieConsent/);
+  assert.match(html, /typeof win\.gtag/);
 
   assert.doesNotMatch(html, /window\.gtag\s*=/, 'diagnostic must not replace gtag');
   assert.doesNotMatch(html, /dataLayer\.push\s*=/, 'diagnostic must not replace dataLayer.push');
@@ -44,8 +45,8 @@ test('B0.5 diagnostic uses a synthetic non-submit interaction and detects the Ev
   assert.doesNotMatch(html, /\.submit\s*\(/, 'diagnostic must never submit the lead form');
   assert.doesNotMatch(html, /requestSubmit\s*\(/, 'diagnostic must never request form submission');
 
-  assert.match(html, /entry\[0\] === 'event'/);
-  assert.match(html, /entry\[1\] === 'form_start'/);
-  assert.match(html, /payload\.form_id === 'quoteForm'/);
-  assert.match(html, /payload\.lead_source === 'quote_form'/);
+  assert.match(html, /entry\[0\]\s*!==\s*'event'/);
+  assert.match(html, /entry\[1\]\s*!==\s*'form_start'/);
+  assert.match(html, /payload\.form_id\s*!==\s*'quoteForm'/);
+  assert.match(html, /payload\.lead_source\s*!==\s*'quote_form'/);
 });
