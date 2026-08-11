@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>B0.5 diagnostic — Evochia</title>
+  <!-- B0.5 diagnostic: remove before merge. Preview validation only. -->
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 24px; line-height: 1.45; }
+    .controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    button { padding: 8px 12px; }
+    iframe { width: 100%; height: 520px; border: 1px solid #bbb; margin-top: 16px; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #f6f6f6; padding: 12px; }
+    .note { max-width: 80ch; }
+  </style>
+</head>
+<body>
+  <h1>B0.5 diagnostic</h1>
+  <p class="note">
+    Preview-only, read-only analytics probe. It does not replace <code>gtag</code>,
+    <code>dataLayer.push</code>, <code>fetch</code>, or <code>sendBeacon</code>, and it never submits
+    the lead form. The synthetic interaction writes only the literal character <code>x</code>
+    into the first field in the embedded contact page.
+  </p>
+
+  <div class="controls">
+    <button id="inspect" type="button">Inspect current state</button>
+    <button id="run" type="button">Run one synthetic input</button>
+  </div>
+
+  <pre id="output">Waiting for embedded contact page…</pre>
+
+  <iframe
+    id="target"
+    title="Evochia contact page B0.5 target"
+    src="/en/contact/?ga_diag_target=1"
+  ></iframe>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var frame = document.getElementById('target');
+      var output = document.getElementById('output');
+      var inspectButton = document.getElementById('inspect');
+      var runButton = document.getElementById('run');
+
+      function customFormStartEntries(win) {
+        var layer = win.dataLayer;
+        if (!Array.isArray(layer)) return [];
+
+        return layer.reduce(function (matches, entry, index) {
+          try {
+            if (!entry || entry[0] !== 'event' || entry[1] !== 'form_start') return matches;
+            var payload = entry[2] && typeof entry[2] === 'object' ? entry[2] : {};
+            if (payload.form_id !== 'quoteForm' || payload.lead_source !== 'quote_form') return matches;
+
+            matches.push({
+              index: index,
+              event: 'form_start',
+              form_id: payload.form_id,
+              lead_source: payload.lead_source,
+              page_path: payload.page_path || null,
+              locale: payload.locale || null,
+              page_type: payload.page_type || null,
+              service_intent: payload.service_intent || null,
+              debug_mode: payload.debug_mode === true
+            });
+          } catch (error) {
+            // Ignore unreadable third-party entries. Do not mutate them.
+          }
+          return matches;
+        }, []);
+      }
+
+      function readState() {
+        var win = frame.contentWindow;
+        var doc = frame.contentDocument;
+        if (!win || !doc) throw new Error('Embedded contact page is not ready');
+
+        var cc = win.CookieConsent;
+        var consent = null;
+        if (cc && typeof cc.acceptedCategory === 'function') {
+          consent = cc.acceptedCategory('analytics');
+        }
+
+        var events = customFormStartEntries(win);
+        return {
+          target_path: win.location.pathname,
+          analytics_consent: consent,
+          gtag_type: typeof win.gtag,
+          dataLayer_is_array: Array.isArray(win.dataLayer),
+          dataLayer_length: Array.isArray(win.dataLayer) ? win.dataLayer.length : null,
+          evochia_custom_form_start_count: events.length,
+          evochia_custom_form_start: events
+        };
+      }
+
+      function render(label, state) {
+        output.textContent = label + '\n' + JSON.stringify(state, null, 2);
+      }
+
+      function inspect() {
+        try {
+          render('B0.5 current state', readState());
+        } catch (error) {
+          render('B0.5 inspection error', { message: String(error && error.message || error) });
+        }
+      }
+
+      function runSyntheticInput() {
+        try {
+          var win = frame.contentWindow;
+          var doc = frame.contentDocument;
+          var before = readState();
+          var form = doc.getElementById('quoteForm');
+          if (!form) throw new Error('quoteForm not found');
+          var field = form.querySelector('input');
+          if (!field) throw new Error('first input not found');
+
+          field.value = 'x';
+          field.focus();
+          field.dispatchEvent(new Event('input', { bubbles: true }));
+
+          win.setTimeout(function () {
+            try {
+              var after = readState();
+              render('B0.5 synthetic input result', {
+                before: before,
+                after: after,
+                delta_custom_form_start:
+                  after.evochia_custom_form_start_count - before.evochia_custom_form_start_count,
+                interpretation:
+                  after.evochia_custom_form_start_count > before.evochia_custom_form_start_count
+                    ? 'SITE_TO_DATALAYER_PASS'
+                    : 'SITE_TO_DATALAYER_FAIL'
+              });
+            } catch (error) {
+              render('B0.5 post-interaction inspection error', {
+                message: String(error && error.message || error)
+              });
+            }
+          }, 250);
+        } catch (error) {
+          render('B0.5 synthetic input error', { message: String(error && error.message || error) });
+        }
+      }
+
+      frame.addEventListener('load', inspect);
+      inspectButton.addEventListener('click', inspect);
+      runButton.addEventListener('click', runSyntheticInput);
+    })();
+  </script>
+</body>
+</html>
