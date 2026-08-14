@@ -21,6 +21,13 @@
 - Rename every executable Evochia-authored `gaEvent('form_start', ...)` call site to `gaEvent('quote_form_start', ...)`; do not rename or suppress Google's automatic Enhanced Measurement `form_start`.
 - Preserve the quote-form one-shot rule: the latch changes only after `gaEvent('quote_form_start', ...)` returns `true`.
 - No Formspree submission, `requestSubmit()`, direct `.submit()`, production lead creation, or deliberate failure stimulation without separate immediate owner approval.
+- Rollback before production is structural: because PR #35 remains draft and this batch permits no merge or production deploy, any failed implementation or preview validation leaves the current production site unchanged; rollback consists of reverting the batch commits on `seo-system` before any later production approval.
+- Preview validation sends real hits to the production GA4 property. `window.__GA_DEBUG__ = true` makes those hits identifiable in DebugView; it does not exclude them from the property dataset.
+
+## Known GA4 Reporting Consequences
+
+- `form_start` is currently marked as a GA4 key event. After the rename, that key event is fed only by Google's automatic Enhanced Measurement `form_start`; Evochia's `quote_form_start` is not a key event in this batch. A resulting change in the existing `form_start` key-event count is expected and is not, by itself, evidence that routing regressed.
+- `cta_click` is also currently marked as a GA4 key event and begins transporting for the first time through this remediation. Its key-event counts may move materially from the deployment boundary onward. That discontinuity is expected and must be annotated in later reporting; changing key-event configuration remains outside this batch.
 
 ## Explicit Risk Acceptance and Validation Vocabulary
 
@@ -77,7 +84,28 @@ Before submit approval, submit-only events must be `not-stimulated`, not failure
 - Consumes: current `js/site.js`, `en/ga-b05-diagnostic.html`, existing consent helpers, and the existing quote-form latch.
 - Produces: an executable contract for `GA4_MEASUREMENT_ID`, `gaEvent(name, params)`, the exact six-event call-site inventory, the `quote_form_start` latch, and the renamed preview diagnostic vocabulary.
 
-- [ ] **Step 1: Add a focused `gaEvent()` evaluation harness**
+- [ ] **Step 1: Verify and record the current call-site cardinality before encoding it**
+
+Run against the unmodified Task 1 baseline:
+
+```bash
+rg -n "\bgaEvent\(" js/site.js
+```
+
+Expected: one `function gaEvent(...)` declaration and exactly six literal invocations, one each for:
+
+```text
+contact_click
+cta_click
+form_start
+form_submit_attempt
+generate_lead
+form_submit_error
+```
+
+If the observed baseline differs, stop before writing the cardinality assertion and reconcile the plan with the actual call sites. Do not turn a pre-existing second legitimate handler into a false RED failure.
+
+- [ ] **Step 2: Add a focused `gaEvent()` evaluation harness**
 
 In `tests/analytics/site-events.test.mjs`, add these helpers after `storedConsentCookie(...)`:
 
@@ -121,7 +149,7 @@ function evaluateGaEvent({
 }
 ```
 
-- [ ] **Step 2: Add failing routing, ordering, override, and consent assertions**
+- [ ] **Step 3: Add failing routing, ordering, override, debug-default, and consent assertions**
 
 Append these tests to `tests/analytics/site-events.test.mjs`:
 
@@ -196,6 +224,14 @@ test('gaEvent overrides caller routing without mutating caller params', () => {
   assert.equal(Object.prototype.hasOwnProperty.call(params, 'page_path'), false);
 });
 
+test('gaEvent omits debug_mode unless the explicit debug flag is true', () => {
+  const { calls } = evaluateGaEvent({ debug: false });
+  assert.equal(
+    Object.prototype.hasOwnProperty.call(calls[0][2], 'debug_mode'),
+    false,
+  );
+});
+
 test('gaEvent still performs no custom dispatch before analytics consent', () => {
   const { calls, result } = evaluateGaEvent({ consented: false });
   assert.equal(result, false);
@@ -203,7 +239,7 @@ test('gaEvent still performs no custom dispatch before analytics consent', () =>
 });
 ```
 
-- [ ] **Step 3: Replace the old form-start latch assertion and add a complete executable call-site inventory**
+- [ ] **Step 4: Replace the old form-start latch assertion and add a complete executable call-site inventory**
 
 Replace the existing `form_start latches only after the event is actually sent` test with:
 
@@ -217,7 +253,14 @@ test('quote_form_start latches only after the event is actually sent', () => {
 });
 
 test('site-authored analytics call sites use the complete six-event taxonomy', () => {
-  const names = Array.from(site.matchAll(/gaEvent\(\s*'([^']+)'/g), (match) => match[1]);
+  const invocations = Array.from(site.matchAll(/\bgaEvent\(\s*([^,\n)]+)/g))
+    .filter((match) => site.slice(Math.max(0, match.index - 9), match.index) !== 'function ');
+  const names = invocations.map((match) => {
+    const firstArgument = match[1].trim();
+    const literal = firstArgument.match(/^(['"])([^'"]+)\1$/);
+    assert.ok(literal, `gaEvent name must be a string literal, found: ${firstArgument}`);
+    return literal[2];
+  });
   assert.deepEqual(names.sort(), [
     'contact_click',
     'cta_click',
@@ -228,15 +271,15 @@ test('site-authored analytics call sites use the complete six-event taxonomy', (
   ].sort());
   assert.doesNotMatch(
     site,
-    /gaEvent\(\s*'form_start'/,
+    /gaEvent\(\s*(['"])form_start\1/,
     'no Evochia-authored form_start call site may remain',
   );
 });
 ```
 
-This inventory intentionally examines every literal `gaEvent(...)` call in `js/site.js`, not only the contact-page interaction block.
+This inventory intentionally examines every `gaEvent(...)` invocation in `js/site.js`, not only the contact-page interaction block. It accepts single- or double-quoted literal names, rejects dynamic names such as `gaEvent(nameVar, ...)`, and fails if any extra or duplicate invocation changes the verified one-per-event cardinality.
 
-- [ ] **Step 4: Update the diagnostic test contract to the permanent event name**
+- [ ] **Step 5: Update the diagnostic test contract to the permanent event name**
 
 In `tests/analytics/b05-diagnostic.test.mjs`, replace the old site-event matching assertions with:
 
@@ -267,7 +310,7 @@ test('B0.5 diagnostic uses the permanent quote_form_start transport vocabulary',
 
 Keep all existing no-monkey-patch, sanitized-resource, consent, and no-submit assertions intact.
 
-- [ ] **Step 5: Run the focused contract and verify RED**
+- [ ] **Step 6: Run the focused contract and verify RED**
 
 Run:
 
@@ -275,9 +318,9 @@ Run:
 node --test tests/analytics/site-events.test.mjs tests/analytics/b05-diagnostic.test.mjs
 ```
 
-Expected: FAIL in the new destination/ordering tests, six-event taxonomy test, renamed latch test, and diagnostic vocabulary test. Existing consent, PII, `generate_lead` success-branch, resource-sanitization, and no-submit tests remain green.
+Expected: FAIL in the new destination/ordering tests, six-event taxonomy test, renamed latch test, and diagnostic vocabulary test. The new debug-default test already passes against the baseline and remains a regression guard; the overall task is still RED for the missing remediation. Existing consent, PII, `generate_lead` success-branch, resource-sanitization, and no-submit tests remain green.
 
-- [ ] **Step 6: Commit the RED contract**
+- [ ] **Step 7: Commit the RED contract**
 
 ```bash
 git add tests/analytics/site-events.test.mjs tests/analytics/b05-diagnostic.test.mjs
@@ -300,9 +343,27 @@ Expected: `Site Analytics Validation` is RED only because the implementation has
 - Consumes: the Task 1 contract and existing `analyticsConsented()`, `getPageType(pathname)`, and `getServiceIntent(pageType)` helpers.
 - Produces: `GA4_MEASUREMENT_ID: 'G-2R3S78PTDL'`; `gaEvent(name, params): boolean` with invariant routing; site-authored `quote_form_start`; a preview diagnostic that observes `quote_form_start` without submitting.
 
-- [ ] **Step 1: Add the constant and final routing assignment at the required position**
+- [ ] **Step 1: Capture the old helper and require a semantic diff before editing**
 
-In `js/site.js`, replace the current GA4 helper with this exact structure:
+Before changing `js/site.js`, save the exact baseline helper region in the Task 2 report and inspect the eventual diff with:
+
+```bash
+git diff --word-diff=plain HEAD -- js/site.js
+git diff -U25 HEAD -- js/site.js
+```
+
+The only permitted semantic changes inside the helper region are:
+
+```text
+add var GA4_MEASUREMENT_ID = 'G-2R3S78PTDL'
+add payload.send_to = GA4_MEASUREMENT_ID after all existing enrichment and immediately before dispatch
+```
+
+All existing guards, payload cloning, enrichment, optional debug behavior, dispatch return value, comments, and ordering otherwise remain intact. Make a surgical insertion into the existing helper; do not replace the block wholesale. If the baseline helper contains behavior not represented in the plan, stop and report it before editing.
+
+- [ ] **Step 2: Add the constant and final routing assignment at the required position**
+
+In `js/site.js`, preserve the current GA4 helper and make only the two additions shown in this resulting structure:
 
 ```js
   /* GA4 helper. Returns true only when the event is actually dispatched, so
@@ -329,7 +390,7 @@ In `js/site.js`, replace the current GA4 helper with this exact structure:
 
 Do not move the destination assignment above enrichment. Do not use conditional assignment such as `if (!payload.send_to)`. Do not read the Measurement ID from a caller parameter.
 
-- [ ] **Step 2: Rename the real quote-form call site and preserve latch semantics**
+- [ ] **Step 3: Rename the real quote-form call site and preserve latch semantics**
 
 In `js/site.js`, change the quote-form block to:
 
@@ -352,7 +413,7 @@ In `js/site.js`, change the quote-form block to:
 
 Keep both existing `focusin` and `input` listeners bound to `sendFormStart`. Do not change the submit handler or any of the other five event names.
 
-- [ ] **Step 3: Rename the preview diagnostic's event-specific identifiers**
+- [ ] **Step 4: Rename the preview diagnostic's event-specific identifiers**
 
 In `en/ga-b05-diagnostic.html`, make these exact semantic replacements:
 
@@ -370,7 +431,11 @@ delta_custom_form_start                 -> delta_quote_form_start
 
 Update the surrounding local variable/function references so the diagnostic still executes. Preserve the 5000 ms maximum observation window, exact `tid=G-2R3S78PTDL` match, resource sanitization, consent block, same-origin popup, and no-submit behavior.
 
-- [ ] **Step 4: Run focused analytics tests and verify GREEN**
+- [ ] **Step 5: Inspect the helper diff and prove no baseline behavior was removed**
+
+Run the two diff commands from Step 1 against the Task 1 head. Expected: within the helper region the diff shows only the Measurement ID constant and final `send_to` assignment. The separate approved taxonomy diff changes `form_start` to `quote_form_start`; diagnostic-only renames remain confined to `en/ga-b05-diagnostic.html`. Copy the relevant diff evidence into the Task 2 report before committing.
+
+- [ ] **Step 6: Run focused analytics tests and verify GREEN**
 
 Run:
 
@@ -380,7 +445,7 @@ node --test tests/analytics/site-events.test.mjs tests/analytics/b05-diagnostic.
 
 Expected: PASS. The routing-order test proves assignment occurs after all enrichment; the dynamic six-name test proves the shared helper supplies the fixed destination; the call-site inventory proves no executable Evochia `form_start` remains.
 
-- [ ] **Step 5: Run the complete analytics suite**
+- [ ] **Step 7: Run the complete analytics suite**
 
 Run:
 
@@ -390,7 +455,7 @@ npm run test:analytics
 
 Expected: all analytics tests PASS, including consent restoration, PII protection, B0.5 route, no-submit safeguards, `generate_lead` success-branch placement, and the new routing/taxonomy contract.
 
-- [ ] **Step 6: Commit the implementation**
+- [ ] **Step 8: Commit the implementation**
 
 ```bash
 git add js/site.js en/ga-b05-diagnostic.html
@@ -419,6 +484,7 @@ Run:
 
 ```bash
 rg -n "gaEvent\(\s*['\"](form_start|quote_form_start|contact_click|cta_click|form_submit_attempt|form_submit_error|generate_lead)" js en el tests
+rg -n "form_start|quote_form_start" docs
 git diff --check
 git status --short
 ```
@@ -429,6 +495,7 @@ Expected:
 js/site.js contains exactly one quote_form_start call and no form_start call.
 js/site.js contains exactly one call for each of the other five event names.
 Any form_start remaining in the searched paths belongs only to explicit negative assertions or explanatory references to Google's automatic event, never an Evochia gaEvent(...) call.
+Every `docs/` match is classified as one of: current design/plan terminology, an explicit reference to Google's automatic `form_start`, or immutable historical diagnostic evidence. Update any current operational document that incorrectly describes Evochia's authored event as `form_start`; do not mass-rewrite historical evidence.
 git diff --check exits 0.
 Only the approved implementation-plan, analytics tests, js/site.js, and B0.5 diagnostic files changed in this batch.
 ```
@@ -692,8 +759,10 @@ If Formspree succeeds but `generate_lead` is absent, record `LEAD_METRIC_E2E_FAI
 
 - Spec coverage: fixed destination, final-write ordering after enrichment, caller override rejection, caller immutability, consent boundary, all six helper events, complete `form_start` call-site rename, quote-form latch, diagnostic update, no GA4/GTM/config change, preview-only validation, session continuity, `send_to` consumption, DebugView acceptance, and the owner-gated Formspree check are each mapped to an explicit task.
 - Explicit risk: the plan states that six events activate while two receive blocking non-submit browser validation; automated coverage exercises all six through the shared helper, and DebugView records names without pretending untriggered events failed or passed.
+- Review changes: Task 1 verifies real call-site cardinality before freezing it, accepts both quote styles, rejects dynamic event names, and proves `debug_mode` is absent by default; Task 2 requires a surgical semantic diff of the helper before and after editing.
 - Validation vocabulary: `TRANSPORT_VALIDATED` is separated from `LEAD_METRIC_E2E_VALIDATED`; without an approved successful submit, the handoff explicitly says Evochia still lacks a validated lead count.
 - Assignment order: Task 1 tests and Task 2 implementation both require routing assignment after all enrichment and immediately before dispatch.
-- Rename coverage: Task 1 inventories every literal `gaEvent(...)` call in `js/site.js`; Task 2 updates the real call, diagnostic semantics, and tests; Task 3 repeats a repository-wide executable-name audit.
+- Rename coverage: Task 1 inventories every `gaEvent(...)` invocation in `js/site.js`, accepts either quote style, and rejects dynamic names; Task 2 updates the real call, diagnostic semantics, and tests; Task 3 repeats a repository-wide executable-name audit.
+- Operational consequences: rollback before production, production-property preview pollution, the changed meaning of the existing `form_start` key event, the newly transported `cta_click` key event, and `docs/` drift classification are all explicit.
 - Placeholder scan: no deferred implementation placeholder or unspecified error-handling instruction remains.
 - Interface consistency: the event list, destination constant, diagnostic field names, status terms, and exact Measurement ID are consistent across all tasks.
