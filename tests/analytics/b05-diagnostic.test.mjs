@@ -44,7 +44,7 @@ test('B0.5 diagnostic refuses to stimulate without analytics consent and never s
   assert.doesNotMatch(html, /new FormData\s*\(/, 'diagnostic must never serialize lead data');
 
   assert.match(html, /entry\[0\]\s*!==\s*'event'/);
-  assert.match(html, /entry\[1\]\s*!==\s*'form_start'/);
+  assert.match(html, /entry\[1\]\s*!==\s*'quote_form_start'/);
   assert.match(html, /payload\.form_id\s*!==\s*'quoteForm'/);
   assert.match(html, /payload\.lead_source\s*!==\s*'quote_form'/);
 });
@@ -70,13 +70,16 @@ test('B0.5 diagnostic exposes only sanitized GA collect metadata', () => {
   assert.doesNotMatch(html, /collect_url/);
 });
 
-test('B0.5 diagnostic uses conservative GA transport result states', () => {
+test('B0.5 diagnostic uses the permanent quote_form_start transport vocabulary', () => {
   const html = readFileSync(diagnosticPath, 'utf8');
 
   assert.match(html, /GA4_COLLECT_URL_MATCH_PASS/);
-  assert.match(html, /GA4_COLLECT_NEW_REQUEST_NO_FORM_START_MATCH/);
+  assert.match(html, /GA4_COLLECT_NEW_REQUEST_NO_QUOTE_FORM_START_MATCH/);
   assert.match(html, /GA4_COLLECT_NOT_OBSERVED/);
   assert.match(html, /G-2R3S78PTDL/);
-  assert.match(html, /form_start/);
+  assert.match(html, /quote_form_start/);
+  assert.match(html, /evochia_quote_form_start_count/);
+  assert.match(html, /delta_quote_form_start/);
+  assert.doesNotMatch(html, /entry\[1\]\s*!==\s*'form_start'/);
   assert.match(html, /5000/);
 });

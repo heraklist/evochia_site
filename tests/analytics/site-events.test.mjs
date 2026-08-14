@@ -41,6 +41,44 @@ function storedConsentCookie(categories) {
   return 'cc_cookie=' + encodeURIComponent(JSON.stringify({ categories }));
 }
 
+function gaEventRegion() {
+  const startMarker = '/* GA4 helper.';
+  const endMarker = '/* Nav visible */';
+  const start = site.indexOf(startMarker);
+  const end = site.indexOf(endMarker, start);
+  assert.ok(start !== -1 && end !== -1, 'GA4 helper region must exist');
+  return site.slice(start, end);
+}
+
+function evaluateGaEvent({
+  name = 'contact_click',
+  params = {},
+  consented = true,
+  debug = false,
+} = {}) {
+  const calls = [];
+  const context = {
+    window: {
+      location: { pathname: '/en/contact/' },
+      __GA_DEBUG__: debug,
+    },
+    lang: 'en',
+    analyticsConsented: () => consented,
+    getPageType: () => 'contact',
+    getServiceIntent: () => 'lead_capture',
+    gtag: (...args) => calls.push(args),
+    inputName: name,
+    inputParams: params,
+    result: null,
+  };
+
+  runInNewContext(
+    `${gaEventRegion()}\nresult = gaEvent(inputName, inputParams);`,
+    context,
+  );
+  return { calls, result: context.result };
+}
+
 function restoreStoredConsentRegion() {
   const startMarker = 'function restoreStoredConsent() {';
   const endMarker = 'function updateGtagConsent() {';
@@ -173,11 +211,135 @@ test('gaEvent reports real dispatch so one-shot flags can trust it', () => {
   assert.match(site, /gtag\('event', name, payload\);\s*return true;/);
 });
 
-test('form_start latches only after the event is actually sent', () => {
+test('quote_form_start latches only after the event is actually sent', () => {
   assert.match(
     site,
-    /if \(gaEvent\('form_start'[\s\S]*?\)\)\s*\{\s*formStartSent = true;/,
-    'formStartSent must be set inside the gaEvent(...) truthy branch, not before'
+    /if \(gaEvent\('quote_form_start'[\s\S]*?\)\)\s*\{\s*formStartSent = true;/,
+    'formStartSent must be set inside the quote_form_start truthy branch',
+  );
+});
+
+test('gaEvent adds the fixed GA4 destination after enrichment and immediately before dispatch', () => {
+  const helper = gaEventRegion();
+  assert.match(helper, /var GA4_MEASUREMENT_ID = 'G-2R3S78PTDL';/);
+
+  const enrichmentMarkers = [
+    'if (!payload.page_path)',
+    'if (!payload.locale)',
+    'if (!payload.page_type)',
+    'if (!payload.service_intent)',
+    'if (window.__GA_DEBUG__ === true)',
+  ];
+  const routingIndex = helper.indexOf('payload.send_to = GA4_MEASUREMENT_ID;');
+  const dispatchIndex = helper.indexOf("gtag('event', name, payload);");
+
+  assert.ok(routingIndex !== -1, 'fixed destination assignment must exist');
+  for (const marker of enrichmentMarkers) {
+    assert.ok(
+      helper.indexOf(marker) < routingIndex,
+      `${marker} must execute before destination assignment`,
+    );
+  }
+  assert.ok(routingIndex < dispatchIndex, 'destination assignment must precede dispatch');
+  assert.equal(
+    helper.slice(routingIndex, dispatchIndex).trim(),
+    'payload.send_to = GA4_MEASUREMENT_ID;',
+    'no payload write may occur between routing assignment and dispatch',
+  );
+});
+
+test('gaEvent routes every current event name through the same fixed destination', () => {
+  const names = [
+    'contact_click',
+    'cta_click',
+    'quote_form_start',
+    'form_submit_attempt',
+    'form_submit_error',
+    'generate_lead',
+  ];
+
+  for (const name of names) {
+    const { calls, result } = evaluateGaEvent({
+      name,
+      params: { lead_source: 'test' },
+      debug: true,
+    });
+    assert.equal(result, true, `${name} must report dispatch`);
+    assert.equal(calls.length, 1, `${name} must dispatch once`);
+    assert.equal(calls[0][0], 'event');
+    assert.equal(calls[0][1], name);
+    assert.equal(calls[0][2].send_to, 'G-2R3S78PTDL');
+    assert.equal(calls[0][2].page_path, '/en/contact/');
+    assert.equal(calls[0][2].locale, 'en');
+    assert.equal(calls[0][2].page_type, 'contact');
+    assert.equal(calls[0][2].service_intent, 'lead_capture');
+    assert.equal(calls[0][2].debug_mode, true);
+  }
+});
+
+test('gaEvent adds the fixed destination to normal non-debug dispatches', () => {
+  const { calls, result } = evaluateGaEvent({
+    params: { lead_source: 'site' },
+    debug: false,
+  });
+
+  assert.equal(result, true);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][2].send_to, 'G-2R3S78PTDL');
+});
+
+test('gaEvent overrides caller routing without mutating caller params', () => {
+  const params = {
+    send_to: 'G-CALLER-MUST-NOT-CONTROL',
+    lead_source: 'site',
+    page_path: '/el/contact/',
+    locale: 'el',
+    page_type: 'contact',
+    service_intent: 'lead_capture',
+    custom_dimension: 'preserve-me',
+  };
+  const originalParams = { ...params };
+  const { calls } = evaluateGaEvent({ params });
+
+  assert.equal(calls[0][2].send_to, 'G-2R3S78PTDL');
+  assert.deepEqual(params, originalParams);
+});
+
+test('gaEvent omits debug_mode unless the explicit debug flag is true', () => {
+  const { calls } = evaluateGaEvent({ debug: false });
+  assert.equal(
+    Object.prototype.hasOwnProperty.call(calls[0][2], 'debug_mode'),
+    false,
+  );
+});
+
+test('gaEvent still performs no custom dispatch before analytics consent', () => {
+  const { calls, result } = evaluateGaEvent({ consented: false });
+  assert.equal(result, false);
+  assert.equal(calls.length, 0);
+});
+
+test('site-authored analytics call sites use the complete six-event taxonomy', () => {
+  const invocations = Array.from(site.matchAll(/\bgaEvent\(\s*([^,\n)]+)/g))
+    .filter((match) => site.slice(Math.max(0, match.index - 9), match.index) !== 'function ');
+  const names = invocations.map((match) => {
+    const firstArgument = match[1].trim();
+    const literal = firstArgument.match(/^(['"])([^'"]+)\1$/);
+    assert.ok(literal, `gaEvent name must be a string literal, found: ${firstArgument}`);
+    return literal[2];
+  });
+  assert.deepEqual(names.sort(), [
+    'contact_click',
+    'cta_click',
+    'form_submit_attempt',
+    'form_submit_error',
+    'generate_lead',
+    'quote_form_start',
+  ].sort());
+  assert.doesNotMatch(
+    site,
+    /gaEvent\(\s*(['"])form_start\1/,
+    'no Evochia-authored form_start call site may remain',
   );
 });
 
