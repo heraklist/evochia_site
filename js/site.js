@@ -115,6 +115,8 @@
   /* GA4 helper. Returns true only when the event is actually dispatched, so
      callers can gate one-shot flags on real delivery (not on a dropped,
      pre-consent call). */
+  var GA4_MEASUREMENT_ID = 'G-2R3S78PTDL';
+
   function gaEvent(name, params) {
     if (typeof gtag !== 'function') return false;
     if (!analyticsConsented()) return false;
@@ -126,6 +128,7 @@
     if (!payload.page_type) payload.page_type = pageType;
     if (!payload.service_intent) payload.service_intent = getServiceIntent(pageType);
     if (window.__GA_DEBUG__ === true) payload.debug_mode = true;
+    payload.send_to = GA4_MEASUREMENT_ID;
     gtag('event', name, payload);
     return true;
   }
@@ -447,14 +450,14 @@
 
   var quoteForm = document.getElementById('quoteForm');
   if (quoteForm) {
-    /* form_start: fire once on the first meaningful interaction */
+    /* quote_form_start: fire once on the first meaningful interaction */
     var formStartSent = false;
     var sendFormStart = function () {
       if (formStartSent) return;
       /* Only latch the flag once the event was actually dispatched. If the
          visitor interacts before accepting analytics, gaEvent() returns false
          and we retry on the next interaction after consent is granted. */
-      if (gaEvent('form_start', {
+      if (gaEvent('quote_form_start', {
         form_id: 'quoteForm',
         lead_source: 'quote_form'
       })) {

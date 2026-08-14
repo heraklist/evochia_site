@@ -60,19 +60,19 @@
         return target;
       }
 
-      function customFormStartEntries(win) {
+      function customQuoteFormStartEntries(win) {
         var layer = win.dataLayer;
         if (!Array.isArray(layer)) return [];
 
         return layer.reduce(function (matches, entry, index) {
           try {
-            if (!entry || entry[0] !== 'event' || entry[1] !== 'form_start') return matches;
+            if (!entry || entry[0] !== 'event' || entry[1] !== 'quote_form_start') return matches;
             var payload = entry[2] && typeof entry[2] === 'object' ? entry[2] : {};
             if (payload.form_id !== 'quoteForm' || payload.lead_source !== 'quote_form') return matches;
 
             matches.push({
               index: index,
-              event: 'form_start',
+              event: 'quote_form_start',
               form_id: payload.form_id,
               lead_source: payload.lead_source,
               page_path: payload.page_path || null,
@@ -141,15 +141,15 @@
           consent = cc.acceptedCategory('analytics');
         }
 
-        var events = customFormStartEntries(win);
+        var events = customQuoteFormStartEntries(win);
         return {
           target_path: win.location.pathname,
           analytics_consent: consent,
           gtag_type: typeof win.gtag,
           dataLayer_is_array: Array.isArray(win.dataLayer),
           dataLayer_length: Array.isArray(win.dataLayer) ? win.dataLayer.length : null,
-          evochia_custom_form_start_count: events.length,
-          evochia_custom_form_start: events
+          evochia_quote_form_start_count: events.length,
+          evochia_quote_form_start: events
         };
       }
 
@@ -219,7 +219,7 @@
                 return !gaBeforeKeys.has(gaCollectKey(entry));
               });
               var exactMatch = newGa.some(function (entry) {
-                return entry.measurement_id === 'G-2R3S78PTDL' && entry.event_name === 'form_start';
+                return entry.measurement_id === 'G-2R3S78PTDL' && entry.event_name === 'quote_form_start';
               });
               var elapsed = win.performance.now() - observationStartedAt;
 
@@ -232,16 +232,16 @@
               var transportInterpretation = exactMatch
                 ? 'GA4_COLLECT_URL_MATCH_PASS'
                 : newGa.length > 0
-                  ? 'GA4_COLLECT_NEW_REQUEST_NO_FORM_START_MATCH'
+                  ? 'GA4_COLLECT_NEW_REQUEST_NO_QUOTE_FORM_START_MATCH'
                   : 'GA4_COLLECT_NOT_OBSERVED';
 
               render('B0.5 synthetic input + GA collect result', {
                 before: before,
                 after: after,
-                delta_custom_form_start:
-                  after.evochia_custom_form_start_count - before.evochia_custom_form_start_count,
+                delta_quote_form_start:
+                  after.evochia_quote_form_start_count - before.evochia_quote_form_start_count,
                 site_interpretation:
-                  after.evochia_custom_form_start_count > before.evochia_custom_form_start_count
+                  after.evochia_quote_form_start_count > before.evochia_quote_form_start_count
                     ? 'SITE_TO_DATALAYER_PASS'
                     : 'SITE_TO_DATALAYER_FAIL',
                 ga_collect_before_count: gaBefore.length,
