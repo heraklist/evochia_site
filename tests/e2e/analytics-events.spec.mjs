@@ -153,7 +153,7 @@ test('11 quote_form_start retries after consent then latches exactly once', asyn
 });
 
 test('12 valid submit dispatches one form_submit_attempt to the fixed destination', async ({ page, network }) => {
-  network.setFormspreeResponse({ status: 422, body: { errors: [{ message: 'fixture rejection' }] } });
+  network.expectFormspreeRequest({ status: 422, body: { errors: [{ message: 'fixture rejection' }] } });
   await page.goto(`${LOOPBACK_ORIGIN}/en/contact/`);
   await acceptAnalytics(page);
   await fillValidQuoteForm(page);
@@ -168,7 +168,7 @@ test('12 valid submit dispatches one form_submit_attempt to the fixed destinatio
 });
 
 test('13 locally mocked Formspree 200 dispatches generate_lead without PII', async ({ page, network }) => {
-  network.setFormspreeResponse({ status: 200, body: { ok: true } });
+  network.expectFormspreeRequest({ status: 200, body: { ok: true } });
   await page.goto(`${LOOPBACK_ORIGIN}/en/contact/`);
   await acceptAnalytics(page);
   await fillValidQuoteForm(page);
@@ -186,7 +186,7 @@ test('13 locally mocked Formspree 200 dispatches generate_lead without PII', asy
 });
 
 test('14 locally mocked Formspree failure dispatches form_submit_error and no lead', async ({ page, network }) => {
-  network.setFormspreeResponse({ status: 500, body: { error: 'fixture failure' } });
+  network.expectFormspreeRequest({ status: 500, body: { error: 'fixture failure' } });
   await page.goto(`${LOOPBACK_ORIGIN}/el/contact/`);
   await acceptAnalytics(page);
   await fillValidQuoteForm(page);
@@ -204,12 +204,17 @@ test('14 locally mocked Formspree failure dispatches form_submit_error and no le
   expectPrivacyPayloadsAreExactAndPiiFree(events, 'el');
 });
 
-test('15 all Google and Formspree transports stay local while unknown external traffic aborts', async ({ page, network }) => {
+test('15 exact provider requests stay local while unregistered providers and WebRTC egress are denied', async ({ page, network }) => {
   const isolationProbeUrl = 'https://example.invalid/e2e-isolation-probe';
+  const googleProbeUrl = 'https://www.google-analytics.com/g/collect?v=2';
+  const formspreeProbeUrl = 'https://formspree.io/f/not-allowed';
   const isolationSocketUrl = 'wss://example.invalid/e2e-isolation-socket';
   network.expectBlockedExternalRequest(isolationProbeUrl);
+  network.expectBlockedExternalRequest(googleProbeUrl);
+  network.expectBlockedExternalRequest(formspreeProbeUrl);
   network.expectBlockedExternalWebSocket(isolationSocketUrl);
-  network.setFormspreeResponse({ status: 202, body: { fixture: 'local-only' } });
+  network.expectGtmRequest();
+  network.expectFormspreeRequest({ status: 202, body: { fixture: 'local-only' } });
 
   await page.goto(`${PRODUCTION_ORIGIN}/en/contact/`);
   await acceptAnalytics(page);
@@ -224,16 +229,16 @@ test('15 all Google and Formspree transports stay local while unknown external t
   });
   expect(formspreeStatus).toBe(202);
 
-  const probeFailure = await page.evaluate(async (url) => {
+  const probeFailures = await page.evaluate(async (urls) => Promise.all(urls.map(async (url) => {
     try {
       await fetch(url);
       return null;
     } catch (error) {
       return error.name;
     }
-  }, isolationProbeUrl);
+  })), [isolationProbeUrl, googleProbeUrl, formspreeProbeUrl]);
 
-  expect(probeFailure).toBe('TypeError');
+  expect(probeFailures).toEqual(['TypeError', 'TypeError', 'TypeError']);
 
   const socketResult = await page.evaluate((url) => new Promise((resolve) => {
     const socket = new WebSocket(url);
@@ -250,10 +255,37 @@ test('15 all Google and Formspree transports stay local while unknown external t
     opened: false,
     reason: 'Blocked by E2E network isolation',
   });
-  expect(network.googleRequests).toHaveLength(1);
+  const webRtcProbe = await page.evaluate(async () => {
+    const connection = new RTCPeerConnection({
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+    });
+    const candidates = [];
+    connection.addEventListener('icecandidate', (event) => {
+      if (event.candidate) candidates.push(event.candidate.candidate);
+    });
+    connection.createDataChannel('isolation-probe');
+    await connection.setLocalDescription(await connection.createOffer());
+    await new Promise((resolve) => {
+      if (connection.iceGatheringState === 'complete') {
+        resolve();
+        return;
+      }
+      const timeout = setTimeout(resolve, 2_000);
+      connection.addEventListener('icegatheringstatechange', () => {
+        if (connection.iceGatheringState === 'complete') {
+          clearTimeout(timeout);
+          resolve();
+        }
+      });
+    });
+    connection.close();
+    return candidates;
+  });
+  expect(webRtcProbe.filter((candidate) => / typ (srflx|relay)\b/.test(candidate))).toEqual([]);
+  expect(network.googleRequests).toHaveLength(2);
   expect(network.gtmRequests).toHaveLength(1);
   expect(network.formspreeRequests).toHaveLength(1);
-  expect(network.unexpectedExternalRequests).toHaveLength(1);
+  expect(network.unexpectedExternalRequests).toHaveLength(3);
   expect(network.escapedExternalRequests).toHaveLength(0);
   expect(network.externalWebSockets).toHaveLength(1);
   expect(network.closedExternalWebSockets).toHaveLength(1);

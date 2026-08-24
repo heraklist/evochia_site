@@ -19,6 +19,8 @@ const LOCAL_WEBSOCKET_ORIGINS = new Set([
   LOOPBACK_ORIGIN.replace('http:', 'ws:'),
   PRODUCTION_ORIGIN.replace('http:', 'ws:'),
 ]);
+const FIXED_GTM_URL = 'https://www.googletagmanager.com/gtm.js?id=GTM-578JXRXS';
+const FIXED_FORMSPREE_URL = 'https://formspree.io/f/xwvngybk';
 
 function hasDomainSuffix(hostname, suffix) {
   return hostname === suffix || hostname.endsWith(`.${suffix}`);
@@ -56,6 +58,7 @@ export const test = base.extend({
     const gtmRequests = [];
     const formspreeRequests = [];
     const unexpectedExternalRequests = [];
+    const abortedUnexpectedExternalRequests = [];
     const escapedExternalRequests = [];
     const externalWebSockets = [];
     const closedExternalWebSockets = [];
@@ -63,11 +66,15 @@ export const test = base.extend({
     const expectedBlockedExternalUrls = new Set();
     const expectedBlockedExternalWebSocketUrls = new Set();
     const interceptedExternalRequests = new WeakSet();
-    let formspreeResponse = {
-      body: JSON.stringify({ error: 'Formspree is disabled unless a test selects a mock response.' }),
-      contentType: 'application/json; charset=utf-8',
-      status: 503,
-    };
+    let expectsGtmRequest = false;
+    let formspreeResponse = null;
+
+    async function abortUnexpected(route, request) {
+      const record = requestRecord(request);
+      unexpectedExternalRequests.push(record);
+      await route.abort('blockedbyclient');
+      abortedUnexpectedExternalRequests.push(record);
+    }
 
     context.on('requestfinished', (request) => {
       const url = new URL(request.url());
@@ -111,7 +118,7 @@ export const test = base.extend({
       if (isGoogleHostname(url.hostname)) {
         const record = requestRecord(request);
         googleRequests.push(record);
-        if (hasDomainSuffix(url.hostname, 'googletagmanager.com') && url.pathname === '/gtm.js') {
+        if (expectsGtmRequest && request.method() === 'GET' && request.url() === FIXED_GTM_URL) {
           gtmRequests.push(record);
           await route.fulfill({
             body: 'window.__EVOCHIA_INTERCEPTED_GTM_EXECUTIONS__ = (window.__EVOCHIA_INTERCEPTED_GTM_EXECUTIONS__ || 0) + 1;',
@@ -120,18 +127,21 @@ export const test = base.extend({
           });
           return;
         }
-        await route.abort('blockedbyclient');
+        await abortUnexpected(route, request);
         return;
       }
 
       if (isFormspreeHostname(url.hostname)) {
-        formspreeRequests.push(requestRecord(request));
-        await route.fulfill(formspreeResponse);
+        if (formspreeResponse && request.method() === 'POST' && request.url() === FIXED_FORMSPREE_URL) {
+          formspreeRequests.push(requestRecord(request));
+          await route.fulfill(formspreeResponse);
+          return;
+        }
+        await abortUnexpected(route, request);
         return;
       }
 
-      unexpectedExternalRequests.push(requestRecord(request));
-      await route.abort('blockedbyclient');
+      await abortUnexpected(route, request);
     });
 
     const network = Object.freeze({
@@ -140,8 +150,8 @@ export const test = base.extend({
       escapedExternalRequests,
       expectBlockedExternalRequest(requestUrl) {
         const url = new URL(requestUrl);
-        if (!isExternalHttpUrl(url) || isGoogleHostname(url.hostname) || isFormspreeHostname(url.hostname)) {
-          throw new Error(`Blocked-request probes must target an otherwise unhandled external URL: ${requestUrl}`);
+        if (!isExternalHttpUrl(url)) {
+          throw new Error(`Blocked-request probes must target an external HTTP(S) URL: ${requestUrl}`);
         }
         if (expectedBlockedExternalUrls.has(requestUrl)) {
           throw new Error(`Blocked-request probe already registered: ${requestUrl}`);
@@ -159,16 +169,25 @@ export const test = base.extend({
         expectedBlockedExternalWebSocketUrls.add(requestUrl);
       },
       externalWebSockets,
-      formspreeRequests,
-      googleRequests,
-      gtmRequests,
-      setFormspreeResponse(response) {
+      expectFormspreeRequest(response) {
+        if (formspreeResponse) {
+          throw new Error('The fixed Formspree POST is already registered for this test');
+        }
         formspreeResponse = {
           body: JSON.stringify(response.body ?? {}),
           contentType: 'application/json; charset=utf-8',
           status: response.status,
         };
       },
+      expectGtmRequest() {
+        if (expectsGtmRequest) {
+          throw new Error('The fixed GTM GET is already registered for this test');
+        }
+        expectsGtmRequest = true;
+      },
+      formspreeRequests,
+      googleRequests,
+      gtmRequests,
       unexpectedExternalRequests,
     });
 
@@ -178,6 +197,18 @@ export const test = base.extend({
       unexpectedExternalRequests.map((request) => request.url).sort(),
       'unexpected external requests must be aborted and fail unless the test registered the exact isolation probe',
     ).toEqual([...expectedBlockedExternalUrls].sort());
+    expect(
+      abortedUnexpectedExternalRequests,
+      'every unexpected external request must be aborted by the isolation route',
+    ).toEqual(unexpectedExternalRequests);
+    expect(
+      gtmRequests,
+      'the fixed GTM GET must be observed exactly once when registered and never otherwise',
+    ).toHaveLength(expectsGtmRequest ? 1 : 0);
+    expect(
+      formspreeRequests,
+      'the fixed Formspree POST must be observed exactly once when registered and never otherwise',
+    ).toHaveLength(formspreeResponse ? 1 : 0);
     expect(escapedExternalRequests, 'no external request may bypass the isolation route').toEqual([]);
     expect(
       externalWebSockets.map((socket) => socket.url).sort(),

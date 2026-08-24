@@ -57,6 +57,7 @@ test('05 production-host page emits no Google request before analytics consent',
 });
 
 test('06 exact www host makes one locally fulfilled GTM attempt after acceptance', async ({ page, network }) => {
+  network.expectGtmRequest();
   await page.goto(`${PRODUCTION_ORIGIN}/en/contact/`);
   await acceptAnalytics(page);
 
@@ -90,6 +91,7 @@ test('07 accepted analytics on loopback preview emits zero Google requests', asy
 });
 
 test('08 repeated accepted consent commands keep GTM one-shot per document', async ({ page, network }) => {
+  network.expectGtmRequest();
   await page.goto(`${PRODUCTION_ORIGIN}/en/contact/`);
   await acceptAnalytics(page);
   await expect.poll(() => network.gtmRequests.length).toBe(1);
@@ -106,6 +108,7 @@ test('08 repeated accepted consent commands keep GTM one-shot per document', asy
 });
 
 test('09 valid stored analytics consent restores GTM exactly once without a banner', async ({ context, page, network }) => {
+  network.expectGtmRequest();
   await context.addCookies([{
     domain: 'www.evochia.gr',
     expires: Math.floor(Date.now() / 1000) + 3_600,
