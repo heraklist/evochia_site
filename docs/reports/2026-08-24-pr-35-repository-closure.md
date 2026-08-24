@@ -15,7 +15,7 @@ This is the owner-approved closure workstream baseline on `seo-system`.
 
 `PENDING — TASK 12`
 
-The final pushed exact head does not yet exist. The latest reviewed local candidate is `e52ababf09ac3f761652611456172cdaad611de7`; this report update is not yet committed. Task 12 must replace this section with the final full SHA only after final verification, non-force push, and exact-head CI.
+The latest exact full local-matrix candidate is `c0a361e1400b3c56f403b0c785e9f35e53c70f17`. This report's own evidence-only child SHA cannot be embedded in its content because the file content determines that Git object ID; the authoritative final pushed SHA must therefore be recorded after commit in the draft PR body and final handoff. Exact-head CI must target that post-report commit.
 
 ## 3. PR state
 
@@ -26,7 +26,7 @@ The final pushed exact head does not yet exist. The latest reviewed local candid
 
 ## 4. Exact commits created
 
-Current committed closure sequence through Task 11:
+Current committed closure sequence through the parent of this report revision:
 
 | Commit | Subject |
 |---|---|
@@ -67,7 +67,7 @@ Current committed closure sequence through Task 11:
 
 - Task 10 retirement/documentation commits: `e055607`, `56d7268`.
 - Task 11 security remediation sequence: `c19adf4` through `e45d5f7` as enumerated above.
-- Task 12 first review/remediation sequence: `4adbbe0` through `e52abab`; final report evidence commit remains `PENDING`.
+- Task 12 first review/remediation sequence: `4adbbe0` through `e52abab`; local matrix/report parent: `c0a361e`. The report revision's own SHA is recorded externally after Git creates the commit.
 
 ## 5. Exact files changed
 
@@ -185,7 +185,7 @@ Final whole-branch disposition revalidation is `PENDING — TASK 12`.
 
 ## 11. Full final local verification matrix
 
-Fresh Task 11 matrix at exact local candidate `e45d5f7e251f77a7626cb830db2e6b8d87737bd3` under Node `22.23.2`:
+The Task 11 baseline matrix ran at `e45d5f7`. The table below records the newer full Task 12 matrix run at exact report parent `c0a361e1400b3c56f403b0c785e9f35e53c70f17` under Node `22.23.2`. The subsequent report-only evidence commit changes no executable, test, workflow, dependency, or generated-bundle content; exact-head CI remains mandatory on that child.
 
 | Command/gate | Current evidence | Final status |
 |---|---|---|
@@ -194,17 +194,17 @@ Fresh Task 11 matrix at exact local candidate `e45d5f7e251f77a7626cb830db2e6b8d8
 | `npm run typecheck` | No diagnostics | `PASS`, exit 0 |
 | `npm run typecheck:gas` | No diagnostics | `PASS`, exit 0 |
 | `npm run test:unit` | 22 passed, 0 failed/skipped | `PASS`, exit 0 |
-| `npm run test:analytics` | 141 passed, 0 failed/skipped | `PASS`, exit 0 |
+| `npm run test:analytics` | 142 passed, 0 failed/skipped | `PASS`, exit 0 |
 | `npm run seo:test:apps-script` | 48 passed, 0 failed/skipped | `PASS`, exit 0 |
 | `npm run seo:test:apps-script-contracts` | 8 passed, 0 failed/skipped | `PASS`, exit 0 |
 | `npm run seo:build:apps-script` twice | Four artifact hashes identical across both passes | `PASS`, both exit 0 |
 | `npm run seo:check:apps-script-bundle` twice | Both reported committed bundles match a clean deterministic build | `PASS`, both exit 0 |
-| `npm run test:e2e` | 15 Chromium tests passed in 18.6 seconds; only expected `NO_COLOR`/`FORCE_COLOR` warnings | `PASS`, exit 0 |
+| `npm run test:e2e` | 15 Chromium tests passed in 18.4 seconds; only expected `NO_COLOR`/`FORCE_COLOR` warnings | `PASS`, exit 0 |
 | `npm run security:dependency-audit` | Locked graph at moderate threshold | `PASS`, exit 0; 0 vulnerabilities |
 | Git Bash `scripts/security/secret-scan.sh` | Docker client installed, but `dockerDesktopLinuxEngine` pipe absent; script printed refusal to skip | `BLOCKED FAIL-CLOSED`, exit 1; exact-head CI required |
 | `git diff --check` | No errors; Git emitted an informational future CRLF→LF conversion warning for generated `appsscript.json` | `PASS`, exit 0 |
 | `git diff --check main...HEAD` | No errors | `PASS`, exit 0 |
-| Generated/tracked tree after build/check | `git status --short` empty | `PASS` |
+| Generated/tracked tree after build/check | `git status --short` empty at `c0a361e` | `PASS` |
 
 ## 12. Playwright test inventory/results
 
