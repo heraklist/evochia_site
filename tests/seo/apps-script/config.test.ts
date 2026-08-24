@@ -5,8 +5,10 @@ import { verifyConfig, type SeoConfig } from '../../../seo/apps-script/src/Confi
 import {
   ensureWorkbookSheets,
   REQUIRED_SHEET_NAMES,
+  setupWorkbook,
   type WorkbookLike,
 } from '../../../seo/apps-script/src/Setup.ts';
+import { getVerifiedActiveWorkbook, type WorkbookIdentity } from '../../../seo/apps-script/src/WorkbookIdentity.ts';
 
 const verifiedConfig = {
   gscProperty: 'https://www.evochia.gr/',
@@ -91,6 +93,58 @@ test('creates every required sheet once and is idempotent', () => {
   const second = ensureWorkbookSheets(workbook);
   assert.deepEqual(second.created, []);
   assert.deepEqual(second.existing, [...REQUIRED_SHEET_NAMES]);
+});
+
+test('setup rejects a missing workbook before any sheet lookup or insertion', () => {
+  let sheetLookups = 0;
+  let sheetInsertions = 0;
+
+  assert.throws(
+    () => setupWorkbook({
+      getVerifiedActiveWorkbook: () => getVerifiedActiveWorkbook<WorkbookLike & WorkbookIdentity>({
+        getConfig: () => ({ sheetId: 'configured-sheet-id' }),
+        getActiveWorkbook: () => null,
+      }),
+      ensureWorkbookSheets: (workbook) => {
+        sheetLookups += 1;
+        workbook.getSheetByName('Config');
+        sheetInsertions += 1;
+        workbook.insertSheet('Config');
+        return { created: [], existing: [] };
+      },
+    }),
+    /bound to a Google Sheet/,
+  );
+  assert.equal(sheetLookups, 0);
+  assert.equal(sheetInsertions, 0);
+});
+
+test('setup rejects a mismatched workbook before any sheet lookup or insertion', () => {
+  let sheetLookups = 0;
+  let sheetInsertions = 0;
+  const workbook = {
+    getId: () => 'different-sheet-id',
+    getSheetByName: () => {
+      sheetLookups += 1;
+      return null;
+    },
+    insertSheet: () => {
+      sheetInsertions += 1;
+      return {};
+    },
+  };
+
+  assert.throws(
+    () => setupWorkbook({
+      getVerifiedActiveWorkbook: () => getVerifiedActiveWorkbook({
+        getConfig: () => ({ sheetId: 'configured-sheet-id' }),
+        getActiveWorkbook: () => workbook,
+      }),
+    }),
+    /does not match the configured sheet ID/,
+  );
+  assert.equal(sheetLookups, 0);
+  assert.equal(sheetInsertions, 0);
 });
 
 test('manifest contains only the approved least-privilege scopes', () => {

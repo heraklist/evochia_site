@@ -1,4 +1,5 @@
 import { formatCalendarDate } from './RuntimeCompat.ts';
+import { getVerifiedActiveWorkbook } from './WorkbookIdentity.ts';
 
 export type CellValue = string | number | boolean | Date | null;
 export type RowRecord = Record<string, CellValue>;
@@ -13,6 +14,23 @@ export interface WriteSummary {
 export interface MergeResult {
   rows: RowRecord[];
   summary: WriteSummary;
+}
+
+export interface SheetWriterSheet {
+  getLastRow(): number;
+  getDataRange(): { getValues(): CellValue[][] };
+  getRange(row: number, column: number, numRows: number, numColumns: number): {
+    setValues(values: Exclude<CellValue, null>[][]): void;
+  };
+}
+
+export interface SheetWriterWorkbook {
+  getSheetByName(name: string): SheetWriterSheet | null;
+  getSpreadsheetTimeZone(): string;
+}
+
+export interface SheetWriterDependencies {
+  getVerifiedActiveWorkbook: () => SheetWriterWorkbook;
 }
 
 function cellPart(value: CellValue | undefined): string {
@@ -112,13 +130,14 @@ export function upsertRows(
   sheetName: string,
   keyColumns: string[],
   incomingRows: RowRecord[],
+  dependencies: SheetWriterDependencies = { getVerifiedActiveWorkbook },
 ): WriteSummary {
   if (incomingRows.length === 0) {
     return { inserted: 0, updated: 0, unchanged: 0, total: 0 };
   }
 
-  const workbook = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = workbook?.getSheetByName(sheetName);
+  const workbook = dependencies.getVerifiedActiveWorkbook();
+  const sheet = workbook.getSheetByName(sheetName);
   if (!sheet) {
     throw new Error(`Missing required sheet: ${sheetName}`);
   }

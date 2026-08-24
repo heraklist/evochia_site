@@ -79,6 +79,21 @@
     return parsed;
   }
 
+  // seo/apps-script/src/WorkbookIdentity.ts
+  function getVerifiedActiveWorkbook(dependencies) {
+    const getVerifiedConfig = dependencies?.getConfig ?? getConfig;
+    const getActiveWorkbook = dependencies?.getActiveWorkbook ?? (() => SpreadsheetApp.getActiveSpreadsheet());
+    const config = getVerifiedConfig();
+    const workbook = getActiveWorkbook();
+    if (!workbook) {
+      throw new Error("The SEO Apps Script project must be bound to a Google Sheet.");
+    }
+    if (workbook.getId() !== config.sheetId) {
+      throw new Error("The active workbook does not match the configured sheet ID.");
+    }
+    return workbook;
+  }
+
   // seo/apps-script/src/Setup.ts
   var REQUIRED_SHEET_NAMES = [
     "Config",
@@ -111,13 +126,9 @@
     }
     return { created, existing };
   }
-  function setupWorkbook() {
-    getConfig();
-    const workbook = SpreadsheetApp.getActiveSpreadsheet();
-    if (!workbook) {
-      throw new Error("The SEO Apps Script project must be bound to a Google Sheet.");
-    }
-    ensureWorkbookSheets(workbook);
+  function setupWorkbook(dependencies = { getVerifiedActiveWorkbook }) {
+    const setupSheets = dependencies.ensureWorkbookSheets ?? ensureWorkbookSheets;
+    setupSheets(dependencies.getVerifiedActiveWorkbook());
   }
 
   // seo/apps-script/src/Menu.ts

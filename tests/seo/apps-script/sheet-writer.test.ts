@@ -5,6 +5,7 @@ import {
   upsertRows,
   type RowRecord,
 } from '../../../seo/apps-script/src/SheetWriter.ts';
+import { getVerifiedActiveWorkbook } from '../../../seo/apps-script/src/WorkbookIdentity.ts';
 
 test('matches an Athens-local Sheet Date key to the same YYYY-MM-DD string', () => {
   const headers = ['date', 'page', 'clicks'];
@@ -62,6 +63,7 @@ test('does not clear existing sheet contents before a replacement write succeeds
   };
 
   const workbook = {
+    getId: () => 'configured-sheet-id',
     getSheetByName: () => sheet,
     getSpreadsheetTimeZone: () => 'Europe/Athens',
   };
@@ -83,6 +85,12 @@ test('does not clear existing sheet contents before a replacement write succeeds
           page: 'https://www.evochia.gr/en/private-chef/',
           clicks: 4,
         }],
+        {
+          getVerifiedActiveWorkbook: () => getVerifiedActiveWorkbook({
+            getConfig: () => ({ sheetId: 'configured-sheet-id' }),
+            getActiveWorkbook: () => workbook,
+          }),
+        },
       ),
       /simulated write failure/,
     );
@@ -100,4 +108,93 @@ test('does not clear existing sheet contents before a replacement write succeeds
       delete (globalThis as Record<string, unknown>).SpreadsheetApp;
     }
   }
+});
+
+test('rejects a mismatched workbook before any sheet lookup, read, range, or write', () => {
+  let sheetLookups = 0;
+  let lastRowReads = 0;
+  let dataReads = 0;
+  let rangeReads = 0;
+  let writes = 0;
+  const sheet = {
+    getLastRow: () => {
+      lastRowReads += 1;
+      return 0;
+    },
+    getDataRange: () => ({
+      getValues: () => {
+        dataReads += 1;
+        return [];
+      },
+    }),
+    getRange: () => {
+      rangeReads += 1;
+      return {
+        setValues: () => {
+          writes += 1;
+        },
+      };
+    },
+  };
+  const workbook = {
+    getId: () => 'different-sheet-id',
+    getSheetByName: () => {
+      sheetLookups += 1;
+      return sheet;
+    },
+    getSpreadsheetTimeZone: () => 'Europe/Athens',
+  };
+
+  assert.throws(
+    () => upsertRows(
+      'GSC Pages',
+      ['date', 'page'],
+      [{ date: '2026-08-01', page: 'https://www.evochia.gr/en/private-chef/', clicks: 4 }],
+      {
+        getVerifiedActiveWorkbook: () => getVerifiedActiveWorkbook({
+          getConfig: () => ({ sheetId: 'configured-sheet-id' }),
+          getActiveWorkbook: () => workbook,
+        }),
+      },
+    ),
+    /does not match the configured sheet ID/,
+  );
+  assert.equal(sheetLookups, 0);
+  assert.equal(lastRowReads, 0);
+  assert.equal(dataReads, 0);
+  assert.equal(rangeReads, 0);
+  assert.equal(writes, 0);
+});
+
+test('writes rows after the active workbook ID matches the verified config', () => {
+  let writes = 0;
+  const sheet = {
+    getLastRow: () => 0,
+    getDataRange: () => ({ getValues: () => [] }),
+    getRange: () => ({
+      setValues: () => {
+        writes += 1;
+      },
+    }),
+  };
+  const workbook = {
+    getId: () => 'configured-sheet-id',
+    getSheetByName: () => sheet,
+    getSpreadsheetTimeZone: () => 'Europe/Athens',
+  };
+
+  const summary = upsertRows(
+    'GSC Pages',
+    ['date', 'page'],
+    [{ date: '2026-08-01', page: 'https://www.evochia.gr/en/private-chef/', clicks: 4 }],
+    {
+      getVerifiedActiveWorkbook: () => getVerifiedActiveWorkbook({
+        getConfig: () => ({ sheetId: 'configured-sheet-id' }),
+        getActiveWorkbook: () => workbook,
+      }),
+    },
+  );
+
+  assert.deepEqual(summary, { inserted: 1, updated: 0, unchanged: 0, total: 1 });
+  assert.equal(writes, 1);
 });

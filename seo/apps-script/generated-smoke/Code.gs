@@ -39,6 +39,7 @@
   }
 
   // seo/apps-script/src/Config.ts
+  var CONFIG_PROPERTY_KEY = "SEO_GOOGLE_RESOURCES_JSON";
   var RESOURCE_KEYS = [
     "gscProperty",
     "ga4AccountId",
@@ -83,6 +84,23 @@
       }
     }
     return { ok: errors.length === 0, errors };
+  }
+  function getConfig() {
+    const raw = PropertiesService.getScriptProperties().getProperty(CONFIG_PROPERTY_KEY);
+    if (!raw) {
+      throw new Error(`Missing Script Property: ${CONFIG_PROPERTY_KEY}`);
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (error) {
+      throw new Error(`Invalid JSON in ${CONFIG_PROPERTY_KEY}: ${String(error)}`);
+    }
+    const result = verifyConfig(parsed);
+    if (!result.ok) {
+      throw new Error(`SEO configuration is not verified: ${result.errors.join("; ")}`);
+    }
+    return parsed;
   }
 
   // seo/apps-script/src/Ga4Client.ts
@@ -518,6 +536,21 @@
     return rows;
   }
 
+  // seo/apps-script/src/WorkbookIdentity.ts
+  function getVerifiedActiveWorkbook(dependencies) {
+    const getVerifiedConfig = dependencies?.getConfig ?? getConfig;
+    const getActiveWorkbook = dependencies?.getActiveWorkbook ?? (() => SpreadsheetApp.getActiveSpreadsheet());
+    const config = getVerifiedConfig();
+    const workbook = getActiveWorkbook();
+    if (!workbook) {
+      throw new Error("The SEO Apps Script project must be bound to a Google Sheet.");
+    }
+    if (workbook.getId() !== config.sheetId) {
+      throw new Error("The active workbook does not match the configured sheet ID.");
+    }
+    return workbook;
+  }
+
   // seo/apps-script/src/SheetWriter.ts
   function cellPart(value) {
     if (value instanceof Date) {
@@ -584,12 +617,12 @@
       }
     };
   }
-  function upsertRows(sheetName, keyColumns, incomingRows) {
+  function upsertRows(sheetName, keyColumns, incomingRows, dependencies = { getVerifiedActiveWorkbook }) {
     if (incomingRows.length === 0) {
       return { inserted: 0, updated: 0, unchanged: 0, total: 0 };
     }
-    const workbook = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = workbook?.getSheetByName(sheetName);
+    const workbook = dependencies.getVerifiedActiveWorkbook();
+    const sheet = workbook.getSheetByName(sheetName);
     if (!sheet) {
       throw new Error(`Missing required sheet: ${sheetName}`);
     }

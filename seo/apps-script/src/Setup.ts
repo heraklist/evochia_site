@@ -1,4 +1,4 @@
-import { getConfig } from './Config.ts';
+import { getVerifiedActiveWorkbook } from './WorkbookIdentity.ts';
 
 export const REQUIRED_SHEET_NAMES = [
   'Config',
@@ -29,6 +29,11 @@ export interface WorkbookSetupResult {
   existing: string[];
 }
 
+export interface SetupDependencies {
+  getVerifiedActiveWorkbook: () => WorkbookLike;
+  ensureWorkbookSheets?: (workbook: WorkbookLike) => WorkbookSetupResult;
+}
+
 export function ensureWorkbookSheets(workbook: WorkbookLike): WorkbookSetupResult {
   const created: string[] = [];
   const existing: string[] = [];
@@ -46,13 +51,7 @@ export function ensureWorkbookSheets(workbook: WorkbookLike): WorkbookSetupResul
   return { created, existing };
 }
 
-export function setupWorkbook(): void {
-  getConfig();
-
-  const workbook = SpreadsheetApp.getActiveSpreadsheet();
-  if (!workbook) {
-    throw new Error('The SEO Apps Script project must be bound to a Google Sheet.');
-  }
-
-  ensureWorkbookSheets(workbook);
+export function setupWorkbook(dependencies: SetupDependencies = { getVerifiedActiveWorkbook }): void {
+  const setupSheets = dependencies.ensureWorkbookSheets ?? ensureWorkbookSheets;
+  setupSheets(dependencies.getVerifiedActiveWorkbook());
 }
