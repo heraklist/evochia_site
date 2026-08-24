@@ -59,8 +59,16 @@ function assertCheckoutCredentialsDisabled(workflow, label, stepName = 'Check ou
 }
 
 function normalizeWorkflowPathScalar(path) {
-  const quote = path[0];
-  return (quote === "'" || quote === '"') && path.at(-1) === quote ? path.slice(1, -1) : path;
+  const trimmed = path.trim();
+  const quote = trimmed[0];
+  if (quote === "'" || quote === '"') {
+    const closingQuote = trimmed.indexOf(quote, 1);
+    if (closingQuote !== -1) {
+      const suffix = trimmed.slice(closingQuote + 1).trim();
+      if (suffix === '' || suffix.startsWith('#')) return trimmed.slice(1, closingQuote);
+    }
+  }
+  return trimmed.replace(/\s+#.*$/, '').trimEnd();
 }
 
 function assertExactTriggerPaths(workflow, label, protectedPaths) {
@@ -72,13 +80,14 @@ function assertExactTriggerPaths(workflow, label, protectedPaths) {
     pullRequestPaths,
     `${label} must trigger on pull requests to main with paths (never paths-ignore)`,
   );
-  const paths = [...pullRequestPaths.groups.paths.matchAll(/^\s{6}- (.+)$/gm)].map((match) =>
-    normalizeWorkflowPathScalar(match[1]),
+  const rawPaths = [...pullRequestPaths.groups.paths.matchAll(/^\s{6}- (.+)$/gm)].map(
+    (match) => match[1],
   );
   assert.ok(
-    paths.every((path) => !path.startsWith('!')),
+    rawPaths.every((path) => !/^\s*['"]?!/.test(path)),
     `${label} paths must not contain negative path entries`,
   );
+  const paths = rawPaths.map(normalizeWorkflowPathScalar);
   for (const protectedPath of protectedPaths) {
     assert.ok(
       paths.includes(protectedPath),
@@ -469,6 +478,13 @@ test('SEO and analytics path filters include every contract-consumed input exact
       SEO_CONTRACT_INPUT_PATHS,
     ),
   );
+  assert.doesNotThrow(() =>
+    assertExactTriggerPaths(
+      seoWorkflow.replace('      - .gitignore\n', "      - '.gitignore'   # protected input\n"),
+      'SEO workflow',
+      SEO_CONTRACT_INPUT_PATHS,
+    ),
+  );
   for (const [mutationName, mutate] of [
     ['event', (source) => source.replace('  pull_request:\n', '  push:\n')],
     ['branch', (source) => source.replace('      - main\n', '      - develop\n')],
@@ -512,7 +528,15 @@ test('SEO and analytics path filters include every contract-consumed input exact
     /\.gitignore/,
     '.gitignore removal must fail closed',
   );
-  for (const negativePath of ['!.gitignore', "'!.gitignore'", '"!.gitignore"']) {
+  for (const negativePath of [
+    '!.gitignore',
+    "'!.gitignore'",
+    '"!.gitignore"',
+    "'!.gitignore'   ",
+    '"!.gitignore"   ',
+    "'!.gitignore' # exclusion",
+    '"!.gitignore" # exclusion',
+  ]) {
     assert.throws(
       () =>
         assertExactTriggerPaths(
@@ -536,6 +560,16 @@ test('SEO and analytics path filters include every contract-consumed input exact
   assert.doesNotThrow(() =>
     assertExactTriggerPaths(
       analyticsWorkflow.replace('      - js/**/*.js\n', '      - "js/**/*.js"\n'),
+      'Site Analytics',
+      SITE_ANALYTICS_CONTRACT_INPUT_PATHS,
+    ),
+  );
+  assert.doesNotThrow(() =>
+    assertExactTriggerPaths(
+      analyticsWorkflow.replace(
+        '      - js/**/*.js\n',
+        '      - "js/**/*.js"   # protected input\n',
+      ),
       'Site Analytics',
       SITE_ANALYTICS_CONTRACT_INPUT_PATHS,
     ),
@@ -565,7 +599,15 @@ test('SEO and analytics path filters include every contract-consumed input exact
       `Site Analytics production JS ${mutationName} must fail closed`,
     );
   }
-  for (const negativePath of ['!js/**/*.js', "'!js/**/*.js'", '"!js/**/*.js"']) {
+  for (const negativePath of [
+    '!js/**/*.js',
+    "'!js/**/*.js'",
+    '"!js/**/*.js"',
+    "'!js/**/*.js'   ",
+    '"!js/**/*.js"   ',
+    "'!js/**/*.js' # exclusion",
+    '"!js/**/*.js" # exclusion',
+  ]) {
     assert.throws(
       () =>
         assertExactTriggerPaths(
