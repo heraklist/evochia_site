@@ -2,7 +2,7 @@
 
 **Report date:** 2026-08-24
 **Branch:** `seo-system`
-**Working status:** Tasks 1–11 are complete locally. Five Task 11 security scans reported nine CI findings in total (eight medium, one low), all fixed with focused GREEN evidence; final scan `9ce16485-9f81-4b52-b185-dc39f5d0ac3e` sealed exact local head `e45d5f7e251f77a7626cb830db2e6b8d87737bd3` with zero findings. The complete exact-Node Windows matrix is green except for the fail-closed local TruffleHog gate, whose Docker Linux engine is unavailable. Task 12 remains `PENDING`.
+**Working status:** Tasks 1–11 are complete locally. The first Task 12 whole-branch review blocked `ec9f1db` on three medium and two low findings; all five were remediated with focused RED/GREEN evidence and the scoped re-review approved exact head `e52ababf09ac3f761652611456172cdaad611de7`. Fresh Codex Security scan `1778c795-9474-49e2-b83a-f5e69e04ed48` sealed that exact head with zero findings. Final report verification, push, exact-head CI, and draft-PR update remain `PENDING`.
 **Truthfulness boundary:** This report must not be read as `REPOSITORY_CLOSURE_VERIFIED` until sections 21–23 are populated from fresh Task 12 review, push, exact-head CI, and draft-PR evidence.
 
 ## 1. Starting SHA
@@ -15,7 +15,7 @@ This is the owner-approved closure workstream baseline on `seo-system`.
 
 `PENDING — TASK 12`
 
-The final reviewed and pushed exact head does not yet exist. Task 11 evidence was committed in `ec9f1db03ec5a9c4c42857369b3e848cbaae7fa8`; the first Task 12 whole-branch review blocked that candidate and remediation is in progress. Task 12 must replace this section with the final full SHA only after re-review, final verification, non-force push, and exact-head CI.
+The final pushed exact head does not yet exist. The latest reviewed local candidate is `e52ababf09ac3f761652611456172cdaad611de7`; this report update is not yet committed. Task 12 must replace this section with the final full SHA only after final verification, non-force push, and exact-head CI.
 
 ## 3. PR state
 
@@ -59,10 +59,15 @@ Current committed closure sequence through Task 11:
 | `12c9654f266d5467dc74de953c55f798aa2209a0` | `test(ci): reject quoted path exclusions` |
 | `d87d2d60460c5e142a286b2f8af711c9258847e1` | `test(ci): harden quoted path parsing` |
 | `e45d5f7e251f77a7626cb830db2e6b8d87737bd3` | `test(ci): enforce exact workflow path allowlists` |
+| `ec9f1db03ec5a9c4c42857369b3e848cbaae7fa8` | `docs: record final local closure evidence` |
+| `4adbbe0` | `docs: correct closure and OAuth claims` |
+| `3b19bdcc0b55c9ebdee5be88069e7a480f517c34` | `fix(analytics): queue GTM bootstrap before loader` |
+| `463a43294932b04150157d8b4c75b92b21c0733c` | `test(e2e): enforce browser network isolation` |
+| `e52ababf09ac3f761652611456172cdaad611de7` | `test(e2e): verify GTM bootstrap ordering` |
 
 - Task 10 retirement/documentation commits: `e055607`, `56d7268`.
 - Task 11 security remediation sequence: `c19adf4` through `e45d5f7` as enumerated above.
-- Task 12 final evidence commits, if any: `PENDING`.
+- Task 12 first review/remediation sequence: `4adbbe0` through `e52abab`; final report evidence commit remains `PENDING`.
 
 ## 5. Exact files changed
 
@@ -100,7 +105,7 @@ The authoritative whole-workstream final list is `PENDING — TASK 12`. It must 
 | Network-isolated real-browser coverage | Task 9 | Implemented; 15 Chromium scenarios green | `039493a`, `bc7693b` |
 | Temporary B0.5 runtime surface removed and docs made truthful | Task 10 | Implemented and final-matrix verified | Permanent negative contract and retirement diff |
 | Fresh security scan and complete exact-Node Windows matrix | Task 11 | Complete: final scan zero findings; all runnable local gates green; TruffleHog blocked fail-closed by unavailable Docker engine | Sections 11 and 13–15 |
-| Independent review, push, exact-head CI, and draft PR update | Task 12 | `PENDING` | Sections 2–5 and 21–23 |
+| Independent review, push, exact-head CI, and draft PR update | Task 12 | Whole-branch review/fix/re-review complete; final report review, push, CI, and PR update pending | Sections 2–5 and 21–23 |
 
 ## 7. Each original finding and final disposition
 
@@ -118,6 +123,10 @@ The authoritative whole-workstream final list is `PENDING — TASK 12`. It must 
 | Measurement could initialize on non-production/look-alike hosts | Fixed; only normalized exact `www.evochia.gr` may load GTM after consent |
 | Real browser behavior/network isolation lacked deterministic coverage | Fixed in repository; exactly 15 Chromium scenarios run with provider transports locally intercepted/aborted |
 | Temporary B0.5 diagnostic page/route/probe remained merge-blocking | Retired in Task 10 with a permanent negative file/route/executable-surface contract |
+| Consent-time loader omitted the standard GTM bootstrap event | Fixed; one `{gtm.start, event: 'gtm.js'}` object is queued after grant and before insertion under the one-shot guard |
+| Playwright silently tolerated broad Google/Formspree traffic | Fixed; provider traffic defaults to none and only exact, explicitly registered GTM GET/Formspree POST requests are locally fulfilled |
+| Browser tests lacked a non-HTTP egress boundary | Fixed at the Chromium-process layer with a dead proxy, global external DNS denial, and non-proxied WebRTC UDP denial plus bypass probes |
+| Closure commit subjects/status and OAuth wording were inaccurate | Fixed in `4adbbe0`; commit subjects match Git and the write-capable manifest is described as least-privilege/bound-workbook |
 
 Final whole-branch disposition revalidation is `PENDING — TASK 12`.
 
@@ -161,6 +170,8 @@ Final whole-branch disposition revalidation is `PENDING — TASK 12`.
 - Task 11 fourth-scan reviewer round-2 GREEN under exact Node `22.23.2`: focused CI contracts 14/14 and root SEO contracts 22/22 passed; raw-prefix detection rejects negative entries despite quotes, trailing whitespace, or inline comments, while supported quoted positives with whitespace/comments normalize correctly.
 - Task 11 fifth-scan RED under exact Node `22.23.2`: focused CI contracts exited 1 with 13/14 passing because an unexpected YAML anchor/alias pair was accepted by the partial protected-subset check.
 - Task 11 fifth-scan GREEN under exact Node `22.23.2`: focused CI contracts 14/14 and root SEO contracts 22/22 passed; both workflows now require exact ordered normalized allowlists, with mutations for anchors/aliases, duplicates, unexpected positives, order, and removal/rename of every entry.
+- Task 12 reviewer RED: unit loader coverage observed `['gtag', 'append']` rather than the required `['gtag', 'gtm-bootstrap', 'append']`; network isolation accepted unregistered provider traffic; the browser config lacked proxy/DNS/WebRTC deny controls.
+- Task 12 GREEN: focused measurement-loader 18/18; analytics 142/142 after the browser-boundary contract; Chromium 15/15 with exact provider registrations and unknown Google/Formspree/HTTP/WebSocket/STUN probes denied; scoped re-review approved all five findings at `e52abab`.
 
 ## 10. Windows evidence
 
@@ -213,12 +224,13 @@ Current exact inventory: 15 Chromium tests in three dedicated files.
 12. Valid submit dispatches one sanitized `form_submit_attempt`.
 13. Locally mocked Formspree 200 renders success and emits one PII-free `generate_lead`.
 14. Locally mocked Formspree 500 renders the EL error and emits `form_submit_error`, not a lead.
-15. Google/Formspree transports stay local, unknown HTTP(S)/WebSocket probes abort, and zero external requests escape.
+15. Exact registered GTM/Formspree requests are fulfilled locally; unregistered Google/Formspree/HTTP and external WebSocket probes abort, while dead-proxy/global-DNS/non-proxied-WebRTC-UDP controls deny browser-process bypasses.
 
 - Fresh Task 10 prerequisite result: 15 passed, 0 failed in 17.0 seconds under exact Node `22.23.2`.
 - Initial post-retirement Task 10 run: 15 passed, 0 failed in 17.9 seconds under exact Node `22.23.2`.
 - Distinct final pre-commit rerun: 15 passed, 0 failed in 18.3 seconds under exact Node `22.23.2`; both runs emitted only the expected `NO_COLOR`/`FORCE_COLOR` warnings.
 - Final Task 11 exact-tree result: 15 passed, 0 failed in 18.6 seconds; only the expected `NO_COLOR`/`FORCE_COLOR` warnings were emitted.
+- Task 12 remediation result at `e52abab`: 15 passed, 0 failed; the same expected color warning remained.
 
 ## 13. Security scan results
 
@@ -235,6 +247,10 @@ Fourth scan `72b5f9f3-9619-464b-b2d3-b336740e539b` completed against exact SHA `
 Fifth scan `78b605ca-c8ad-4e1c-b489-9693277677fc` completed against exact SHA `d87d2d60460c5e142a286b2f8af711c9258847e1`. It reported validated medium finding `csf_e3981b8d2d5480d9d9fe595a` / `occ_66f31890f98020ad660937b1`: partial protected-subset checks still accepted YAML anchors/aliases, duplicates, unexpected paths, and order changes. SEO and Site Analytics now use full ordered normalized allowlists exactly matching their workflow paths; `assert.deepEqual` rejects missing, renamed, duplicate, unexpected, reordered, anchor/alias, tagged, and other nonliteral entries without a YAML dependency.
 
 Final scan `9ce16485-9f81-4b52-b185-dc39f5d0ac3e` sealed exact SHA `e45d5f7e251f77a7626cb830db2e6b8d87737bd3` as `COMPLETE` with `findingCount: 0`. Its retained report, findings JSON, coverage JSON, manifest, and SARIF are under `C:\Users\herax\AppData\Local\Temp\codex-security-scans-q38PoS\evochia_site\e45d5f7e251f77a7626cb830db2e6b8d87737bd3_20260824T110131Z_s7ia4a_u`. Scope limitation: after the exact clean 234-file inventory was confirmed, the scanner sealed from the prior exact full-source baseline, exact delta independent review, and retained source evidence because additional shell rereads were temporarily approval-blocked. Docker execution was unavailable and remains an exact-head CI obligation.
+
+Task 12 independent whole-branch security scan `d0dece88-83b9-48a5-ae20-d94da141f751` sealed reviewed candidate `ec9f1db03ec5a9c4c42857369b3e848cbaae7fa8` with zero reportable vulnerabilities, but the functional review still blocked that candidate on the five findings recorded above.
+
+Post-remediation Codex Security scan `1778c795-9474-49e2-b83a-f5e69e04ed48` sealed exact clean SHA `e52ababf09ac3f761652611456172cdaad611de7` as complete with 235 tracked files, nine closed security surfaces, and `findingCount: 0`. Artifacts are under `C:\Users\herax\AppData\Local\Temp\codex-security-scans-q38PoS\evochia_site\e52ababf09ac3f761652611456172cdaad611de7_20260824T115413Z_k1dwcla3`. The scan combines retained full-source baselines, complete remediation-delta review, focused exact-Node runtime evidence, and independent scoped re-review. Docker/TruffleHog remains deferred only to exact-head CI.
 
 ## 14. Dependency audit result
 
@@ -271,9 +287,9 @@ No Google authorization occurred. Real data-free GAS V8 execution remains pendin
 - All 32 public localized pages retain exactly one four-signal default-denied bootstrap.
 - No public page contains an immediate GTM loader or GTM noscript iframe.
 - Generated middleware fallbacks establish the same synchronous default before site modules.
-- GTM insertion occurs once only after analytics consent, only for normalized exact hostname `www.evochia.gr`, with grant queued before insertion.
+- GTM insertion occurs once only after analytics consent, only for normalized exact hostname `www.evochia.gr`, with grant followed by exactly one standard `gtm.js` bootstrap event before insertion.
 - Apex, localhost, loopback, Vercel preview, suffix look-alikes, and prefix look-alikes remain denied.
-- Repository static/executable contracts and the 15-scenario isolated browser suite validate this behavior without provider traffic escaping.
+- Provider traffic defaults to none in Playwright. Only the exact per-test registered GTM GET and Formspree POST are locally fulfilled; all other provider/HTTP/WebSocket requests abort and Chromium sends nonlocal fallback traffic to a dead proxy while denying external DNS and non-proxied WebRTC UDP.
 - Live deployed response, CDN/TLS, GTM container, GA4 collection, and post-deploy behavior remain `POST_DEPLOY_RUNTIME_VALIDATION_PENDING`.
 
 ## 19. Sitemap result
@@ -305,15 +321,15 @@ Task 12 must push the reviewed candidate without force, prove each required run 
 
 ## 22. Independent final reviewer verdict
 
-`PENDING — TASK 12`
+Fresh reviewer `/root/task12_whole_branch_reviewer` inspected the complete 86-file range `a606aaffb0a0825d3c48c40510bc60607bec5723...ec9f1db03ec5a9c4c42857369b3e848cbaae7fa8` plus surrounding source and initially returned `BLOCK` with three medium and two low findings: missing GTM bootstrap, broad provider tolerance, missing process egress boundary, stale report history, and inaccurate OAuth wording.
 
-Focused reviews through Task 10 and the Task 11 security-remediation review/fix round are complete, but they do not substitute for the required fresh whole-branch Task 12 review from the starting SHA to the final candidate. Record the reviewer identity/agent, reviewed range, findings, fix rounds, and final verdict here.
+All five were fixed in `4adbbe0` through `e52abab`. The same independent reviewer then performed a read-only scoped re-review at exact `e52ababf09ac3f761652611456172cdaad611de7`, classified every finding `RESOLVED`, reran focused analytics/isolation 19/19 and Chromium 15/15 under Node `22.23.2`, found no new issue, and returned `APPROVE`. A final report-only truthfulness review remains pending after this evidence update is committed.
 
 ## 23. Repository closure classification
 
 `PENDING — NOT YET REPOSITORY_CLOSURE_VERIFIED`
 
-Task 11 is complete locally: nine findings were remediated, the final Codex Security scan reports zero findings, and every locally runnable exact-Node gate passed. The local full-history TruffleHog gate remains fail-closed because the Docker Linux engine is unavailable, so Task 12 exact-head Security Validation is mandatory. Do not emit `REPOSITORY_CLOSURE_VERIFIED` until independent whole-branch review, final push, exact-head required CI (including TruffleHog), exact SHA proof, and draft-PR verification all pass and are recorded in this report.
+Task 11 and the Task 12 independent review/remediation/re-review are complete locally; the latest post-remediation security scan reports zero findings. The local full-history TruffleHog gate remains fail-closed because the Docker Linux engine is unavailable, so Task 12 exact-head Security Validation is mandatory. Do not emit `REPOSITORY_CLOSURE_VERIFIED` until the final report candidate passes the full local matrix, final truthfulness review, non-force push, exact-head required CI (including TruffleHog), exact SHA proof, and draft-PR verification.
 
 ## 24. Remaining owner-controlled external actions
 
