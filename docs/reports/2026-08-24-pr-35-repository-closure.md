@@ -147,6 +147,8 @@ Final whole-branch disposition revalidation is `PENDING — TASKS 11–12`.
 - Task 11 third-scan GREEN under exact Node `22.23.2`: focused CI contracts 14/14, focused nested-JS retirement 1/1, root SEO 22/22, and expanded analytics 141/141 passed. `.gitignore` renaming/removal and nested retired-marker omissions are permanently rejected.
 - Task 11 fourth-scan RED under exact Node `22.23.2`: focused CI workflow contracts exited 1 with 13/14 passing because an ordered `!.gitignore` entry could re-exclude a protected positive path.
 - Task 11 fourth-scan GREEN under exact Node `22.23.2`: focused CI contracts 14/14 and root SEO contracts 22/22 passed; ordered negative entries for both SEO and Site Analytics are contract-rejected.
+- Task 11 fourth-scan reviewer RED under exact Node `22.23.2`: focused CI contracts exited 1 with 13/14 passing because the raw-only guard accepted valid single-quoted negative path entries.
+- Task 11 fourth-scan reviewer GREEN under exact Node `22.23.2`: focused CI contracts 14/14 and root SEO contracts 22/22 passed; raw, single-quoted, and double-quoted negatives are rejected after scalar normalization, while quoted protected positives remain accepted.
 
 ## 10. Windows evidence
 
@@ -214,7 +216,7 @@ Second scan `e600a4e9-df89-4738-ba45-dd2f5cf79d73` completed against exact SHA `
 
 Third scan `5d7b1766-ae4b-4f36-8a35-1b5591a205fb` completed against exact SHA `a3418664a50778bdd804178e22ad8cf18b5b8921`. It reported low finding `csf_f9cf35b9b493511cc30b8ae6` / `occ_fc4128e88418b7ed839c2ad1` because SEO triggers omitted `.gitignore`, and medium finding `csf_c26db902a80533eb61806d32` / `occ_a262706c2c1785e8984e0699` because the diagnostic-retirement executable inventory scanned only top-level JS files. `.gitignore` became an exact protected SEO trigger input with rename/removal mutations, and production JS enumeration became recursive and deterministically sorted with a self-cleaning nested-marker regression, before the fourth scan below.
 
-Fourth scan `72b5f9f3-9619-464b-b2d3-b336740e539b` completed against exact SHA `72db37501b17bd88dff9b89930d2eb59b802f03b`. It reported validated medium finding `csf_f214b571327db225d144d7d0` / `occ_b904dd6a7ba201cb5f62d304`: ordered negative path entries could re-exclude protected positives after the contract verified their presence. The shared trigger helper now rejects every parsed path beginning with `!`, and mutations prove both `!.gitignore` and `!js/**/*.js` fail closed. A clean post-fix exact-head scan and the complete local matrix remain `PENDING — TASK 11`.
+Fourth scan `72b5f9f3-9619-464b-b2d3-b336740e539b` completed against exact SHA `72db37501b17bd88dff9b89930d2eb59b802f03b`. It reported validated medium finding `csf_f214b571327db225d144d7d0` / `occ_b904dd6a7ba201cb5f62d304`: ordered negative path entries could re-exclude protected positives after the contract verified their presence. A reviewer then proved valid quoted negatives bypassed the initial raw-only guard. The shared trigger helper now normalizes unquoted, single-quoted, and double-quoted scalar paths before rejecting every negative entry; all three forms are mutation-tested for both `.gitignore` and `js/**/*.js`, while legitimate quoted positives remain accepted. A clean post-fix exact-head scan and the complete local matrix remain `PENDING — TASK 11`.
 
 ## 14. Dependency audit result
 
