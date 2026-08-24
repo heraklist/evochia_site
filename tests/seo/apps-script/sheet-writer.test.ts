@@ -2,10 +2,86 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   mergeRowRecords,
+  serializeLiteralCell,
   upsertRows,
+  type CellValue,
   type RowRecord,
 } from '../../../seo/apps-script/src/SheetWriter.ts';
 import { getVerifiedActiveWorkbook } from '../../../seo/apps-script/src/WorkbookIdentity.ts';
+
+test('serializes formula-like strings as literal Sheet cells', () => {
+  assert.deepEqual(
+    [
+      serializeLiteralCell('=IMPORTXML("https://example.test", "//title")'),
+      serializeLiteralCell('=HYPERLINK("https://example.test", "Evochia")'),
+      serializeLiteralCell('+SUM(A1:A2)'),
+      serializeLiteralCell('-1+1'),
+      serializeLiteralCell('@something'),
+    ],
+    [
+      '\'=IMPORTXML("https://example.test", "//title")',
+      '\'=HYPERLINK("https://example.test", "Evochia")',
+      "'+SUM(A1:A2)",
+      "'-1+1",
+      "'@something",
+    ],
+  );
+});
+
+test('preserves safe Sheet cell values while converting null to empty', () => {
+  const date = new Date('2026-08-01T00:00:00.000Z');
+
+  assert.equal(serializeLiteralCell('plain text'), 'plain text');
+  assert.equal(serializeLiteralCell(42), 42);
+  assert.equal(serializeLiteralCell(false), false);
+  assert.equal(serializeLiteralCell(date), date);
+  assert.equal(serializeLiteralCell(null), '');
+});
+
+test('serializes the complete upsert matrix immediately before setValues', () => {
+  let written: Exclude<CellValue, null>[][] | undefined;
+  const sheet = {
+    getLastRow: () => 0,
+    getDataRange: () => ({ getValues: () => [] }),
+    getRange: () => ({
+      setValues: (values: Exclude<CellValue, null>[][]) => {
+        written = values;
+      },
+    }),
+  };
+  const workbook = {
+    getSheetByName: () => sheet,
+    getSpreadsheetTimeZone: () => 'Europe/Athens',
+  };
+
+  upsertRows(
+    'GSC Pages',
+    ['id'],
+    [{
+      id: 'row-1',
+      import: '=IMPORTXML("https://example.test", "//title")',
+      link: '=HYPERLINK("https://example.test", "Evochia")',
+      sum: '+SUM(A1:A2)',
+      math: '-1+1',
+      handle: '@something',
+      label: 'Evochia',
+    }],
+    { getVerifiedActiveWorkbook: () => workbook },
+  );
+
+  assert.deepEqual(written, [
+    ['id', 'import', 'link', 'sum', 'math', 'handle', 'label'],
+    [
+      'row-1',
+      '\'=IMPORTXML("https://example.test", "//title")',
+      '\'=HYPERLINK("https://example.test", "Evochia")',
+      "'+SUM(A1:A2)",
+      "'-1+1",
+      "'@something",
+      'Evochia',
+    ],
+  ]);
+});
 
 test('matches an Athens-local Sheet Date key to the same YYYY-MM-DD string', () => {
   const headers = ['date', 'page', 'clicks'];

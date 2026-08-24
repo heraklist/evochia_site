@@ -552,6 +552,12 @@
   }
 
   // seo/apps-script/src/SheetWriter.ts
+  function serializeLiteralCell(value) {
+    if (typeof value === "string" && /^[=+\-@]/.test(value)) {
+      return `'${value}`;
+    }
+    return value ?? "";
+  }
   function cellPart(value) {
     if (value instanceof Date) {
       return value.toISOString();
@@ -648,7 +654,9 @@
       headers,
       ...merged.rows.map((row) => headers.map((header) => row[header] ?? ""))
     ];
-    sheet.getRange(1, 1, output.length, headers.length).setValues(output);
+    sheet.getRange(1, 1, output.length, headers.length).setValues(
+      output.map((row) => row.map(serializeLiteralCell))
+    );
     return merged.summary;
   }
 

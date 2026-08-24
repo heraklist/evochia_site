@@ -33,6 +33,13 @@ export interface SheetWriterDependencies {
   getVerifiedActiveWorkbook: () => SheetWriterWorkbook;
 }
 
+export function serializeLiteralCell(value: CellValue): Exclude<CellValue, null> {
+  if (typeof value === 'string' && /^[=+\-@]/.test(value)) {
+    return `'${value}`;
+  }
+  return value ?? '';
+}
+
 function cellPart(value: CellValue | undefined): string {
   if (value instanceof Date) {
     return value.toISOString();
@@ -171,6 +178,8 @@ export function upsertRows(
     ...merged.rows.map((row) => headers.map((header) => row[header] ?? '')),
   ];
 
-  sheet.getRange(1, 1, output.length, headers.length).setValues(output);
+  sheet.getRange(1, 1, output.length, headers.length).setValues(
+    output.map((row) => row.map(serializeLiteralCell)),
+  );
   return merged.summary;
 }
