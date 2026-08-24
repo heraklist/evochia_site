@@ -2,7 +2,7 @@
 
 **Report date:** 2026-08-24
 **Branch:** `seo-system`
-**Working status:** Tasks 1–10 evidence recorded. Three Task 11 security scans reported seven CI findings in total (six medium, one low), all now fixed locally with focused GREEN evidence; a clean post-fix exact-head scan, the full local matrix, and all Task 12 work remain `PENDING`.
+**Working status:** Tasks 1–10 evidence recorded. Four Task 11 security scans reported eight CI findings in total (seven medium, one low), all now fixed locally with focused GREEN evidence; a clean post-fix exact-head scan, the full local matrix, and all Task 12 work remain `PENDING`.
 **Truthfulness boundary:** This report is a durable evidence skeleton. It must not be read as `REPOSITORY_CLOSURE_VERIFIED` until sections 11, 13–15, and 21–23 are populated from fresh Task 11–12 evidence.
 
 ## 1. Starting SHA
@@ -91,7 +91,7 @@ The authoritative whole-workstream final list is `PENDING — TASK 12`. It must 
 | Basic Consent and exact-host GTM loading | Task 8 | Implemented; repository contracts green | `6c03ba9`, `0e05164`; 32-page inventory |
 | Network-isolated real-browser coverage | Task 9 | Implemented; 15 Chromium scenarios green | `039493a`, `bc7693b` |
 | Temporary B0.5 runtime surface removed and docs made truthful | Task 10 | Implemented locally; final Task 10 matrix pending below | Permanent negative contract and retirement diff |
-| Fresh security scan and complete exact-Node Windows matrix | Task 11 | Three scans complete with seven findings fixed locally; clean post-fix exact-head scan and full matrix `PENDING` | Sections 11 and 13–15 |
+| Fresh security scan and complete exact-Node Windows matrix | Task 11 | Four scans complete with eight findings fixed locally; clean post-fix exact-head scan and full matrix `PENDING` | Sections 11 and 13–15 |
 | Independent review, push, exact-head CI, and draft PR update | Task 12 | `PENDING` | Sections 2–5 and 21–23 |
 
 ## 7. Each original finding and final disposition
@@ -145,6 +145,8 @@ Final whole-branch disposition revalidation is `PENDING — TASKS 11–12`.
 - Task 11 second-scan GREEN under exact Node `22.23.2`: focused CI contracts 14/14, root SEO contracts 22/22, and analytics 140/140 passed. Narrowing the JS glob to `js/site.js` or removing it is contract-rejected.
 - Task 11 third-scan RED under exact Node `22.23.2`: CI workflow contracts exited 1 with 13/14 passing because `.gitignore` was absent from SEO triggers; the focused nested-JS retirement test exited 1 because the executable inventory returned no nested marker reference.
 - Task 11 third-scan GREEN under exact Node `22.23.2`: focused CI contracts 14/14, focused nested-JS retirement 1/1, root SEO 22/22, and expanded analytics 141/141 passed. `.gitignore` renaming/removal and nested retired-marker omissions are permanently rejected.
+- Task 11 fourth-scan RED under exact Node `22.23.2`: focused CI workflow contracts exited 1 with 13/14 passing because an ordered `!.gitignore` entry could re-exclude a protected positive path.
+- Task 11 fourth-scan GREEN under exact Node `22.23.2`: focused CI contracts 14/14 and root SEO contracts 22/22 passed; ordered negative entries for both SEO and Site Analytics are contract-rejected.
 
 ## 10. Windows evidence
 
@@ -210,7 +212,9 @@ All four were fixed locally with focused RED/GREEN and mutation evidence before 
 
 Second scan `e600a4e9-df89-4738-ba45-dd2f5cf79d73` completed against exact SHA `aad8b7b39e297e3f7c721b30ddcc1d60f9c0cddd`. It reported one validated medium finding, `csf_d22c1c173e536060657cc709` / `occ_34d55ac21b735c6385f682b3`: Site Analytics trigger paths omitted production JS inputs directly consumed by privacy and diagnostic contracts. The two narrow JS entries were replaced by the reviewed `js/**/*.js` glob, with focused RED/GREEN plus narrowing/removal mutation coverage, before the third scan below.
 
-Third scan `5d7b1766-ae4b-4f36-8a35-1b5591a205fb` completed against exact SHA `a3418664a50778bdd804178e22ad8cf18b5b8921`. It reported low finding `csf_f9cf35b9b493511cc30b8ae6` / `occ_fc4128e88418b7ed839c2ad1` because SEO triggers omitted `.gitignore`, and medium finding `csf_c26db902a80533eb61806d32` / `occ_a262706c2c1785e8984e0699` because the diagnostic-retirement executable inventory scanned only top-level JS files. `.gitignore` is now an exact protected SEO trigger input with rename/removal mutations, and production JS enumeration is recursive and deterministically sorted with a self-cleaning nested-marker regression. A clean post-fix exact-head scan and the complete local matrix remain `PENDING — TASK 11`.
+Third scan `5d7b1766-ae4b-4f36-8a35-1b5591a205fb` completed against exact SHA `a3418664a50778bdd804178e22ad8cf18b5b8921`. It reported low finding `csf_f9cf35b9b493511cc30b8ae6` / `occ_fc4128e88418b7ed839c2ad1` because SEO triggers omitted `.gitignore`, and medium finding `csf_c26db902a80533eb61806d32` / `occ_a262706c2c1785e8984e0699` because the diagnostic-retirement executable inventory scanned only top-level JS files. `.gitignore` became an exact protected SEO trigger input with rename/removal mutations, and production JS enumeration became recursive and deterministically sorted with a self-cleaning nested-marker regression, before the fourth scan below.
+
+Fourth scan `72b5f9f3-9619-464b-b2d3-b336740e539b` completed against exact SHA `72db37501b17bd88dff9b89930d2eb59b802f03b`. It reported validated medium finding `csf_f214b571327db225d144d7d0` / `occ_b904dd6a7ba201cb5f62d304`: ordered negative path entries could re-exclude protected positives after the contract verified their presence. The shared trigger helper now rejects every parsed path beginning with `!`, and mutations prove both `!.gitignore` and `!js/**/*.js` fail closed. A clean post-fix exact-head scan and the complete local matrix remain `PENDING — TASK 11`.
 
 ## 14. Dependency audit result
 
@@ -290,7 +294,7 @@ Focused reviews through Task 10 and the Task 11 security-remediation review/fix 
 
 `PENDING — NOT YET REPOSITORY_CLOSURE_VERIFIED`
 
-Task 11's first three security scans and their focused remediations are complete, but its clean post-fix exact-head scan and full local matrix remain unexecuted. Task 12 remains unexecuted. Do not emit `REPOSITORY_CLOSURE_VERIFIED` until the fresh security/local matrix, independent whole-branch review, final push, exact-head required CI, exact SHA proof, and draft-PR verification all pass and are recorded in this report.
+Task 11's first four security scans and their focused remediations are complete, but its clean post-fix exact-head scan and full local matrix remain unexecuted. Task 12 remains unexecuted. Do not emit `REPOSITORY_CLOSURE_VERIFIED` until the fresh security/local matrix, independent whole-branch review, final push, exact-head required CI, exact SHA proof, and draft-PR verification all pass and are recorded in this report.
 
 ## 24. Remaining owner-controlled external actions
 

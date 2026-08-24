@@ -70,6 +70,10 @@ function assertExactTriggerPaths(workflow, label, protectedPaths) {
   const paths = [...pullRequestPaths.groups.paths.matchAll(/^\s{6}- (.+)$/gm)].map(
     (match) => match[1],
   );
+  assert.ok(
+    paths.every((path) => !path.startsWith('!')),
+    `${label} paths must not contain negative path entries`,
+  );
   for (const protectedPath of protectedPaths) {
     assert.ok(
       paths.includes(protectedPath),
@@ -496,6 +500,19 @@ test('SEO and analytics path filters include every contract-consumed input exact
     /\.gitignore/,
     '.gitignore removal must fail closed',
   );
+  assert.throws(
+    () =>
+      assertExactTriggerPaths(
+        seoWorkflow.replace(
+          '      - .gitignore\n',
+          '      - .gitignore\n      - !.gitignore\n',
+        ),
+        'SEO workflow',
+        SEO_CONTRACT_INPUT_PATHS,
+      ),
+    /must not contain negative path entries/,
+    'SEO negative path override must fail closed',
+  );
 
   assertExactTriggerPaths(
     analyticsWorkflow,
@@ -527,6 +544,19 @@ test('SEO and analytics path filters include every contract-consumed input exact
       `Site Analytics production JS ${mutationName} must fail closed`,
     );
   }
+  assert.throws(
+    () =>
+      assertExactTriggerPaths(
+        analyticsWorkflow.replace(
+          '      - js/**/*.js\n',
+          '      - js/**/*.js\n      - !js/**/*.js\n',
+        ),
+        'Site Analytics',
+        SITE_ANALYTICS_CONTRACT_INPUT_PATHS,
+      ),
+    /must not contain negative path entries/,
+    'Site Analytics negative path override must fail closed',
+  );
 });
 
 test('browser E2E workflow is a dedicated immutable Chromium pull-request gate', () => {
