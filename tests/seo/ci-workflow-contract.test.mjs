@@ -49,6 +49,84 @@ function assertImmutableOfficialActions(workflow, label) {
   assert.ok(references.includes(`actions/setup-node@${SETUP_NODE_SHA}`));
 }
 
+const CODEMAESTRO_STEP_SUITES = new Map([
+  ['Validate suite input', []],
+  ['Check out repository', []],
+  ['Set up Node.js', []],
+  ['Install dependencies', ['unit-tests', 'typecheck', 'ci-review']],
+  ['Run typechecks', ['typecheck', 'ci-review']],
+  ['Run non-browser tests', ['unit-tests', 'ci-review']],
+  ['Verify committed Apps Script bundles', ['ci-review']],
+  ['Install Chromium', ['ci-review']],
+  ['Run browser tests', ['ci-review']],
+  ['Audit locked dependencies', ['dependency-audit', 'security-baseline', 'ci-review']],
+  ['Scan full Git history for secrets', ['secrets-scan', 'security-baseline', 'ci-review']],
+]);
+
+function assertCodemaestroStepConditions(workflow) {
+  const actualStepNames = [...workflow.matchAll(/^\s{6}- name: (.+)$/gm)].map(
+    (match) => match[1],
+  );
+  assert.deepEqual(
+    actualStepNames,
+    [...CODEMAESTRO_STEP_SUITES.keys()],
+    'CodeMaestro must contain exactly the reviewed validation steps',
+  );
+
+  assert.doesNotMatch(
+    workflow,
+    /^\s+continue-on-error\s*:/m,
+    'CodeMaestro must not declare continue-on-error',
+  );
+  const commands = workflow.replace(/^\s{8}if:[^\n]*$/gm, '');
+  assert.doesNotMatch(
+    commands,
+    /\|\|/,
+    'CodeMaestro commands must not contain a shell failure bypass',
+  );
+  assert.doesNotMatch(
+    commands,
+    /^\s*set\s+\+e\s*$/m,
+    'CodeMaestro commands must not disable shell error handling',
+  );
+  assert.doesNotMatch(
+    commands,
+    /(?:;\s*(?:true|:)|^\s*exit\s+0\s*$)/m,
+    'CodeMaestro commands must not force a successful exit',
+  );
+
+  for (const [stepName, suites] of CODEMAESTRO_STEP_SUITES) {
+    const step = stepBlock(workflow, stepName);
+    assert.notEqual(step, '', `CodeMaestro step is missing: ${stepName}`);
+
+    const conditions = [...step.matchAll(/^\s{8}if:\s*(.+)$/gm)].map((match) => match[1]);
+    if (suites.length === 0) {
+      assert.equal(conditions.length, 0, `${stepName} must be unconditional`);
+      continue;
+    }
+
+    assert.equal(conditions.length, 1, `${stepName} must have exactly one suite condition`);
+    const expression = conditions[0].match(/^\$\{\{\s*(.+?)\s*\}\}$/)?.[1] ?? '';
+    assert.notEqual(expression, '', `${stepName} must use a GitHub expression`);
+
+    const actualSuites = expression.split(/\s*\|\|\s*/).map((clause) => {
+      const suite = clause.match(/^inputs\.suite\s*==\s*'([^']+)'$/)?.[1];
+      assert.ok(suite, `${stepName} condition must be an OR-list of exact suite comparisons`);
+      return suite;
+    });
+    assert.equal(
+      new Set(actualSuites).size,
+      actualSuites.length,
+      `${stepName} condition must not repeat suite comparisons`,
+    );
+    assert.deepEqual(
+      [...actualSuites].sort(),
+      [...suites].sort(),
+      `${stepName} condition must allow exactly its reviewed suite set`,
+    );
+  }
+}
+
 const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 const workflow = readText('.github/workflows/security-validation.yml');
 const scanner = readText('scripts/security/secret-scan.sh');
@@ -149,6 +227,102 @@ test('CodeMaestro exposes only validation suites backed by real commands', () =>
     'ci-review',
   ]);
   assert.doesNotMatch(codemaestroWorkflow, /npm pkg get|\bnpm test\b|skipp(?:ed|ing)|unimplemented/i);
+});
+
+test('CodeMaestro rejects invalid suite conditions and failure bypasses', () => {
+  assert.doesNotThrow(() => assertCodemaestroStepConditions(codemaestroWorkflow));
+
+  const mutations = [
+    {
+      name: 'impossible AND suite combination',
+      error: /OR-list of exact suite comparisons/,
+      workflow: codemaestroWorkflow.replace(
+        "inputs.suite == 'unit-tests' || inputs.suite == 'typecheck' || inputs.suite == 'ci-review'",
+        "inputs.suite == 'unit-tests' && inputs.suite == 'typecheck' && inputs.suite == 'ci-review'",
+      ),
+    },
+    {
+      name: 'literal-false condition retaining expected suite names',
+      error: /OR-list of exact suite comparisons/,
+      workflow: codemaestroWorkflow.replace(
+        "inputs.suite == 'typecheck' || inputs.suite == 'ci-review'",
+        "false && inputs.suite == 'typecheck' && inputs.suite == 'ci-review'",
+      ),
+    },
+    {
+      name: 'unexpected extra suite in a valid OR-list',
+      error: /allow exactly its reviewed suite set/,
+      workflow: codemaestroWorkflow.replace(
+        "inputs.suite == 'typecheck' || inputs.suite == 'ci-review'",
+        "inputs.suite == 'typecheck' || inputs.suite == 'security-baseline' || inputs.suite == 'ci-review'",
+      ),
+    },
+    {
+      name: 'unexpected condition on an unconditional step',
+      error: /must be unconditional/,
+      workflow: codemaestroWorkflow.replace(
+        '      - name: Check out repository\n',
+        '      - name: Check out repository\n        if: ${{ always() }}\n',
+      ),
+    },
+    {
+      name: 'step-level continue-on-error',
+      error: /must not declare continue-on-error/,
+      workflow: codemaestroWorkflow.replace(
+        '        run: npm run test:e2e\n',
+        '        continue-on-error: true\n        run: npm run test:e2e\n',
+      ),
+    },
+    {
+      name: 'shell true fallback',
+      error: /shell failure bypass/,
+      workflow: codemaestroWorkflow.replace(
+        '        run: npm run test:e2e\n',
+        '        run: npm run test:e2e || true\n',
+      ),
+    },
+    {
+      name: 'shell fallback command',
+      error: /shell failure bypass/,
+      workflow: codemaestroWorkflow.replace(
+        '        run: npm run security:dependency-audit\n',
+        '        run: npm run security:dependency-audit || echo "ignored"\n',
+      ),
+    },
+    {
+      name: 'shell error disabling',
+      error: /disable shell error handling/,
+      workflow: codemaestroWorkflow.replace(
+        '        run: |\n          npm run test:unit\n',
+        '        run: |\n          set +e\n          npm run test:unit\n',
+      ),
+    },
+    {
+      name: 'shell semicolon success fallback',
+      error: /force a successful exit/,
+      workflow: codemaestroWorkflow.replace(
+        '        run: npm run test:e2e\n',
+        '        run: npm run test:e2e; true\n',
+      ),
+    },
+    {
+      name: 'explicit successful exit',
+      error: /force a successful exit/,
+      workflow: codemaestroWorkflow.replace(
+        '          npm run typecheck:gas\n',
+        '          npm run typecheck:gas\n          exit 0\n',
+      ),
+    },
+  ];
+
+  for (const mutation of mutations) {
+    assert.notEqual(mutation.workflow, codemaestroWorkflow, `${mutation.name} fixture must mutate YAML`);
+    assert.throws(
+      () => assertCodemaestroStepConditions(mutation.workflow),
+      mutation.error,
+      mutation.name,
+    );
+  }
 });
 
 test('CodeMaestro uses exact Node and installs dependencies without lifecycle scripts', () => {
