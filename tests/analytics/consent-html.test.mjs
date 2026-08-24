@@ -4,8 +4,11 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import middleware from '../../middleware.ts';
+
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
-const DIAGNOSTIC_PAGE = 'en/ga-b05-diagnostic.html';
+const RETIRED_DIAGNOSTIC_PAGE = 'en/ga-b05-diagnostic.html';
+const RETIRED_DIAGNOSTIC_ROUTE = '/en/ga-b05-diagnostic/';
 const EXPECTED_PUBLIC_PAGES = [
   'el/404.html',
   'el/about.html',
@@ -51,16 +54,45 @@ function localizedHtmlFiles() {
   return files.sort();
 }
 
-const publicPages = localizedHtmlFiles().filter((file) => file !== DIAGNOSTIC_PAGE);
+const publicPages = localizedHtmlFiles();
+
+function productionExecutableFiles() {
+  return [
+    'middleware.ts',
+    ...publicPages,
+    ...readdirSync(join(ROOT, 'js'))
+      .filter((filename) => filename.endsWith('.js'))
+      .map((filename) => `js/${filename}`),
+  ];
+}
+
+test('the retired B0.5 diagnostic has no file, route, or executable probe surface', async () => {
+  const response = middleware(
+    new Request(`https://www.evochia.gr${RETIRED_DIAGNOSTIC_ROUTE}`),
+  );
+  const executableReferences = productionExecutableFiles().filter((file) =>
+    /ga-b05-diagnostic|ga_diag_target|B0\.5 diagnostic/i.test(
+      readFileSync(join(ROOT, file), 'utf8'),
+    ),
+  );
+
+  assert.deepEqual(
+    {
+      diagnosticFileExists: existsSync(join(ROOT, RETIRED_DIAGNOSTIC_PAGE)),
+      diagnosticRouteStatus: response?.status ?? null,
+      executableReferences,
+    },
+    {
+      diagnosticFileExists: false,
+      diagnosticRouteStatus: 404,
+      executableReferences: [],
+    },
+  );
+});
 
 test('the public localized HTML inventory is exactly the approved 32 pages', () => {
   assert.equal(publicPages.length, 32);
   assert.deepEqual(publicPages, EXPECTED_PUBLIC_PAGES);
-  assert.equal(
-    existsSync(join(ROOT, DIAGNOSTIC_PAGE)),
-    true,
-    'the B0.5 diagnostic must remain until Task 10',
-  );
 });
 
 for (const file of publicPages) {

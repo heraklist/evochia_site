@@ -92,7 +92,7 @@ The two intentionally `noindex` privacy URLs are removed from `sitemap.xml`, inc
 
 ### Diagnostic cleanup
 
-The B0.5 diagnostic route remains until the replacement analytics and Playwright tests are green. At the final pre-merge cleanup gate, the page, middleware allowlist exception, diagnostic-only tests, and obsolete requirement claims are removed. Historical documentation may remain only when clearly labeled as historical evidence.
+> **RETIRED SURFACE (2026-08-24).** Replacement analytics (`146/146`) and Playwright (`15/15`) coverage passed before cleanup. The page, middleware allowlist exception, diagnostic-only tests, and obsolete requirement claims were then removed. Historical documentation remains only where clearly labeled historical or retired.
 
 ## Error handling and fail-closed behavior
 

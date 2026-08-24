@@ -188,6 +188,8 @@
 
 ### Task 10: Final B0.5 retirement and documentation truthfulness
 
+> **RETIRED WORK ITEM (2026-08-24).** The paths and checks in this task describe the completed removal of the temporary diagnostic surface. Retained references are historical task evidence; Tasks 11 and 12 remain pending.
+
 **Files:**
 - Delete: `en/ga-b05-diagnostic.html`
 - Delete: `tests/analytics/b05-diagnostic.test.mjs`

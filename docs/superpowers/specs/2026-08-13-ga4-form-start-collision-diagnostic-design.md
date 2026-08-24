@@ -1,9 +1,11 @@
 # GA4 Custom Event Routing Remediation — Design
 
+> **HISTORICAL IMPLEMENTATION RECORD / DIAGNOSTIC RETIRED (2026-08-24).** The routing remediation was implemented in commit `a606aaf` and remains protected by permanent analytics and Playwright contracts. The temporary B0.5 diagnostic surface was subsequently retired. The design text below is preserved as historical evidence; `LEAD_METRIC_E2E_NOT_VALIDATED` remains the current lead-metric boundary.
+
 **Date:** 2026-08-14
 **Branch:** `seo-system`
 **PR:** #35 (draft)
-**Status:** approved design, not yet approved for implementation
+**Historical status at authorship:** approved design, not yet approved for implementation
 **Supersedes:** the earlier `form_start` collision-only diagnostic design previously stored at this path.
 
 ## 1. Purpose
@@ -238,6 +240,8 @@ Renaming `form_start` alone could not have diagnosed the actual transport defect
 The rename survives only as the permanent taxonomy decision `quote_form_start`, paired with the routing remediation.
 
 ## 11. Next Workflow Gate
+
+Current lifecycle: the repository routing implementation is complete and the temporary diagnostic is retired. The original pre-implementation gate is retained verbatim below as historical evidence.
 
 This document records the reviewed design only. It does not authorize implementation.
 

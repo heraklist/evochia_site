@@ -83,7 +83,7 @@ Static analytics contracts enumerate all localized documents and require:
 - the fixed GA4 and GTM identifiers remain unchanged;
 - the loader contains the exact-host and one-shot controls.
 
-The B0.5 diagnostic remains until these static and browser tests are green, then is removed at the final cleanup gate.
+> **RETIRED SURFACE (2026-08-24).** The replacement static and browser tests passed, and the temporary B0.5 diagnostic was removed at the final cleanup gate. Historical diagnostic evidence remains only in documents explicitly marked historical or retired.
 
 ## Runtime validation boundary
 

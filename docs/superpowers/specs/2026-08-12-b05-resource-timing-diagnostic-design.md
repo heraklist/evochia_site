@@ -1,9 +1,11 @@
 # B0.5 Resource Timing Diagnostic Design
 
+> **HISTORICAL / RETIRED (2026-08-24).** This document records the temporary B0.5 diagnostic design. Its page, middleware exception, query-target probe, and diagnostic-only tests were removed after replacement analytics and Playwright coverage passed. Everything below is retained as historical evidence, not as current runtime or implementation instruction.
+
 Date: 2026-08-12
 Branch: `seo-system`
 PR: #35
-Status: owner-approved concept; written-spec review required before implementation
+Historical status at authorship: owner-approved concept; written-spec review required before implementation
 
 ## Purpose
 

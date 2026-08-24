@@ -15,7 +15,6 @@ const EN_ROUTES = new Set([
   '/en/greek-islands-private-chef/',
   '/en/faq/',
   '/en/lookbook/',
-  '/en/ga-b05-diagnostic/',
 ]);
 
 const EL_ROUTES = new Set([

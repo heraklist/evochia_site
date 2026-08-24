@@ -1,5 +1,7 @@
 # GA4 Custom Event Routing Remediation Implementation Plan
 
+> **HISTORICAL IMPLEMENTATION RECORD / DIAGNOSTIC RETIRED (2026-08-24).** The permanent routing change was implemented in commit `a606aaf`; the temporary B0.5 diagnostic references below were retired after replacement coverage passed. This plan remains evidence of the approved workflow, not current execution instruction. The lead status remains `LEAD_METRIC_E2E_NOT_VALIDATED`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Route every Evochia-authored GA4 custom event explicitly to `G-2R3S78PTDL`, rename the business-specific `form_start` event to `quote_form_start`, and prove the shared transport path without overstating validation of the lead business metric.

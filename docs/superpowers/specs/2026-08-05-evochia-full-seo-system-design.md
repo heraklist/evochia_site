@@ -1,6 +1,7 @@
 # Evochia Full SEO System — Free-First, Human-Governed
 
-**Status:** Revised design specification — pending second review
+**Status:** Revision 2 second-review complete and owner-approved (2026-08-06)
+**Approval record:** `docs/seo/2026-08-06-revision-2-owner-approval.md`
 **Revision:** 2
 **Date:** 2026-08-05
 **Repository:** `heraklist/evochia_site`
@@ -958,6 +959,8 @@ Version 1 is complete only when:
 ## 20. Review and amendment
 
 This revised specification is normative only after the second review is complete and the owner explicitly approves Revision 2.
+
+That review and approval gate was satisfied on 2026-08-06. The approval authorizes progression to governed implementation planning; it does not by itself authorize production changes.
 
 Material changes to authority, branch policy, authentication, data ownership, GTM treatment, automatic patch eligibility, production control or evidence storage require explicit owner approval and a specification update before implementation.
 

@@ -1,5 +1,7 @@
 # B0.5 Resource Timing Diagnostic Implementation Plan
 
+> **HISTORICAL / RETIRED (2026-08-24).** This plan describes a temporary preview diagnostic that has been removed. References below to its page, route, query target, tests, commands, and validation workflow are preserved only as historical evidence and must not be treated as executable instructions.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Extend the existing preview-only B0.5 probe to observe sanitized GA4 collect resource timing after the proven custom `form_start` dataLayer dispatch, without changing site behavior or analytics transport.
