@@ -1,0 +1,75 @@
+name: Security Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-validation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependency-audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22.23.2"
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - name: Audit locked dependencies
+        run: npm run security:dependency-audit
+
+  secret-scan:
+    name: Full-history secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out full repository history
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Scan repository history and current commit
+        run: bash scripts/security/secret-scan.sh
+
+  security-gate:
+    name: Security validation
+    if: ${{ always() }}
+    needs:
+      - dependency-audit
+      - secret-scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Require every security job to succeed
+        shell: bash
+        run: |
+          if [[ "${{ needs.dependency-audit.result }}" != "success" || "${{ needs.secret-scan.result }}" != "success" ]]; then
+            echo "Dependency audit: ${{ needs.dependency-audit.result }}"
+            echo "Secret scan: ${{ needs.secret-scan.result }}"
+            exit 1
+          fi
+
+          echo "All blocking security jobs succeeded."
