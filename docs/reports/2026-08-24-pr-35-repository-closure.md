@@ -15,7 +15,7 @@ This is the owner-approved closure workstream baseline on `seo-system`.
 
 `PENDING — TASK 12`
 
-The final reviewed and pushed exact head does not yet exist. The latest fully verified local implementation head is `e45d5f7e251f77a7626cb830db2e6b8d87737bd3`; the Task 11 evidence update is not yet committed. Task 12 must replace this section with the final full SHA only after review, final verification, non-force push, and exact-head CI.
+The final reviewed and pushed exact head does not yet exist. Task 11 evidence was committed in `ec9f1db03ec5a9c4c42857369b3e848cbaae7fa8`; the first Task 12 whole-branch review blocked that candidate and remediation is in progress. Task 12 must replace this section with the final full SHA only after re-review, final verification, non-force push, and exact-head CI.
 
 ## 3. PR state
 
@@ -48,8 +48,8 @@ Current committed closure sequence through Task 11:
 | `039493a6ead59661d49cd81be3f72d442a676c72` | `test(e2e): isolate consent browser coverage` |
 | `3b6c108e5e48d7c40a514e035775f3f96df0c594` | `docs(task9): record playwright verification` |
 | `bc7693b958b19b640d07e00d2129b8f2de9d647d` | `fix(e2e): close browser isolation gaps` |
-| `e0556076f8fef50d8883ef72e26485a1bab29bef` | `docs: retire temporary analytics diagnostic` |
-| `56d72686ffab3749cf37501be7564eb71fbb208d` | `docs: clarify diagnostic retirement evidence` |
+| `e0556076f8fef50d8883ef72e26485a1bab29bef` | `chore(analytics): retire B0.5 diagnostic` |
+| `56d72686ffab3749cf37501be7564eb71fbb208d` | `docs(task10): distinguish Playwright evidence runs` |
 | `c19adf4ec84d1d9b494a7b9213e95e8746aa7cc4` | `fix(ci): harden pull request validation gates` |
 | `617b00f47e19d65c547b715a96c2e5a52583f121` | `test(ci): enforce pull request trigger shape` |
 | `aad8b7b39e297e3f7c721b30ddcc1d60f9c0cddd` | `docs: correct focused review status` |

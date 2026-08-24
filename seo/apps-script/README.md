@@ -7,7 +7,7 @@ This directory contains the version-controlled source for the owner-authorized G
 Implemented in the repository:
 
 - fail-closed production resource configuration;
-- read-only OAuth manifest;
+- least-privilege, bound-workbook OAuth manifest;
 - idempotent creation of the required workbook tabs;
 - bound-Sheet menu entries for configuration verification and workbook setup;
 - read-only GSC and GA4 API clients and importers;
