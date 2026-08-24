@@ -34,12 +34,26 @@ test('dependency security gate audits the locked graph at moderate severity', ()
   );
 
   const dependencyJob = jobBlock(workflow, 'dependency-audit');
+  assert.match(dependencyJob, /persist-credentials: false/);
   assert.match(dependencyJob, /node-version: ["']22\.23\.2["']/);
   assert.match(dependencyJob, /npm run security:dependency-audit/);
 });
 
 test('security workflow has repository-wide read-only triggers and immutable official actions', () => {
-  assert.match(workflow, /^on:\n/m);
+  const triggerSection = workflow.match(/^on:\n[\s\S]*?(?=^permissions:)/m)?.[0] ?? '';
+  assert.equal(
+    triggerSection,
+    `on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+`,
+  );
   assert.doesNotMatch(workflow, /^\s+paths(?:-ignore)?:/m);
   assert.match(workflow, /^permissions:\n  contents: read$/m);
 
@@ -64,6 +78,9 @@ test('secret gate scans full Git history in a read-only digest-pinned container'
   assert.match(scanner, new RegExp(TRUFFLEHOG_IMAGE.replaceAll('.', '\\.')));
   assert.match(scanner, /--platform linux\/amd64/);
   assert.match(scanner, /--read-only/);
+  assert.match(scanner, /--cap-drop(?:=|\s+)ALL/);
+  assert.match(scanner, /--security-opt(?:=|\s+)no-new-privileges/);
+  assert.match(scanner, /--tmpfs \/tmp:[^\n]+/);
   assert.match(scanner, /:\/repo:ro/);
   assert.match(scanner, /git file:\/\/\/repo/);
   assert.match(scanner, /--no-update/);
@@ -71,6 +88,10 @@ test('secret gate scans full Git history in a read-only digest-pinned container'
   assert.match(scanner, /--results=verified,unknown/);
   assert.match(scanner, /--fail(?:\s|\\|$)/m);
   assert.match(scanner, /--fail-on-scan-errors/);
+});
+
+test('secret scanner uses the pinned safe formatter instead of logging raw values', () => {
+  assert.match(scanner, /--github-actions/);
 });
 
 test('aggregate security gate always runs and requires both scans to succeed', () => {

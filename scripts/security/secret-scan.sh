@@ -25,6 +25,7 @@ exec env MSYS_NO_PATHCONV=1 docker run \
   git file:///repo \
   --no-update \
   --no-color \
+  --github-actions \
   --results=verified,unknown \
   --fail \
   --fail-on-scan-errors
