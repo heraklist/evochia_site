@@ -11,6 +11,7 @@ const COOKIECONSENT_SOURCE = readFileSync(
   'utf8',
 ).replace(/^import\s+['"]\/js\/cookieconsent\.umd\.js['"];\s*/u, '');
 const GTM_URL = 'https://www.googletagmanager.com/gtm.js?id=GTM-578JXRXS';
+const GTM_SELECTOR = `script[src="${GTM_URL}"]`;
 
 async function createConsentHarness({
   hostname = 'www.evochia.gr',
@@ -62,7 +63,10 @@ async function createConsentHarness({
       addEventListener() {},
       querySelector(selector) {
         if (selector.startsWith('link[href=')) return { tagName: 'LINK' };
-        if (selector.includes('googletagmanager.com/gtm.js')) return scripts[0] || null;
+        if (selector.startsWith('script[')) {
+          assert.equal(selector, GTM_SELECTOR, 'loader must query for the exact fixed GTM script');
+          return scripts[0] || null;
+        }
         return null;
       },
       createElement(tagName) {
@@ -142,6 +146,8 @@ test('only the exact normalized production hostname may insert GTM', async (t) =
     { hostname: 'evochia.gr', want: 0 },
     { hostname: 'evil-evochia.gr', want: 0 },
     { hostname: 'evochia.gr.attacker.example', want: 0 },
+    { hostname: 'www.evochia.gr.attacker.example', want: 0 },
+    { hostname: 'attacker.www.evochia.gr', want: 0 },
     { hostname: 'evochia-git-main.vercel.app', want: 0 },
     { hostname: 'localhost', want: 0 },
     { hostname: '127.0.0.1', want: 0 },
@@ -205,6 +211,8 @@ test('an already-present fixed GTM script is treated as initialized', async () =
     harness.effects.filter((effect) => effect.type === 'append').length,
     0,
   );
+  assert.equal(harness.effects.length, 1, 'existing script recognition must have one side effect');
+  assert.equal(grantedEffect(harness.effects[0]), true, 'existing script must receive one consent grant');
 });
 
 test('rejection never inserts GTM', async () => {
