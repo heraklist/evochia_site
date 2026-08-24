@@ -40,7 +40,7 @@ TypeScript under `seo/apps-script/src/`, `entrypoints/`, and `smoke/` is authori
 - `generated/Code.gs` + `generated/appsscript.json` are the production bundle and production manifest copy.
 - `generated-smoke/Code.gs` + `generated-smoke/appsscript.json` are the non-production runtime-smoke bundle and minimal smoke manifest.
 - `runRuntimeSmoke()` must never appear in the production bundle.
-- The smoke manifest intentionally contains no GA4, GSC, or GTM OAuth scopes.
+- The smoke manifest is intentionally separate from production. Its `Code.gs` still contains injected-test fallback branches that reference `UrlFetchApp` and `ScriptApp`; Apps Script implicit-scope inference for those branches has not been runtime-proven. Do not infer from its manifest that a real smoke run needs no authorization scopes.
 
 Build and equivalence commands:
 
@@ -74,9 +74,20 @@ Do not store OAuth access or refresh tokens, API keys, service-account JSON, Git
 
 ## Approved production scopes
 
-`appsscript.json` is the production source of truth. It contains only Search Console read-only, Analytics read-only, Tag Manager read-only, current bound spreadsheet access, Drive access limited to files created or managed by the script, external-request, trigger-management, and container-UI scopes. No indexing, sitemap submission, Analytics administration, or GTM edit scope is allowed.
+`appsscript.json` is the production source of truth. The current runtime contains exactly two scopes: `https://www.googleapis.com/auth/spreadsheets.currentonly` for the bound workbook and `https://www.googleapis.com/auth/script.container.ui` for its menu and alerts. No other scope is authorized in the production bundle.
 
-The non-production smoke manifest is separate and does not require GA4/GSC/GTM scopes because the smoke uses fixed synthetic transports.
+The following capabilities are **FUTURE_ONLY**. Each may be reintroduced only after the listed owner-authorized gate is recorded; adding a scope alone is not authorization.
+
+| FUTURE_ONLY scope | Reintroduction gate |
+| --- | --- |
+| `https://www.googleapis.com/auth/webmasters.readonly` | The owner explicitly authorizes a named production Search Console read-only import or reconciliation, identifies the verified property, and approves its release. |
+| `https://www.googleapis.com/auth/analytics.readonly` | The owner explicitly authorizes a named production GA4 read-only import or reconciliation, identifies the verified property, and approves its release. |
+| `https://www.googleapis.com/auth/tagmanager.readonly` | The owner explicitly authorizes a named production GTM read-only metadata collection, identifies the verified account and container, and approves its release. |
+| `https://www.googleapis.com/auth/drive.file` | The owner explicitly authorizes managed Drive-file output, identifies the verified destination folder and retention purpose, and approves its release. |
+| `https://www.googleapis.com/auth/script.external_request` | The owner explicitly authorizes live outbound requests for a named production capability, identifies the approved endpoints, and approves its release. |
+| `https://www.googleapis.com/auth/script.scriptapp` | The owner explicitly authorizes trigger management, identifies the schedule and target project, and approves its release. |
+
+The non-production smoke manifest remains separate. The smoke uses synthetic transports, but its fallback branches still reference `UrlFetchApp` and `ScriptApp`; its implicit scope requirements are not runtime-proven. A future real smoke run must receive separate explicit owner authorization and determine the required scopes in that non-production project.
 
 ## Workbook tabs
 

@@ -23,6 +23,13 @@ test('production bundle contains no module syntax or smoke entrypoint', () => {
   assert.match(code, /onOpen/);
 });
 
+test('production bundle excludes future-only Google API capabilities and endpoints', () => {
+  const code = production();
+  assert.doesNotMatch(code, /\b(?:UrlFetchApp|ScriptApp|DriveApp)\b/);
+  assert.doesNotMatch(code, /(?:analyticsdata|searchconsole)\.googleapis\.com/);
+  assert.doesNotMatch(code, /webmasters\/v3|urlInspection/);
+});
+
 test('smoke bundle contains runtime smoke and no unresolved module syntax', () => {
   const code = smoke();
   assert.doesNotMatch(code, /^\s*(?:import|export)\s/m);

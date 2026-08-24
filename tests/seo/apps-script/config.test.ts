@@ -150,14 +150,7 @@ test('setup rejects a mismatched workbook before any sheet lookup or insertion',
 test('manifest contains only the approved least-privilege scopes', () => {
   const manifest = JSON.parse(fs.readFileSync('seo/apps-script/appsscript.json', 'utf8'));
   assert.deepEqual(manifest.oauthScopes, [
-    'https://www.googleapis.com/auth/webmasters.readonly',
-    'https://www.googleapis.com/auth/analytics.readonly',
-    'https://www.googleapis.com/auth/tagmanager.readonly',
     'https://www.googleapis.com/auth/spreadsheets.currentonly',
-    'https://www.googleapis.com/auth/drive.file',
-    'https://www.googleapis.com/auth/script.external_request',
-    'https://www.googleapis.com/auth/script.scriptapp',
     'https://www.googleapis.com/auth/script.container.ui',
   ]);
-  assert.equal(manifest.oauthScopes.some((scope: string) => /tagmanager\.edit|analytics\.edit|webmasters(?!\.readonly)/.test(scope)), false);
 });
