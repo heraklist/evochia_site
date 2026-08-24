@@ -91,25 +91,22 @@ function restoreStoredConsentRegion() {
 }
 
 function evaluateRestoreStoredConsent({ sharedAccepted, cookie }) {
-  const gtagCalls = [];
-  const gtag = (...args) => gtagCalls.push(args);
+  let ensureCalls = 0;
   const context = {
     window: {
       __EVOCHIA_CONSENT_STATE__: {
         storedAnalyticsConsented: () => sharedAccepted,
       },
-      gtag,
     },
     document: { cookie },
-    gtag,
-    ensureAnalyticsScript: () => {},
+    ensureAnalyticsScript: () => { ensureCalls += 1; },
   };
 
   runInNewContext(
     `${restoreStoredConsentRegion()}\nrestoreStoredConsent();`,
     context,
   );
-  return gtagCalls;
+  return ensureCalls;
 }
 
 function clickTrackingRegion() {
@@ -429,12 +426,9 @@ test('cookieconsent restoration uses the shared stored-consent source, not its o
     sharedAccepted: true,
     cookie: storedConsentCookie(['necessary']),
   });
-  assert.equal(acceptedCalls.length, 1, 'shared accepted state must issue one consent update');
-  assert.equal(acceptedCalls[0][0], 'consent');
-  assert.equal(acceptedCalls[0][1], 'update');
   assert.equal(
-    acceptedCalls[0][2].analytics_storage,
-    'granted',
+    acceptedCalls,
+    1,
     'shared accepted state must restore analytics even when the raw cookie fixture disagrees',
   );
 
@@ -442,9 +436,5 @@ test('cookieconsent restoration uses the shared stored-consent source, not its o
     sharedAccepted: false,
     cookie: storedConsentCookie(['necessary', 'analytics']),
   });
-  assert.equal(
-    deniedCalls.length,
-    0,
-    'shared denied state must prevent stale raw-cookie analytics restoration',
-  );
+  assert.equal(deniedCalls, 0, 'shared denied state must prevent stale raw-cookie analytics restoration');
 });

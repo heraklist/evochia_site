@@ -1,71 +1,101 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-/* Repo root, resolved relative to this test file. */
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
+const DIAGNOSTIC_PAGE = 'en/ga-b05-diagnostic.html';
+const EXPECTED_PUBLIC_PAGES = [
+  'el/404.html',
+  'el/about.html',
+  'el/athens-private-chef.html',
+  'el/catering.html',
+  'el/contact.html',
+  'el/corporate-catering.html',
+  'el/faq.html',
+  'el/greek-islands-private-chef.html',
+  'el/index.html',
+  'el/lookbook.html',
+  'el/menus.html',
+  'el/privacy.html',
+  'el/private-chef.html',
+  'el/villa-private-chef.html',
+  'el/wedding-catering.html',
+  'el/yacht-private-chef.html',
+  'en/404.html',
+  'en/about.html',
+  'en/athens-private-chef.html',
+  'en/catering.html',
+  'en/contact.html',
+  'en/corporate-catering.html',
+  'en/faq.html',
+  'en/greek-islands-private-chef.html',
+  'en/index.html',
+  'en/lookbook.html',
+  'en/menus.html',
+  'en/privacy.html',
+  'en/private-chef.html',
+  'en/villa-private-chef.html',
+  'en/wedding-catering.html',
+  'en/yacht-private-chef.html',
+];
 
-function htmlFiles() {
-  const out = [];
+function localizedHtmlFiles() {
+  const files = [];
   for (const dir of ['en', 'el']) {
-    for (const f of readdirSync(join(ROOT, dir))) {
-      if (f.endsWith('.html')) out.push(join(dir, f));
+    for (const filename of readdirSync(join(ROOT, dir))) {
+      if (filename.endsWith('.html')) files.push(`${dir}/${filename}`);
     }
   }
-  return out;
+  return files.sort();
 }
 
-/* Only pages that actually load the GTM container are instrumented. */
-const instrumented = htmlFiles().filter((f) =>
-  readFileSync(join(ROOT, f), 'utf8').includes('GTM-578JXRXS')
-);
+const publicPages = localizedHtmlFiles().filter((file) => file !== DIAGNOSTIC_PAGE);
 
-test('every EN/EL page pair is instrumented (>= 32 pages)', () => {
-  assert.ok(
-    instrumented.length >= 32,
-    `expected >= 32 instrumented pages, found ${instrumented.length}`
+test('the public localized HTML inventory is exactly the approved 32 pages', () => {
+  assert.equal(publicPages.length, 32);
+  assert.deepEqual(publicPages, EXPECTED_PUBLIC_PAGES);
+  assert.equal(
+    existsSync(join(ROOT, DIAGNOSTIC_PAGE)),
+    true,
+    'the B0.5 diagnostic must remain until Task 10',
   );
 });
 
-for (const f of instrumented) {
-  const html = readFileSync(join(ROOT, f), 'utf8');
+for (const file of publicPages) {
+  const html = readFileSync(join(ROOT, file), 'utf8');
 
-  test(`${f}: exactly one Consent Mode default`, () => {
+  test(`${file}: keeps exactly one inline Consent Mode default`, () => {
     const matches = html.match(/gtag\('consent'\s*,\s*'default'/g) || [];
-    assert.equal(
-      matches.length,
-      1,
-      `expected exactly 1 consent default, found ${matches.length}`
+    assert.equal(matches.length, 1, `expected exactly 1 consent default, found ${matches.length}`);
+    assert.match(
+      html,
+      /<script>\s*window\.dataLayer=window\.dataLayer\|\|\[\];function gtag\(\)\{dataLayer\.push\(arguments\);\}gtag\('consent','default'/,
+      'the default-denied dataLayer/gtag stub must remain inline in <head>',
     );
   });
 
-  test(`${f}: Consent Mode default runs before the GTM container`, () => {
-    const consentIdx = html.search(/gtag\('consent'\s*,\s*'default'/);
-    const gtmIdx = html.indexOf('GTM-578JXRXS');
-    assert.ok(consentIdx !== -1, 'consent default not found');
-    assert.ok(gtmIdx !== -1, 'GTM snippet not found');
-    assert.ok(
-      consentIdx < gtmIdx,
-      'the consent default must appear before the GTM container loads'
-    );
-  });
-
-  test(`${f}: all four consent signals default to denied`, () => {
+  test(`${file}: defaults all four consent signals to denied`, () => {
     const block = (html.match(/gtag\('consent'\s*,\s*'default'\s*,\s*\{[^}]*\}/) || [''])[0];
     assert.ok(block, 'consent default object not found');
     for (const signal of [
       'analytics_storage',
       'ad_storage',
       'ad_user_data',
-      'ad_personalization'
+      'ad_personalization',
     ]) {
       assert.match(
         block,
         new RegExp(`'${signal}'\\s*:\\s*'denied'`),
-        `${signal} must default to 'denied'`
+        `${signal} must default to 'denied'`,
       );
     }
+  });
+
+  test(`${file}: has no static GTM loader or GTM noscript iframe`, () => {
+    assert.doesNotMatch(html, /gtm\.start|event:\s*['"]gtm\.js['"]/);
+    assert.doesNotMatch(html, /googletagmanager\.com\/(?:gtm\.js|ns\.html)/);
+    assert.doesNotMatch(html, /GTM-578JXRXS/);
   });
 }

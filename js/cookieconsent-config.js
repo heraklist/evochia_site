@@ -13,6 +13,10 @@ var consentModalDescriptions = {
   en: isMobileConsent ? '' : 'Analytics cookies only with your consent. <a href="' + privacyPath + '">Privacy Policy</a>',
   el: isMobileConsent ? '' : '\u0391\u03BD\u03AC\u03BB\u03C5\u03C3\u03B7 cookies \u03BC\u03CC\u03BD\u03BF \u03BC\u03B5 \u03C4\u03B7 \u03C3\u03C5\u03B3\u03BA\u03B1\u03C4\u03AC\u03B8\u03B5\u03C3\u03AE \u03C3\u03B1\u03C2. <a href="' + privacyPath + '">\u03A0\u03BF\u03BB\u03B9\u03C4\u03B9\u03BA\u03AE \u0391\u03C0\u03BF\u03C1\u03C1\u03AE\u03C4\u03BF\u03C5</a>'
 };
+var ANALYTICS_HOSTS = ['www.evochia.gr'];
+var GTM_CONTAINER_ID = 'GTM-578JXRXS';
+var GTM_SCRIPT_URL = 'https://www.googletagmanager.com/gtm.js?id=' + GTM_CONTAINER_ID;
+var analyticsScriptInitialized = false;
 
 function initializeGtagStub() {
   window.dataLayer = window.dataLayer || [];
@@ -213,9 +217,6 @@ function restoreStoredConsent() {
     var storedAnalyticsConsented = consentState && consentState.storedAnalyticsConsented;
     if (typeof storedAnalyticsConsented !== 'function' || !storedAnalyticsConsented()) return;
     ensureAnalyticsScript();
-    if (typeof gtag === 'function') {
-      gtag('consent', 'update', { 'analytics_storage': 'granted' });
-    }
   } catch (e) {
     /* Missing or invalid shared state: leave the inline defaults denied. */
   }
@@ -223,16 +224,37 @@ function restoreStoredConsent() {
 
 function updateGtagConsent() {
   var accepted = CookieConsent.acceptedCategory('analytics');
-  if (accepted) ensureAnalyticsScript();
+  if (accepted) {
+    ensureAnalyticsScript();
+    return;
+  }
   if (typeof gtag === 'function') {
     gtag('consent', 'update', {
-      'analytics_storage': accepted ? 'granted' : 'denied'
+      'analytics_storage': 'denied'
     });
   }
 }
 
+function normalizedHostname() {
+  return String(window.location.hostname || '').trim().toLowerCase().replace(/\.+$/, '');
+}
+
 function ensureAnalyticsScript() {
-  /* GA4 is delivered through the GTM container (GTM-578JXRXS). The GA4
-     configuration tag fires inside GTM and respects Consent Mode, so there is
-     no separate gtag.js to inject here. */
+  if (ANALYTICS_HOSTS.indexOf(normalizedHostname()) === -1) return false;
+  if (analyticsScriptInitialized) return true;
+
+  var existing = document.querySelector('script[src="' + GTM_SCRIPT_URL + '"]');
+  analyticsScriptInitialized = true;
+
+  if (typeof gtag === 'function') {
+    gtag('consent', 'update', { 'analytics_storage': 'granted' });
+  }
+
+  if (existing) return true;
+
+  var script = document.createElement('script');
+  script.async = true;
+  script.src = GTM_SCRIPT_URL;
+  document.head.appendChild(script);
+  return true;
 }
