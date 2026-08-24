@@ -1,4 +1,34 @@
+import { symlink, unlink } from 'node:fs/promises';
+import { request as httpRequest } from 'node:http';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { expect, LOOPBACK_ORIGIN, test } from './fixtures/network.mjs';
+import { SERVER_HOST, SERVER_PORT } from './server.mjs';
+
+const REPOSITORY_ROOT = fileURLToPath(new URL('../../', import.meta.url));
+
+function localServerRequest(pathname, host = `${SERVER_HOST}:${SERVER_PORT}`) {
+  return new Promise((resolveRequest, rejectRequest) => {
+    const request = httpRequest({
+      headers: { Host: host },
+      host: SERVER_HOST,
+      method: 'GET',
+      path: pathname,
+      port: SERVER_PORT,
+    }, (response) => {
+      const chunks = [];
+      response.on('data', (chunk) => chunks.push(chunk));
+      response.on('end', () => resolveRequest({
+        body: Buffer.concat(chunks),
+        contentType: response.headers['content-type'] ?? '',
+        status: response.statusCode,
+      }));
+    });
+    request.on('error', rejectRequest);
+    request.end();
+  });
+}
 
 test('01 critical English route renders the real page', async ({ page }) => {
   await page.goto(`${LOOPBACK_ORIGIN}/en/`);
@@ -9,6 +39,31 @@ test('01 critical English route renders the real page', async ({ page }) => {
 
   const health = await page.evaluate(() => fetch('/__health').then((response) => response.json()));
   expect(health).toEqual({ nodeVersion: 'v22.23.2', status: 'ok' });
+
+  const attackerHost = await localServerRequest('/.git/config', `attacker.example:${SERVER_PORT}`);
+  expect(attackerHost.status).toBe(421);
+  expect(attackerHost.body.toString('utf8')).not.toContain('[core]');
+
+  for (const disallowedPath of ['/.git/config', '/%2egit/config', '/middleware.ts']) {
+    const response = await localServerRequest(disallowedPath);
+    expect(response.status, disallowedPath).toBe(404);
+  }
+
+  for (const publicPath of ['/en/', '/el/contact/', '/js/site.js', '/css/critical.css', '/assets/logo-42.png']) {
+    const response = await localServerRequest(publicPath);
+    expect(response.status, publicPath).toBe(200);
+  }
+
+  const symlinkPath = resolve(REPOSITORY_ROOT, 'assets', 'e2e-symlink-probe');
+  const privateTarget = resolve(REPOSITORY_ROOT, '.git');
+  await symlink(privateTarget, symlinkPath, process.platform === 'win32' ? 'junction' : 'dir');
+  try {
+    const response = await localServerRequest('/assets/e2e-symlink-probe/config');
+    expect(response.status).toBe(404);
+    expect(response.body.toString('utf8')).not.toContain('[core]');
+  } finally {
+    await unlink(symlinkPath);
+  }
 });
 
 test('02 critical Greek route renders the real page', async ({ page }) => {

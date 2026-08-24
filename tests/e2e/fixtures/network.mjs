@@ -15,6 +15,10 @@ const GOOGLE_DOMAIN_SUFFIXES = [
 ];
 
 const LOCAL_ORIGINS = new Set([LOOPBACK_ORIGIN, PRODUCTION_ORIGIN]);
+const LOCAL_WEBSOCKET_ORIGINS = new Set([
+  LOOPBACK_ORIGIN.replace('http:', 'ws:'),
+  PRODUCTION_ORIGIN.replace('http:', 'ws:'),
+]);
 
 function hasDomainSuffix(hostname, suffix) {
   return hostname === suffix || hostname.endsWith(`.${suffix}`);
@@ -30,6 +34,10 @@ function isFormspreeHostname(hostname) {
 
 function isExternalHttpUrl(url) {
   return (url.protocol === 'http:' || url.protocol === 'https:') && !LOCAL_ORIGINS.has(url.origin);
+}
+
+function isExternalWebSocketUrl(url) {
+  return (url.protocol === 'ws:' || url.protocol === 'wss:') && !LOCAL_WEBSOCKET_ORIGINS.has(url.origin);
 }
 
 function requestRecord(request) {
@@ -49,7 +57,11 @@ export const test = base.extend({
     const formspreeRequests = [];
     const unexpectedExternalRequests = [];
     const escapedExternalRequests = [];
+    const externalWebSockets = [];
+    const closedExternalWebSockets = [];
+    const connectedExternalWebSockets = [];
     const expectedBlockedExternalUrls = new Set();
+    const expectedBlockedExternalWebSocketUrls = new Set();
     const interceptedExternalRequests = new WeakSet();
     let formspreeResponse = {
       body: JSON.stringify({ error: 'Formspree is disabled unless a test selects a mock response.' }),
@@ -62,6 +74,27 @@ export const test = base.extend({
       if (isExternalHttpUrl(url) && !interceptedExternalRequests.has(request)) {
         escapedExternalRequests.push(requestRecord(request));
       }
+    });
+
+    await context.routeWebSocket(/.*/, async (webSocketRoute) => {
+      const url = new URL(webSocketRoute.url());
+      if (LOCAL_WEBSOCKET_ORIGINS.has(url.origin) || (url.protocol !== 'ws:' && url.protocol !== 'wss:')) {
+        webSocketRoute.connectToServer();
+        return;
+      }
+
+      const record = Object.freeze({
+        hostname: url.hostname,
+        pathname: url.pathname,
+        protocols: [...webSocketRoute.protocols()],
+        url: webSocketRoute.url(),
+      });
+      externalWebSockets.push(record);
+      await webSocketRoute.close({
+        code: 1008,
+        reason: 'Blocked by E2E network isolation',
+      });
+      closedExternalWebSockets.push(record);
     });
 
     await context.route('**/*', async (route) => {
@@ -102,6 +135,8 @@ export const test = base.extend({
     });
 
     const network = Object.freeze({
+      closedExternalWebSockets,
+      connectedExternalWebSockets,
       escapedExternalRequests,
       expectBlockedExternalRequest(requestUrl) {
         const url = new URL(requestUrl);
@@ -113,6 +148,17 @@ export const test = base.extend({
         }
         expectedBlockedExternalUrls.add(requestUrl);
       },
+      expectBlockedExternalWebSocket(requestUrl) {
+        const url = new URL(requestUrl);
+        if (!isExternalWebSocketUrl(url)) {
+          throw new Error(`Blocked WebSocket probes must target an external ws/wss URL: ${requestUrl}`);
+        }
+        if (expectedBlockedExternalWebSocketUrls.has(requestUrl)) {
+          throw new Error(`Blocked WebSocket probe already registered: ${requestUrl}`);
+        }
+        expectedBlockedExternalWebSocketUrls.add(requestUrl);
+      },
+      externalWebSockets,
       formspreeRequests,
       googleRequests,
       gtmRequests,
@@ -133,6 +179,12 @@ export const test = base.extend({
       'unexpected external requests must be aborted and fail unless the test registered the exact isolation probe',
     ).toEqual([...expectedBlockedExternalUrls].sort());
     expect(escapedExternalRequests, 'no external request may bypass the isolation route').toEqual([]);
+    expect(
+      externalWebSockets.map((socket) => socket.url).sort(),
+      'every external WebSocket must be registered by the test and closed locally',
+    ).toEqual([...expectedBlockedExternalWebSocketUrls].sort());
+    expect(closedExternalWebSockets, 'every external WebSocket must be closed by the route').toEqual(externalWebSockets);
+    expect(connectedExternalWebSockets, 'no external WebSocket may connect to a server').toEqual([]);
   }, { auto: true }],
 });
 
