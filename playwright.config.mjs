@@ -1,5 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
+import { BROWSER_NETWORK_POLICY_ARGS } from './tests/analytics/browser-network-policy.mjs';
 import { HEALTH_URL } from './tests/e2e/server.mjs';
 
 export default defineConfig({
@@ -27,13 +28,7 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         launchOptions: {
-          args: [
-            '--disable-blink-features=AutomationControlled',
-            '--proxy-server=http://127.0.0.1:9',
-            '--proxy-bypass-list=<-loopback>;127.0.0.1;www.evochia.gr',
-            '--host-resolver-rules=MAP www.evochia.gr 127.0.0.1, MAP * ~NOTFOUND, EXCLUDE 127.0.0.1',
-            '--force-webrtc-ip-handling-policy=disable_non_proxied_udp',
-          ],
+          args: BROWSER_NETWORK_POLICY_ARGS,
         },
       },
     },
