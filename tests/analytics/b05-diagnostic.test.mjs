@@ -1,9 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const ROOT = new URL('../../', import.meta.url).pathname;
-const diagnosticPath = ROOT + 'en/ga-b05-diagnostic.html';
+const ROOT = fileURLToPath(new URL('../../', import.meta.url));
+const diagnosticPath = join(ROOT, 'en', 'ga-b05-diagnostic.html');
 
 test('B0.5 diagnostic remains an unlinked noindex preview-only probe', () => {
   assert.equal(existsSync(diagnosticPath), true);

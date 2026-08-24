@@ -5,6 +5,14 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
+const LF_MANAGED_PATHS = [
+  'seo/apps-script/appsscript.json',
+  'seo/apps-script/generated/Code.gs',
+  'seo/apps-script/generated/appsscript.json',
+  'seo/apps-script/generated-smoke/Code.gs',
+  'seo/apps-script/generated-smoke/appsscript.json',
+];
+
 const production = () => readFileSync('seo/apps-script/generated/Code.gs', 'utf8');
 const smoke = () => readFileSync('seo/apps-script/generated-smoke/Code.gs', 'utf8');
 
@@ -19,6 +27,23 @@ test('smoke bundle contains runtime smoke and no unresolved module syntax', () =
   const code = smoke();
   assert.doesNotMatch(code, /^\s*(?:import|export)\s/m);
   assert.match(code, /runRuntimeSmoke/);
+});
+
+test('Apps Script manifest and generated artifacts use explicit LF Git attributes', () => {
+  const result = spawnSync(
+    'git',
+    ['check-attr', 'text', 'eol', '--', ...LF_MANAGED_PATHS],
+    { encoding: 'utf8' },
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(
+    result.stdout.trim().split(/\r?\n/).sort(),
+    LF_MANAGED_PATHS.flatMap((relativePath) => [
+      `${relativePath}: text: set`,
+      `${relativePath}: eol: lf`,
+    ]).sort(),
+  );
 });
 
 test('bundle checker rejects a stale committed artifact copy', () => {

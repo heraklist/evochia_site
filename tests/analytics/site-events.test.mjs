@@ -1,11 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { runInNewContext } from 'node:vm';
 
-const ROOT = new URL('../../', import.meta.url).pathname;
-const site = readFileSync(ROOT + 'js/site.js', 'utf8');
-const cc = readFileSync(ROOT + 'js/cookieconsent-config.js', 'utf8');
+const ROOT = fileURLToPath(new URL('../../', import.meta.url));
+const site = readFileSync(join(ROOT, 'js', 'site.js'), 'utf8');
+const cc = readFileSync(join(ROOT, 'js', 'cookieconsent-config.js'), 'utf8');
 
 function analyticsConsentRegion() {
   const startMarker = 'function storedAnalyticsConsented() {';
