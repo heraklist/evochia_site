@@ -1,8 +1,8 @@
 # Evochia SEO Phase 0 Verification
 
-**Status:** Pending  
-**Owner identity:** `heraklis@evochia.gr`  
-**Configuration contract:** `seo/config/google-resources.example.json`  
+**Status:** Pending
+**Owner identity:** `heraklis@evochia.gr`
+**Configuration contract:** `seo/config/google-resources.example.json`
 **Schema:** `seo/schemas/google-resources.schema.json`
 
 ## Rules

@@ -1,15 +1,15 @@
 # Evochia Full SEO System — Free-First, Human-Governed
 
-**Status:** Revised design specification — pending second review  
-**Revision:** 2  
-**Date:** 2026-08-05  
-**Repository:** `heraklist/evochia_site`  
-**Repository visibility:** Private  
-**Production branch:** `main`  
-**Permanent SEO branch:** `seo-system`  
-**Production site:** `https://www.evochia.gr/`  
-**Hosting:** Vercel  
-**Primary Google account:** `heraklis@evochia.gr`  
+**Status:** Revised design specification — pending second review
+**Revision:** 2
+**Date:** 2026-08-05
+**Repository:** `heraklist/evochia_site`
+**Repository visibility:** Private
+**Production branch:** `main`
+**Permanent SEO branch:** `seo-system`
+**Production site:** `https://www.evochia.gr/`
+**Hosting:** Vercel
+**Primary Google account:** `heraklis@evochia.gr`
 **Observed GTM container:** `GTM-578JXRXS`
 
 ## 1. Purpose

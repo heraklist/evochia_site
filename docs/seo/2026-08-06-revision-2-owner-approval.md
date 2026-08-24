@@ -1,8 +1,8 @@
 # Owner Approval — Evochia Full SEO System Revision 2
 
-**Approval date:** 2026-08-06  
-**Owner:** Heraklis Xekalos  
-**Repository:** `heraklist/evochia_site`  
+**Approval date:** 2026-08-06
+**Owner:** Heraklis Xekalos
+**Repository:** `heraklist/evochia_site`
 **Branch:** `seo-system`
 
 The owner explicitly approved:

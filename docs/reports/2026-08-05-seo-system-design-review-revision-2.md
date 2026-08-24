@@ -1,10 +1,10 @@
 # Second Review — Evochia Full SEO System Design Revision 2
 
-**Reviewed specification:** `docs/superpowers/specs/2026-08-05-evochia-full-seo-system-design.md`  
-**Specification revision:** 2  
-**Review date:** 2026-08-05  
-**Reviewed branch:** `seo-system`  
-**Reviewed commit:** `e2d043193a1b98e84f9c504f20a8897b3d0ce08a`  
+**Reviewed specification:** `docs/superpowers/specs/2026-08-05-evochia-full-seo-system-design.md`
+**Specification revision:** 2
+**Review date:** 2026-08-05
+**Reviewed branch:** `seo-system`
+**Reviewed commit:** `e2d043193a1b98e84f9c504f20a8897b3d0ce08a`
 **Previous external review:** `docs/reports/2026-08-05-seo-system-design-review.md`
 
 ## 1. Verdict

@@ -51,7 +51,7 @@ test('repository defines reproducible SEO scripts', () => {
 
 - [ ] **Step 2: Run the test and verify failure**
 
-Run: `node --test tests/seo/tooling.test.mjs`  
+Run: `node --test tests/seo/tooling.test.mjs`
 Expected: FAIL because scripts and lockfile are missing.
 
 - [ ] **Step 3: Add dependencies and scripts**
@@ -130,7 +130,7 @@ The test must reject `verificationStatus: "verified"` while any identifier equal
 
 - [ ] **Step 2: Run and verify failure**
 
-Run: `node --test tests/seo/google-resources.test.mjs`  
+Run: `node --test tests/seo/google-resources.test.mjs`
 Expected: FAIL because schema/config do not exist.
 
 - [ ] **Step 3: Implement schema and operator checklist**
@@ -139,7 +139,7 @@ The checklist must require evidence for all 11 Phase 0 gates from the approved R
 
 - [ ] **Step 4: Run test**
 
-Run: `node --test tests/seo/google-resources.test.mjs`  
+Run: `node --test tests/seo/google-resources.test.mjs`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -178,7 +178,7 @@ test('rejects unverified production identifiers', () => {
 
 - [ ] **Step 2: Run and verify failure**
 
-Run: `npm run seo:test:apps-script`  
+Run: `npm run seo:test:apps-script`
 Expected: FAIL because modules do not exist.
 
 - [ ] **Step 3: Implement minimal config and manifest**

@@ -1,8 +1,8 @@
 # Self-Review — Evochia SEO Implementation Plan Set
 
-**Review date:** 2026-08-06  
-**Branch:** `seo-system`  
-**Specification:** Revision 2, owner-approved  
+**Review date:** 2026-08-06
+**Branch:** `seo-system`
+**Specification:** Revision 2, owner-approved
 **Plans reviewed:** master roadmap plus five subsystem plans
 
 ## Verdict

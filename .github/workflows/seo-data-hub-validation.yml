@@ -12,6 +12,10 @@ on:
       - seo/config/**
       - seo/schemas/**
       - tests/seo/**
+      - sitemap.xml
+      - en/privacy.html
+      - el/privacy.html
+      - .gitattributes
       - docs/seo/**
       - .github/workflows/seo-data-hub-validation.yml
 

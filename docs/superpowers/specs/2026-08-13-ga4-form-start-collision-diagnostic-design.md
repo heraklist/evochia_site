@@ -1,9 +1,9 @@
 # GA4 Custom Event Routing Remediation — Design
 
-**Date:** 2026-08-14  
-**Branch:** `seo-system`  
-**PR:** #35 (draft)  
-**Status:** approved design, not yet approved for implementation  
+**Date:** 2026-08-14
+**Branch:** `seo-system`
+**PR:** #35 (draft)
+**Status:** approved design, not yet approved for implementation
 **Supersedes:** the earlier `form_start` collision-only diagnostic design previously stored at this path.
 
 ## 1. Purpose
