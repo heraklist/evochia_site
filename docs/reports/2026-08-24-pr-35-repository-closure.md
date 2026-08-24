@@ -190,7 +190,8 @@ Current exact inventory: 15 Chromium tests in three dedicated files.
 15. Google/Formspree transports stay local, unknown HTTP(S)/WebSocket probes abort, and zero external requests escape.
 
 - Fresh Task 10 prerequisite result: 15 passed, 0 failed in 17.0 seconds under exact Node `22.23.2`.
-- Post-retirement Task 10 result: 15 passed, 0 failed in 17.9 seconds under exact Node `22.23.2`; the same expected `NO_COLOR`/`FORCE_COLOR` warnings were emitted.
+- Initial post-retirement Task 10 run: 15 passed, 0 failed in 17.9 seconds under exact Node `22.23.2`.
+- Distinct final pre-commit rerun: 15 passed, 0 failed in 18.3 seconds under exact Node `22.23.2`; both runs emitted only the expected `NO_COLOR`/`FORCE_COLOR` warnings.
 - Final Task 11 exact-tree result: `PENDING`.
 
 ## 13. Security scan results
