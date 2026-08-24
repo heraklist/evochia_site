@@ -13,6 +13,7 @@ const SEO_CONTRACT_INPUT_PATHS = [
   '.github/workflows/browser-e2e-validation.yml',
   'scripts/security/secret-scan.sh',
 ];
+const SITE_ANALYTICS_CONTRACT_INPUT_PATHS = ['middleware.ts', 'js/**/*.js'];
 
 function readText(path) {
   return fs.existsSync(path) ? fs.readFileSync(path, 'utf8').replaceAll('\r\n', '\n') : '';
@@ -462,7 +463,12 @@ test('SEO and analytics path filters include every contract-consumed input exact
       `SEO ${mutationName} mutation must fail closed`,
     );
     assert.throws(
-      () => assertExactTriggerPaths(mutate(analyticsWorkflow), 'Site Analytics', ['middleware.ts']),
+      () =>
+        assertExactTriggerPaths(
+          mutate(analyticsWorkflow),
+          'Site Analytics',
+          SITE_ANALYTICS_CONTRACT_INPUT_PATHS,
+        ),
       /must trigger on pull requests to main with paths/,
       `Site Analytics ${mutationName} mutation must fail closed`,
     );
@@ -480,17 +486,36 @@ test('SEO and analytics path filters include every contract-consumed input exact
     );
   }
 
-  assertExactTriggerPaths(analyticsWorkflow, 'Site Analytics', ['middleware.ts']);
+  assertExactTriggerPaths(
+    analyticsWorkflow,
+    'Site Analytics',
+    SITE_ANALYTICS_CONTRACT_INPUT_PATHS,
+  );
   assert.throws(
     () =>
       assertExactTriggerPaths(
         analyticsWorkflow.replace('      - middleware.ts\n', '      - middleware.ts.disabled\n'),
         'Site Analytics',
-        ['middleware.ts'],
+        SITE_ANALYTICS_CONTRACT_INPUT_PATHS,
       ),
     /middleware\.ts/,
     'middleware.ts mutation must fail closed',
   );
+  for (const [mutationName, mutatedWorkflow] of [
+    ['narrowing', analyticsWorkflow.replace('      - js/**/*.js\n', '      - js/site.js\n')],
+    ['removal', analyticsWorkflow.replace('      - js/**/*.js\n', '')],
+  ]) {
+    assert.throws(
+      () =>
+        assertExactTriggerPaths(
+          mutatedWorkflow,
+          'Site Analytics',
+          SITE_ANALYTICS_CONTRACT_INPUT_PATHS,
+        ),
+      /js\/\*\*\/\*\.js/,
+      `Site Analytics production JS ${mutationName} must fail closed`,
+    );
+  }
 });
 
 test('browser E2E workflow is a dedicated immutable Chromium pull-request gate', () => {

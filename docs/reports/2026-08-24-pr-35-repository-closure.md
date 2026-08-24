@@ -2,7 +2,7 @@
 
 **Report date:** 2026-08-24
 **Branch:** `seo-system`
-**Working status:** Tasks 1–10 evidence recorded. Task 11's first security scan reported four medium CI findings, now fixed locally with focused GREEN evidence; the clean exact-head rescan/full local matrix and all Task 12 work remain `PENDING`.
+**Working status:** Tasks 1–10 evidence recorded. Two Task 11 security scans reported five medium CI findings in total, all now fixed locally with focused GREEN evidence; a clean post-fix exact-head scan, the full local matrix, and all Task 12 work remain `PENDING`.
 **Truthfulness boundary:** This report is a durable evidence skeleton. It must not be read as `REPOSITORY_CLOSURE_VERIFIED` until sections 11, 13–15, and 21–23 are populated from fresh Task 11–12 evidence.
 
 ## 1. Starting SHA
@@ -91,7 +91,7 @@ The authoritative whole-workstream final list is `PENDING — TASK 12`. It must 
 | Basic Consent and exact-host GTM loading | Task 8 | Implemented; repository contracts green | `6c03ba9`, `0e05164`; 32-page inventory |
 | Network-isolated real-browser coverage | Task 9 | Implemented; 15 Chromium scenarios green | `039493a`, `bc7693b` |
 | Temporary B0.5 runtime surface removed and docs made truthful | Task 10 | Implemented locally; final Task 10 matrix pending below | Permanent negative contract and retirement diff |
-| Fresh security scan and complete exact-Node Windows matrix | Task 11 | First scan complete with four medium findings fixed locally; clean exact-head rescan and full matrix `PENDING` | Sections 11 and 13–15 |
+| Fresh security scan and complete exact-Node Windows matrix | Task 11 | Two scans complete with five medium findings fixed locally; clean post-fix exact-head scan and full matrix `PENDING` | Sections 11 and 13–15 |
 | Independent review, push, exact-head CI, and draft PR update | Task 12 | `PENDING` | Sections 2–5 and 21–23 |
 
 ## 7. Each original finding and final disposition
@@ -141,6 +141,8 @@ Final whole-branch disposition revalidation is `PENDING — TASKS 11–12`.
 - Task 10 GREEN under exact Node `22.23.2`: the focused permanent retirement contract passed 1/1 after deletion; the post-retirement full analytics suite passed 140/140.
 - Task 11 security RED under exact Node `22.23.2`: the focused CI workflow contract exited 1 with 12/14 passing; missing SEO checkout hardening and exact protected trigger coverage failed before workflow edits.
 - Task 11 security GREEN under exact Node `22.23.2`: focused CI contracts 14/14, root SEO contracts 22/22, and analytics 140/140 passed. Credential and each protected-path mutation were rejected fail-closed.
+- Task 11 second-scan RED under exact Node `22.23.2`: focused CI workflow contracts exited 1 with 13/14 passing because Site Analytics lacked the reviewed comprehensive `js/**/*.js` production-JS trigger.
+- Task 11 second-scan GREEN under exact Node `22.23.2`: focused CI contracts 14/14, root SEO contracts 22/22, and analytics 140/140 passed. Narrowing the JS glob to `js/site.js` or removing it is contract-rejected.
 
 ## 10. Windows evidence
 
@@ -202,7 +204,9 @@ Current exact inventory: 15 Chromium tests in three dedicated files.
 
 Codex Security scan `0396239d-b624-40a5-8331-04e14c459020` completed offline against exact SHA `56d72686ffab3749cf37501be7564eb71fbb208d` with complete static coverage. It reported four validated medium/high-confidence CI findings: persisted checkout credentials in Site Analytics (`csf_8df73302f67ff6e2dad8e208`) and SEO Data Hub (`csf_35b7e12d721db6b89c4463ad`), omitted CI/scanner contract trigger inputs (`csf_13d10fc005a1aac51ef3185f`), and omitted `middleware.ts` analytics trigger coverage (`csf_a7abd8540bfc854d321467f0`).
 
-All four are fixed locally with focused RED/GREEN and mutation evidence. This is not a clean final verdict: a fresh scan against the resulting exact head remains `PENDING — TASK 11`, as does the complete local matrix. Docker was unavailable during the first scan, so direct local TruffleHog execution remains unproven and exact-head CI remains required.
+All four were fixed locally with focused RED/GREEN and mutation evidence before the second scan below. Docker was unavailable during the first scan, so direct local TruffleHog execution remains unproven and exact-head CI remains required.
+
+Second scan `e600a4e9-df89-4738-ba45-dd2f5cf79d73` completed against exact SHA `aad8b7b39e297e3f7c721b30ddcc1d60f9c0cddd`. It reported one validated medium finding, `csf_d22c1c173e536060657cc709` / `occ_34d55ac21b735c6385f682b3`: Site Analytics trigger paths omitted production JS inputs directly consumed by privacy and diagnostic contracts. The two narrow JS entries are now replaced by the reviewed `js/**/*.js` glob, with focused RED/GREEN plus narrowing/removal mutation coverage. A clean post-fix exact-head scan and the complete local matrix remain `PENDING — TASK 11`.
 
 ## 14. Dependency audit result
 
@@ -282,7 +286,7 @@ Focused reviews through Task 10 and the Task 11 security-remediation review/fix 
 
 `PENDING — NOT YET REPOSITORY_CLOSURE_VERIFIED`
 
-Task 11's first security scan and initial remediation are complete, but its clean exact-head rescan and full local matrix remain unexecuted. Task 12 remains unexecuted. Do not emit `REPOSITORY_CLOSURE_VERIFIED` until the fresh security/local matrix, independent whole-branch review, final push, exact-head required CI, exact SHA proof, and draft-PR verification all pass and are recorded in this report.
+Task 11's first two security scans and their focused remediations are complete, but its clean post-fix exact-head scan and full local matrix remain unexecuted. Task 12 remains unexecuted. Do not emit `REPOSITORY_CLOSURE_VERIFIED` until the fresh security/local matrix, independent whole-branch review, final push, exact-head required CI, exact SHA proof, and draft-PR verification all pass and are recorded in this report.
 
 ## 24. Remaining owner-controlled external actions
 
