@@ -2,7 +2,7 @@
 
 **Report date:** 2026-08-24
 **Branch:** `seo-system`
-**Working status:** Tasks 1–10 evidence recorded; Task 11 security/final local matrix and Task 12 independent review/push/exact-head CI/PR update are `PENDING`.
+**Working status:** Tasks 1–10 evidence recorded. Task 11's first security scan reported four medium CI findings, now fixed locally with focused GREEN evidence; the clean exact-head rescan/full local matrix and all Task 12 work remain `PENDING`.
 **Truthfulness boundary:** This report is a durable evidence skeleton. It must not be read as `REPOSITORY_CLOSURE_VERIFIED` until sections 11, 13–15, and 21–23 are populated from fresh Task 11–12 evidence.
 
 ## 1. Starting SHA
@@ -88,7 +88,7 @@ The authoritative whole-workstream final list is `PENDING — TASK 12`. It must 
 | Basic Consent and exact-host GTM loading | Task 8 | Implemented; repository contracts green | `6c03ba9`, `0e05164`; 32-page inventory |
 | Network-isolated real-browser coverage | Task 9 | Implemented; 15 Chromium scenarios green | `039493a`, `bc7693b` |
 | Temporary B0.5 runtime surface removed and docs made truthful | Task 10 | Implemented locally; final Task 10 matrix pending below | Permanent negative contract and retirement diff |
-| Fresh security scan and complete exact-Node Windows matrix | Task 11 | `PENDING` | Sections 11 and 13–15 |
+| Fresh security scan and complete exact-Node Windows matrix | Task 11 | First scan complete with four medium findings fixed locally; clean exact-head rescan and full matrix `PENDING` | Sections 11 and 13–15 |
 | Independent review, push, exact-head CI, and draft PR update | Task 12 | `PENDING` | Sections 2–5 and 21–23 |
 
 ## 7. Each original finding and final disposition
@@ -136,7 +136,8 @@ Final whole-branch disposition revalidation is `PENDING — TASKS 11–12`.
 - Task 9: Playwright discovery, real banner, exact Node health, fail-closed network fixture, WebSocket isolation, privacy payload, and static-server boundaries each have recorded RED/GREEN evidence.
 - Task 10 RED under exact Node `22.23.2`: the permanent contract observed `{ diagnosticFileExists: true, diagnosticRouteStatus: null, executableReferences: ['middleware.ts', 'en/ga-b05-diagnostic.html'] }`.
 - Task 10 GREEN under exact Node `22.23.2`: the focused permanent retirement contract passed 1/1 after deletion; the post-retirement full analytics suite passed 140/140.
-- Any Task 11 review/security fix requires its own focused RED/GREEN record.
+- Task 11 security RED under exact Node `22.23.2`: the focused CI workflow contract exited 1 with 12/14 passing; missing SEO checkout hardening and exact protected trigger coverage failed before workflow edits.
+- Task 11 security GREEN under exact Node `22.23.2`: focused CI contracts 14/14, root SEO contracts 22/22, and analytics 140/140 passed. Credential and each protected-path mutation were rejected fail-closed.
 
 ## 10. Windows evidence
 
@@ -196,9 +197,9 @@ Current exact inventory: 15 Chromium tests in three dedicated files.
 
 ## 13. Security scan results
 
-`PENDING — TASK 11`
+Codex Security scan `0396239d-b624-40a5-8331-04e14c459020` completed offline against exact SHA `56d72686ffab3749cf37501be7564eb71fbb208d` with complete static coverage. It reported four validated medium/high-confidence CI findings: persisted checkout credentials in Site Analytics (`csf_8df73302f67ff6e2dad8e208`) and SEO Data Hub (`csf_35b7e12d721db6b89c4463ad`), omitted CI/scanner contract trigger inputs (`csf_13d10fc005a1aac51ef3185f`), and omitted `middleware.ts` analytics trigger coverage (`csf_a7abd8540bfc854d321467f0`).
 
-The repository has blocking dependency/secret workflows and executable contracts, but no fresh final-state Codex Security scan has yet been performed. Do not infer a clean security verdict from static workflow contracts or prior focused reviews.
+All four are fixed locally with focused RED/GREEN and mutation evidence. This is not a clean final verdict: a fresh scan against the resulting exact head remains `PENDING — TASK 11`, as does the complete local matrix. Docker was unavailable during the first scan, so direct local TruffleHog execution remains unproven and exact-head CI remains required.
 
 ## 14. Dependency audit result
 

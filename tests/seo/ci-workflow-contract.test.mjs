@@ -6,6 +6,13 @@ const CHECKOUT_SHA = '34e114876b0b11c390a56381ad16ebd13914f8d5';
 const SETUP_NODE_SHA = '49933ea5288caeca8642d1e84afbd3f7d6820020';
 const TRUFFLEHOG_IMAGE =
   'ghcr.io/trufflesecurity/trufflehog@sha256:b8acd9f7306d832b1f16e06003dac2283a737817954554111683ab7a56e9e539';
+const SEO_CONTRACT_INPUT_PATHS = [
+  '.github/workflows/security-validation.yml',
+  '.github/workflows/codemaestro-validation.yml',
+  '.github/workflows/site-analytics-validation.yml',
+  '.github/workflows/browser-e2e-validation.yml',
+  'scripts/security/secret-scan.sh',
+];
 
 function readText(path) {
   return fs.existsSync(path) ? fs.readFileSync(path, 'utf8').replaceAll('\r\n', '\n') : '';
@@ -37,6 +44,31 @@ function stepBlock(workflow, stepName) {
 
 function actionReferences(workflow) {
   return [...workflow.matchAll(/^\s+uses:\s+([^\s#]+)/gm)].map((match) => match[1]);
+}
+
+function triggerPaths(workflow) {
+  const triggerSection = workflow.match(/^on:\n[\s\S]*?(?=^permissions:)/m)?.[0] ?? '';
+  return [...triggerSection.matchAll(/^\s{6}- (.+)$/gm)].map((match) => match[1]);
+}
+
+function assertCheckoutCredentialsDisabled(workflow, label, stepName = 'Check out repository') {
+  const checkoutStep = stepBlock(workflow, stepName);
+  assert.notEqual(checkoutStep, '', `${label} checkout step must exist`);
+  assert.match(
+    checkoutStep,
+    /^\s{8}with:\n(?:\s{10}.+\n)*\s{10}persist-credentials: false$/m,
+    `${label} checkout must disable persisted credentials`,
+  );
+}
+
+function assertExactTriggerPaths(workflow, label, protectedPaths) {
+  const paths = triggerPaths(workflow);
+  for (const protectedPath of protectedPaths) {
+    assert.ok(
+      paths.includes(protectedPath),
+      `${label} paths must include exact contract input: ${protectedPath}`,
+    );
+  }
 }
 
 function assertImmutableOfficialActions(workflow, label) {
@@ -133,6 +165,7 @@ const scanner = readText('scripts/security/secret-scan.sh');
 const codemaestroWorkflow = readText('.github/workflows/codemaestro-validation.yml');
 const analyticsWorkflow = readText('.github/workflows/site-analytics-validation.yml');
 const browserWorkflow = readText('.github/workflows/browser-e2e-validation.yml');
+const seoWorkflow = readText('.github/workflows/seo-data-hub-validation.yml');
 
 test('dependency security gate audits the locked graph at moderate severity', () => {
   assert.equal(
@@ -383,6 +416,60 @@ test('CodeMaestro security suites and ci-review are blocking and complete', () =
 test('Site Analytics uses the repository Node version and immutable actions', () => {
   assertImmutableOfficialActions(analyticsWorkflow, 'Site Analytics workflow');
   assert.match(analyticsWorkflow, /node-version: ["']22\.23\.2["']/);
+});
+
+test('pull-request workflows executing repository code disable checkout credentials', () => {
+  for (const [label, pullRequestWorkflow, stepName] of [
+    ['Security Validation dependency audit', jobBlock(workflow, 'dependency-audit')],
+    [
+      'Security Validation secret scan',
+      jobBlock(workflow, 'secret-scan'),
+      'Check out full repository history',
+    ],
+    ['SEO Data Hub', seoWorkflow],
+    ['Site Analytics', analyticsWorkflow],
+    ['Browser E2E', browserWorkflow],
+  ]) {
+    assertCheckoutCredentialsDisabled(pullRequestWorkflow, label, stepName);
+    assert.throws(
+      () =>
+        assertCheckoutCredentialsDisabled(
+          pullRequestWorkflow.replace('persist-credentials: false', 'persist-credentials: true'),
+          label,
+          stepName,
+        ),
+      /must disable persisted credentials/,
+      `${label} mutation must fail closed`,
+    );
+  }
+});
+
+test('SEO and analytics path filters include every contract-consumed input exactly', () => {
+  assertExactTriggerPaths(seoWorkflow, 'SEO workflow', SEO_CONTRACT_INPUT_PATHS);
+  for (const protectedPath of SEO_CONTRACT_INPUT_PATHS) {
+    assert.throws(
+      () =>
+        assertExactTriggerPaths(
+          seoWorkflow.replace(`      - ${protectedPath}\n`, `      - ${protectedPath}.disabled\n`),
+          'SEO workflow',
+          SEO_CONTRACT_INPUT_PATHS,
+        ),
+      new RegExp(protectedPath.replaceAll('.', '\\.')),
+      `${protectedPath} mutation must fail closed`,
+    );
+  }
+
+  assertExactTriggerPaths(analyticsWorkflow, 'Site Analytics', ['middleware.ts']);
+  assert.throws(
+    () =>
+      assertExactTriggerPaths(
+        analyticsWorkflow.replace('      - middleware.ts\n', '      - middleware.ts.disabled\n'),
+        'Site Analytics',
+        ['middleware.ts'],
+      ),
+    /middleware\.ts/,
+    'middleware.ts mutation must fail closed',
+  );
 });
 
 test('browser E2E workflow is a dedicated immutable Chromium pull-request gate', () => {

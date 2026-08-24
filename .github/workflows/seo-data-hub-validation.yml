@@ -17,6 +17,11 @@ on:
       - el/privacy.html
       - .gitattributes
       - docs/seo/**
+      - scripts/security/secret-scan.sh
+      - .github/workflows/security-validation.yml
+      - .github/workflows/codemaestro-validation.yml
+      - .github/workflows/site-analytics-validation.yml
+      - .github/workflows/browser-e2e-validation.yml
       - .github/workflows/seo-data-hub-validation.yml
 
 permissions:
@@ -34,6 +39,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
