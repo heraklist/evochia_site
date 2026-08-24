@@ -3,17 +3,31 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "typecheck": "tsc --noEmit",
+    "typecheck:gas": "tsc -p seo/apps-script/tsconfig.gas.json --noEmit",
+    "test:unit": "node --test tests/seo/*.test.mjs",
+    "test:analytics": "node --test tests/analytics/*.test.mjs",
+    "seo:test:apps-script": "tsx --test tests/seo/apps-script/*.test.ts",
+    "seo:test:apps-script-contracts": "node --test tests/seo/apps-script/*.test.mjs",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug",
-    "test:e2e:report": "playwright show-report"
+    "test:e2e:report": "playwright show-report",
+    "security:dependency-audit": "npm audit --package-lock-only --audit-level=moderate",
+    "seo:build:apps-script": "node seo/apps-script/build.mjs",
+    "seo:check:apps-script-bundle": "node seo/apps-script/check-bundle.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.52.0",
-    "http-server": "^14.1.1"
+    "@types/google-apps-script": "^1.0.99",
+    "@types/node": "^22.15.0",
+    "esbuild": "0.25.9",
+    "http-server": "^14.1.1",
+    "tsx": "^4.20.3",
+    "typescript": "^5.9.2"
   },
   "engines": {
-    "node": ">=22"
+    "node": "22.23.2"
   }
 }

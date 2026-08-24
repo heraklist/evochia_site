@@ -13,6 +13,10 @@ var consentModalDescriptions = {
   en: isMobileConsent ? '' : 'Analytics cookies only with your consent. <a href="' + privacyPath + '">Privacy Policy</a>',
   el: isMobileConsent ? '' : '\u0391\u03BD\u03AC\u03BB\u03C5\u03C3\u03B7 cookies \u03BC\u03CC\u03BD\u03BF \u03BC\u03B5 \u03C4\u03B7 \u03C3\u03C5\u03B3\u03BA\u03B1\u03C4\u03AC\u03B8\u03B5\u03C3\u03AE \u03C3\u03B1\u03C2. <a href="' + privacyPath + '">\u03A0\u03BF\u03BB\u03B9\u03C4\u03B9\u03BA\u03AE \u0391\u03C0\u03BF\u03C1\u03C1\u03AE\u03C4\u03BF\u03C5</a>'
 };
+var ANALYTICS_HOSTS = ['www.evochia.gr'];
+var GTM_CONTAINER_ID = 'GTM-578JXRXS';
+var GTM_SCRIPT_URL = 'https://www.googletagmanager.com/gtm.js?id=' + GTM_CONTAINER_ID;
+var analyticsScriptInitialized = false;
 
 function initializeGtagStub() {
   window.dataLayer = window.dataLayer || [];
@@ -21,15 +25,11 @@ function initializeGtagStub() {
   }
 }
 
-function applyDefaultConsent() {
-  initializeGtagStub();
-  gtag('consent', 'default', {
-    'analytics_storage': 'denied',
-    'ad_storage': 'denied',
-    'ad_user_data': 'denied',
-    'ad_personalization': 'denied'
-  });
-}
+// Consent Mode defaults (all denied) are set INLINE in the document <head>,
+// before the GTM / Google tag loads — see the "Consent Mode v2 defaults" block
+// in each HTML file. This module must only UPDATE consent, never (re)apply a
+// late default, which would otherwise run after the Google tag has already
+// initialized and defeat the purpose of the default-denied state.
 
 function ensureCookieConsentStyles() {
   if (window.__EVOCHIA_COOKIECONSENT_STYLES_PROMISE__) {
@@ -200,20 +200,63 @@ function scheduleCookieConsentBoot() {
   document.addEventListener('DOMContentLoaded', run, { once: true });
 }
 
-applyDefaultConsent();
+initializeGtagStub();
+/* Restore a returning visitor's stored analytics choice immediately, decoupled
+   from the (possibly delayed) banner boot, so a previously-consented user is
+   not measured as 'denied' during the first page while the mobile banner is
+   still waiting on its 1.8s display delay. */
+restoreStoredConsent();
 scheduleCookieConsentBoot();
+
+/* Reuse site.js as the single parser for persisted vanilla-cookieconsent state.
+   If the shared helper is unavailable for any reason, fail closed and leave
+   the inline Consent Mode defaults at denied. */
+function restoreStoredConsent() {
+  try {
+    var consentState = window.__EVOCHIA_CONSENT_STATE__;
+    var storedAnalyticsConsented = consentState && consentState.storedAnalyticsConsented;
+    if (typeof storedAnalyticsConsented !== 'function' || !storedAnalyticsConsented()) return;
+    ensureAnalyticsScript();
+  } catch (e) {
+    /* Missing or invalid shared state: leave the inline defaults denied. */
+  }
+}
 
 function updateGtagConsent() {
   var accepted = CookieConsent.acceptedCategory('analytics');
-  if (accepted) ensureAnalyticsScript();
+  if (accepted) {
+    ensureAnalyticsScript();
+    return;
+  }
   if (typeof gtag === 'function') {
     gtag('consent', 'update', {
-      'analytics_storage': accepted ? 'granted' : 'denied'
+      'analytics_storage': 'denied'
     });
   }
 }
 
-function ensureAnalyticsScript() {
-  /* gtag.js is already loaded inline in <head> — no dynamic script needed */
+function normalizedHostname() {
+  return String(window.location.hostname || '').trim().toLowerCase().replace(/\.+$/, '');
 }
 
+function ensureAnalyticsScript() {
+  if (ANALYTICS_HOSTS.indexOf(normalizedHostname()) === -1) return false;
+  if (analyticsScriptInitialized) return true;
+
+  var existing = document.querySelector('script[src="' + GTM_SCRIPT_URL + '"]');
+  analyticsScriptInitialized = true;
+
+  if (typeof gtag === 'function') {
+    gtag('consent', 'update', { 'analytics_storage': 'granted' });
+  }
+
+  if (existing) return true;
+
+  window.dataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
+
+  var script = document.createElement('script');
+  script.async = true;
+  script.src = GTM_SCRIPT_URL;
+  document.head.appendChild(script);
+  return true;
+}

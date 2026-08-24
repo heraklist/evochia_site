@@ -1,0 +1,72 @@
+name: SEO Data Hub Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - package.json
+      - package-lock.json
+      - tsconfig.json
+      - seo/apps-script/**
+      - seo/config/**
+      - seo/schemas/**
+      - tests/seo/**
+      - sitemap.xml
+      - en/privacy.html
+      - el/privacy.html
+      - .gitattributes
+      - .gitignore
+      - docs/seo/**
+      - scripts/security/secret-scan.sh
+      - .github/workflows/security-validation.yml
+      - .github/workflows/codemaestro-validation.yml
+      - .github/workflows/site-analytics-validation.yml
+      - .github/workflows/browser-e2e-validation.yml
+      - .github/workflows/seo-data-hub-validation.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: seo-validation-${{ github.event.pull_request.number || github.ref }}-data-hub
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22.23.2"
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run root SEO contracts
+        run: npm run test:unit
+
+      - name: Run Apps Script unit tests
+        run: npm run seo:test:apps-script
+
+      - name: Run Apps Script contract tests
+        run: npm run seo:test:apps-script-contracts
+
+      - name: Run TypeScript validation
+        run: npm run typecheck
+
+      - name: Run Apps Script TypeScript validation
+        run: npm run typecheck:gas
+
+      - name: Verify committed Apps Script bundles
+        run: npm run seo:check:apps-script-bundle

@@ -1,0 +1,94 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import test from 'node:test';
+
+const expectedKeys = [
+  'gscProperty',
+  'ga4AccountId',
+  'ga4PropertyId',
+  'ga4PropertyTimeZone',
+  'productionHostname',
+  'gtmPublicContainerId',
+  'gtmAccountId',
+  'gtmContainerId',
+  'sheetId',
+  'driveFolderId',
+  'ownerEmail',
+  'verificationStatus',
+];
+
+const resourceKeys = [
+  'gscProperty',
+  'ga4AccountId',
+  'ga4PropertyId',
+  'ga4PropertyTimeZone',
+  'productionHostname',
+  'gtmPublicContainerId',
+  'gtmAccountId',
+  'gtmContainerId',
+  'sheetId',
+  'driveFolderId',
+];
+
+function readJson(path) {
+  return JSON.parse(fs.readFileSync(path, 'utf8'));
+}
+
+function validate(config) {
+  const unresolved = resourceKeys.filter((key) => config[key] === 'UNVERIFIED');
+
+  return expectedKeys.every((key) => Object.hasOwn(config, key))
+    && ['pending', 'verified'].includes(config.verificationStatus)
+    && !(config.verificationStatus === 'verified' && unresolved.length > 0);
+}
+
+test('example records only supported provisional Google resources', () => {
+  const config = readJson('seo/config/google-resources.example.json');
+  assert.deepEqual(config, {
+    gscProperty: 'UNVERIFIED',
+    ga4AccountId: '388030118',
+    ga4PropertyId: '528945896',
+    ga4PropertyTimeZone: 'UNVERIFIED',
+    productionHostname: 'www.evochia.gr',
+    gtmPublicContainerId: 'GTM-578JXRXS',
+    gtmAccountId: 'UNVERIFIED',
+    gtmContainerId: 'UNVERIFIED',
+    sheetId: 'UNVERIFIED',
+    driveFolderId: 'UNVERIFIED',
+    ownerEmail: 'heraklis@evochia.gr',
+    verificationStatus: 'pending',
+  });
+  assert.equal(validate(config), true);
+});
+
+test('verified status is invalid while any production resource is unresolved', () => {
+  const config = readJson('seo/config/google-resources.example.json');
+  assert.equal(validate({ ...config, verificationStatus: 'verified' }), false);
+});
+
+test('schema encodes the verified-without-UNVERIFIED invariant', () => {
+  const schema = readJson('seo/schemas/google-resources.schema.json');
+  assert.deepEqual(schema.required, expectedKeys);
+  assert.equal(schema.properties.verificationStatus.enum.includes('verified'), true);
+  assert.equal(Array.isArray(schema.allOf), true);
+  assert.equal(schema.allOf.length, 1);
+
+  const verifiedProperties = schema.allOf[0].then.properties;
+  assert.deepEqual(Object.keys(verifiedProperties), resourceKeys);
+  for (const key of resourceKeys) {
+    assert.deepEqual(verifiedProperties[key], { not: { const: 'UNVERIFIED' } });
+  }
+});
+
+test('operator checklist preserves all eleven external verification gates', () => {
+  const checklist = fs.readFileSync('docs/seo/phase-0-verification.md', 'utf8');
+  const gateHeadings = checklist.match(/^### Gate \d+ — .+$/gm) ?? [];
+  assert.equal(gateHeadings.length, 11);
+  assert.deepEqual(
+    gateHeadings.map((heading) => Number(heading.match(/^### Gate (\d+)/)?.[1])),
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+  );
+  assert.equal((checklist.match(/^- Verifier:$/gm) ?? []).length, 11);
+  assert.equal((checklist.match(/^- Verified at:$/gm) ?? []).length, 11);
+  assert.equal((checklist.match(/^- Evidence:$/gm) ?? []).length, 11);
+});

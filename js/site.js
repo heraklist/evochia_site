@@ -1,6 +1,10 @@
 (function () {
   'use strict';
 
+  /* Guard against double initialization (e.g. script included twice) */
+  if (window.__EVOCHIA_SITE_INIT__) return;
+  window.__EVOCHIA_SITE_INIT__ = true;
+
   /* Promote the preloaded main stylesheet after parse */
   function loadMainStylesheet() {
     var promote = function () {
@@ -76,9 +80,46 @@
     return 'general';
   }
 
-  /* GA4 helper */
+  function storedAnalyticsConsented() {
+    try {
+      var match = document.cookie.match(/(?:^|;\s*)cc_cookie=([^;]+)/);
+      if (!match) return false;
+      var stored = JSON.parse(decodeURIComponent(match[1]));
+      var categories = stored && stored.categories;
+      return Array.isArray(categories) && categories.indexOf('analytics') > -1;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  window.__EVOCHIA_CONSENT_STATE__ = window.__EVOCHIA_CONSENT_STATE__ || {};
+  window.__EVOCHIA_CONSENT_STATE__.storedAnalyticsConsented = storedAnalyticsConsented;
+
+  /* Only report analytics while the visitor has accepted the analytics
+     category. Once CookieConsent is live, its current state is authoritative
+     so withdrawal is respected immediately. Before boot, fall back to the
+     persisted cc_cookie for returning visitors; malformed/absent state fails
+     closed. */
+  function analyticsConsented() {
+    try {
+      if (typeof CookieConsent !== 'undefined' &&
+          typeof CookieConsent.acceptedCategory === 'function') {
+        return CookieConsent.acceptedCategory('analytics');
+      }
+      return storedAnalyticsConsented();
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /* GA4 helper. Returns true only when the event is actually dispatched, so
+     callers can gate one-shot flags on real delivery (not on a dropped,
+     pre-consent call). */
+  var GA4_MEASUREMENT_ID = 'G-2R3S78PTDL';
+
   function gaEvent(name, params) {
-    if (typeof gtag !== 'function') return;
+    if (typeof gtag !== 'function') return false;
+    if (!analyticsConsented()) return false;
     var payload = params && typeof params === 'object' ? Object.assign({}, params) : {};
     var currentPath = window.location.pathname;
     var pageType = getPageType(currentPath);
@@ -87,7 +128,9 @@
     if (!payload.page_type) payload.page_type = pageType;
     if (!payload.service_intent) payload.service_intent = getServiceIntent(pageType);
     if (window.__GA_DEBUG__ === true) payload.debug_mode = true;
+    payload.send_to = GA4_MEASUREMENT_ID;
     gtag('event', name, payload);
+    return true;
   }
 
   /* Nav visible */
@@ -363,29 +406,20 @@
     var linkText = (el.textContent || '').trim().replace(/\s+/g, ' ');
     var normalizedHref = href.toLowerCase();
 
+    var contactMethod = '';
     if (normalizedHref.indexOf('tel:') === 0) {
-      gaEvent('contact_click', {
-        method: 'phone',
-        link_url: href,
-        link_text: linkText,
-        lead_source: 'site'
-      });
+      contactMethod = 'phone';
+    } else if (normalizedHref.indexOf('mailto:') === 0) {
+      contactMethod = 'email';
+    } else if (normalizedHref.indexOf('wa.me/') !== -1) {
+      contactMethod = 'whatsapp';
     }
 
-    if (normalizedHref.indexOf('mailto:') === 0) {
+    if (contactMethod) {
+      /* Do NOT send link_url/link_text here: tel:/mailto:/wa.me values are
+         phone numbers and email addresses (PII) and must never reach GA4. */
       gaEvent('contact_click', {
-        method: 'email',
-        link_url: href,
-        link_text: linkText,
-        lead_source: 'site'
-      });
-    }
-
-    if (normalizedHref.indexOf('wa.me/') !== -1) {
-      gaEvent('contact_click', {
-        method: 'whatsapp',
-        link_url: href,
-        link_text: linkText,
+        contact_method: contactMethod,
         lead_source: 'site'
       });
     }
@@ -400,17 +434,39 @@
     }
 
     if (ctaVariant) {
-      gaEvent('cta_click', {
+      var ctaParams = {
         cta_variant: ctaVariant,
-        link_url: href,
-        link_text: linkText,
         lead_source: 'site'
-      });
+      };
+      /* Contact links can expose phone/email PII in both URL and visible text.
+         Only enrich non-contact CTAs with those fields. */
+      if (!contactMethod) {
+        ctaParams.link_text = linkText.slice(0, 100);
+        ctaParams.link_url = href;
+      }
+      gaEvent('cta_click', ctaParams);
     }
   });
 
   var quoteForm = document.getElementById('quoteForm');
   if (quoteForm) {
+    /* quote_form_start: fire once on the first meaningful interaction */
+    var formStartSent = false;
+    var sendFormStart = function () {
+      if (formStartSent) return;
+      /* Only latch the flag once the event was actually dispatched. If the
+         visitor interacts before accepting analytics, gaEvent() returns false
+         and we retry on the next interaction after consent is granted. */
+      if (gaEvent('quote_form_start', {
+        form_id: 'quoteForm',
+        lead_source: 'quote_form'
+      })) {
+        formStartSent = true;
+      }
+    };
+    quoteForm.addEventListener('focusin', sendFormStart);
+    quoteForm.addEventListener('input', sendFormStart);
+
     quoteForm.addEventListener('submit', function (e) {
       e.preventDefault();
       var eventTypeEl = document.getElementById('qf-event');
@@ -464,6 +520,11 @@
           throw new Error('Server error');
         }
       }).catch(function () {
+        gaEvent('form_submit_error', {
+          form_id: 'quoteForm',
+          lead_source: 'quote_form',
+          event_type: eventType || ''
+        });
         var isEl = document.documentElement.lang === 'el';
         if (status) {
           status.textContent = isEl
