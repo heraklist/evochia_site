@@ -276,7 +276,7 @@ Task 12 must push the reviewed candidate without force, prove each required run 
 
 `PENDING — TASK 12`
 
-Focused task reviews through Task 9 do not substitute for the required fresh whole-branch review from the starting SHA to the final candidate. Record the reviewer identity/agent, reviewed range, findings, fix rounds, and final verdict here.
+Focused reviews through Task 10 and the Task 11 security-remediation review/fix round are complete, but they do not substitute for the required fresh whole-branch Task 12 review from the starting SHA to the final candidate. Record the reviewer identity/agent, reviewed range, findings, fix rounds, and final verdict here.
 
 ## 23. Repository closure classification
 
