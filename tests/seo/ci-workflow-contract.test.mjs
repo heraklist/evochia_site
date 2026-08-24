@@ -92,6 +92,8 @@ test('secret gate scans full Git history in a read-only digest-pinned container'
 
 test('secret scanner uses the pinned safe formatter instead of logging raw values', () => {
   assert.match(scanner, /--github-actions/);
+  assert.doesNotMatch(scanner, /--json(?=[\s\\=]|$)/m);
+  assert.doesNotMatch(scanner, /--json-legacy(?=[\s\\=]|$)/m);
 });
 
 test('aggregate security gate always runs and requires both scans to succeed', () => {
