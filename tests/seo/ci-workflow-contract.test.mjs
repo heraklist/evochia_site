@@ -46,11 +46,6 @@ function actionReferences(workflow) {
   return [...workflow.matchAll(/^\s+uses:\s+([^\s#]+)/gm)].map((match) => match[1]);
 }
 
-function triggerPaths(workflow) {
-  const triggerSection = workflow.match(/^on:\n[\s\S]*?(?=^permissions:)/m)?.[0] ?? '';
-  return [...triggerSection.matchAll(/^\s{6}- (.+)$/gm)].map((match) => match[1]);
-}
-
 function assertCheckoutCredentialsDisabled(workflow, label, stepName = 'Check out repository') {
   const checkoutStep = stepBlock(workflow, stepName);
   assert.notEqual(checkoutStep, '', `${label} checkout step must exist`);
@@ -62,7 +57,17 @@ function assertCheckoutCredentialsDisabled(workflow, label, stepName = 'Check ou
 }
 
 function assertExactTriggerPaths(workflow, label, protectedPaths) {
-  const paths = triggerPaths(workflow);
+  const triggerSection = workflow.match(/^on:\n[\s\S]*?(?=^permissions:)/m)?.[0] ?? '';
+  const pullRequestPaths = triggerSection.match(
+    /^on:\n  pull_request:\n    branches:\n      - main\n    paths:\n(?<paths>(?:      - [^\n]+\n)+)\n$/,
+  );
+  assert.ok(
+    pullRequestPaths,
+    `${label} must trigger on pull requests to main with paths (never paths-ignore)`,
+  );
+  const paths = [...pullRequestPaths.groups.paths.matchAll(/^\s{6}- (.+)$/gm)].map(
+    (match) => match[1],
+  );
   for (const protectedPath of protectedPaths) {
     assert.ok(
       paths.includes(protectedPath),
@@ -446,6 +451,22 @@ test('pull-request workflows executing repository code disable checkout credenti
 
 test('SEO and analytics path filters include every contract-consumed input exactly', () => {
   assertExactTriggerPaths(seoWorkflow, 'SEO workflow', SEO_CONTRACT_INPUT_PATHS);
+  for (const [mutationName, mutate] of [
+    ['event', (source) => source.replace('  pull_request:\n', '  push:\n')],
+    ['branch', (source) => source.replace('      - main\n', '      - develop\n')],
+    ['paths-ignore', (source) => source.replace('    paths:\n', '    paths-ignore:\n')],
+  ]) {
+    assert.throws(
+      () => assertExactTriggerPaths(mutate(seoWorkflow), 'SEO workflow', SEO_CONTRACT_INPUT_PATHS),
+      /must trigger on pull requests to main with paths/,
+      `SEO ${mutationName} mutation must fail closed`,
+    );
+    assert.throws(
+      () => assertExactTriggerPaths(mutate(analyticsWorkflow), 'Site Analytics', ['middleware.ts']),
+      /must trigger on pull requests to main with paths/,
+      `Site Analytics ${mutationName} mutation must fail closed`,
+    );
+  }
   for (const protectedPath of SEO_CONTRACT_INPUT_PATHS) {
     assert.throws(
       () =>

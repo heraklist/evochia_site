@@ -26,7 +26,7 @@ The final reviewed and pushed exact head does not yet exist. The latest committe
 
 ## 4. Exact commits created
 
-Current committed closure sequence through Task 9:
+Current committed closure sequence through the first Task 11 remediation:
 
 | Commit | Subject |
 |---|---|
@@ -48,9 +48,12 @@ Current committed closure sequence through Task 9:
 | `039493a6ead59661d49cd81be3f72d442a676c72` | `test(e2e): isolate consent browser coverage` |
 | `3b6c108e5e48d7c40a514e035775f3f96df0c594` | `docs(task9): record playwright verification` |
 | `bc7693b958b19b640d07e00d2129b8f2de9d647d` | `fix(e2e): close browser isolation gaps` |
+| `e0556076f8fef50d8883ef72e26485a1bab29bef` | `docs: retire temporary analytics diagnostic` |
+| `56d72686ffab3749cf37501be7564eb71fbb208d` | `docs: clarify diagnostic retirement evidence` |
+| `c19adf4ec84d1d9b494a7b9213e95e8746aa7cc4` | `fix(ci): harden pull request validation gates` |
 
-- Task 10 retirement/documentation commit: `PENDING — created after this report is staged`.
-- Task 11 evidence/fix commits, if any: `PENDING`.
+- Task 10 retirement/documentation commits: `e055607`, `56d7268`.
+- Task 11 first security remediation commit: `c19adf4`; the current reviewer fix-round commit will be included in Task 12's authoritative final commit inventory.
 - Task 12 final evidence commits, if any: `PENDING`.
 
 ## 5. Exact files changed
@@ -279,7 +282,7 @@ Focused task reviews through Task 9 do not substitute for the required fresh who
 
 `PENDING — NOT YET REPOSITORY_CLOSURE_VERIFIED`
 
-Tasks 11 and 12 remain unexecuted. Do not emit `REPOSITORY_CLOSURE_VERIFIED` until the fresh security/local matrix, independent whole-branch review, final push, exact-head required CI, exact SHA proof, and draft-PR verification all pass and are recorded in this report.
+Task 11's first security scan and initial remediation are complete, but its clean exact-head rescan and full local matrix remain unexecuted. Task 12 remains unexecuted. Do not emit `REPOSITORY_CLOSURE_VERIFIED` until the fresh security/local matrix, independent whole-branch review, final push, exact-head required CI, exact SHA proof, and draft-PR verification all pass and are recorded in this report.
 
 ## 24. Remaining owner-controlled external actions
 
