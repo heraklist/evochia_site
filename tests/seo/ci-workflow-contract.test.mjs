@@ -7,14 +7,35 @@ const SETUP_NODE_SHA = '49933ea5288caeca8642d1e84afbd3f7d6820020';
 const TRUFFLEHOG_IMAGE =
   'ghcr.io/trufflesecurity/trufflehog@sha256:b8acd9f7306d832b1f16e06003dac2283a737817954554111683ab7a56e9e539';
 const SEO_CONTRACT_INPUT_PATHS = [
+  'package.json',
+  'package-lock.json',
+  'tsconfig.json',
+  'seo/apps-script/**',
+  'seo/config/**',
+  'seo/schemas/**',
+  'tests/seo/**',
+  'sitemap.xml',
+  'en/privacy.html',
+  'el/privacy.html',
+  '.gitattributes',
+  '.gitignore',
+  'docs/seo/**',
+  'scripts/security/secret-scan.sh',
   '.github/workflows/security-validation.yml',
   '.github/workflows/codemaestro-validation.yml',
   '.github/workflows/site-analytics-validation.yml',
   '.github/workflows/browser-e2e-validation.yml',
-  'scripts/security/secret-scan.sh',
-  '.gitignore',
+  '.github/workflows/seo-data-hub-validation.yml',
 ];
-const SITE_ANALYTICS_CONTRACT_INPUT_PATHS = ['middleware.ts', 'js/**/*.js'];
+const SITE_ANALYTICS_CONTRACT_INPUT_PATHS = [
+  'js/**/*.js',
+  'middleware.ts',
+  'en/**/*.html',
+  'el/**/*.html',
+  'tests/analytics/**',
+  'package.json',
+  '.github/workflows/site-analytics-validation.yml',
+];
 
 function readText(path) {
   return fs.existsSync(path) ? fs.readFileSync(path, 'utf8').replaceAll('\r\n', '\n') : '';
@@ -71,7 +92,7 @@ function normalizeWorkflowPathScalar(path) {
   return trimmed.replace(/\s+#.*$/, '').trimEnd();
 }
 
-function assertExactTriggerPaths(workflow, label, protectedPaths) {
+function assertExactTriggerPaths(workflow, label, expectedPaths) {
   const triggerSection = workflow.match(/^on:\n[\s\S]*?(?=^permissions:)/m)?.[0] ?? '';
   const pullRequestPaths = triggerSection.match(
     /^on:\n  pull_request:\n    branches:\n      - main\n    paths:\n(?<paths>(?:      - [^\n]+\n)+)\n$/,
@@ -88,12 +109,7 @@ function assertExactTriggerPaths(workflow, label, protectedPaths) {
     `${label} paths must not contain negative path entries`,
   );
   const paths = rawPaths.map(normalizeWorkflowPathScalar);
-  for (const protectedPath of protectedPaths) {
-    assert.ok(
-      paths.includes(protectedPath),
-      `${label} paths must include exact contract input: ${protectedPath}`,
-    );
-  }
+  assert.deepEqual(paths, expectedPaths, `${label} paths must match exact ordered allowlist`);
 }
 
 function assertImmutableOfficialActions(workflow, label) {
@@ -506,28 +522,66 @@ test('SEO and analytics path filters include every contract-consumed input exact
       `Site Analytics ${mutationName} mutation must fail closed`,
     );
   }
-  for (const protectedPath of SEO_CONTRACT_INPUT_PATHS) {
-    assert.throws(
-      () =>
-        assertExactTriggerPaths(
-          seoWorkflow.replace(`      - ${protectedPath}\n`, `      - ${protectedPath}.disabled\n`),
-          'SEO workflow',
-          SEO_CONTRACT_INPUT_PATHS,
+  for (const [label, source, expectedPaths] of [
+    ['SEO workflow', seoWorkflow, SEO_CONTRACT_INPUT_PATHS],
+    ['Site Analytics', analyticsWorkflow, SITE_ANALYTICS_CONTRACT_INPUT_PATHS],
+  ]) {
+    const [firstPath, secondPath] = expectedPaths;
+    for (const [mutationName, mutatedWorkflow] of [
+      [
+        'anchor and alias',
+        source.replace(
+          `      - ${firstPath}\n`,
+          `      - ${firstPath}\n      - &omit '!${firstPath}'\n      - *omit\n`,
         ),
-      new RegExp(protectedPath.replaceAll('.', '\\.')),
-      `${protectedPath} mutation must fail closed`,
-    );
+      ],
+      [
+        'duplicate',
+        source.replace(
+          `      - ${firstPath}\n`,
+          `      - ${firstPath}\n      - ${firstPath}\n`,
+        ),
+      ],
+      [
+        'unexpected positive',
+        source.replace(
+          `      - ${firstPath}\n`,
+          `      - ${firstPath}\n      - unexpected/**\n`,
+        ),
+      ],
+      [
+        'order swap',
+        source.replace(
+          `      - ${firstPath}\n      - ${secondPath}\n`,
+          `      - ${secondPath}\n      - ${firstPath}\n`,
+        ),
+      ],
+    ]) {
+      assert.throws(
+        () => assertExactTriggerPaths(mutatedWorkflow, label, expectedPaths),
+        /must match exact ordered allowlist/,
+        `${label} ${mutationName} must fail closed`,
+      );
+    }
+
+    for (const expectedPath of expectedPaths) {
+      for (const [mutationName, replacement] of [
+        ['removal', ''],
+        ['rename', `      - ${expectedPath}.disabled\n`],
+      ]) {
+        assert.throws(
+          () =>
+            assertExactTriggerPaths(
+              source.replace(`      - ${expectedPath}\n`, replacement),
+              label,
+              expectedPaths,
+            ),
+          /must match exact ordered allowlist/,
+          `${label} ${expectedPath} ${mutationName} must fail closed`,
+        );
+      }
+    }
   }
-  assert.throws(
-    () =>
-      assertExactTriggerPaths(
-        seoWorkflow.replace('      - .gitignore\n', ''),
-        'SEO workflow',
-        SEO_CONTRACT_INPUT_PATHS,
-      ),
-    /\.gitignore/,
-    '.gitignore removal must fail closed',
-  );
   for (const negativePath of [
     '!.gitignore',
     "'!.gitignore'",
@@ -581,7 +635,7 @@ test('SEO and analytics path filters include every contract-consumed input exact
         'Site Analytics',
         SITE_ANALYTICS_CONTRACT_INPUT_PATHS,
       ),
-    /middleware\.ts/,
+    /must match exact ordered allowlist/,
     'middleware.ts mutation must fail closed',
   );
   for (const [mutationName, mutatedWorkflow] of [
@@ -595,7 +649,7 @@ test('SEO and analytics path filters include every contract-consumed input exact
           'Site Analytics',
           SITE_ANALYTICS_CONTRACT_INPUT_PATHS,
         ),
-      /js\/\*\*\/\*\.js/,
+      /must match exact ordered allowlist/,
       `Site Analytics production JS ${mutationName} must fail closed`,
     );
   }

@@ -2,7 +2,7 @@
 
 **Report date:** 2026-08-24
 **Branch:** `seo-system`
-**Working status:** Tasks 1–10 evidence recorded. Four Task 11 security scans reported eight CI findings in total (seven medium, one low), all now fixed locally with focused GREEN evidence; a clean post-fix exact-head scan, the full local matrix, and all Task 12 work remain `PENDING`.
+**Working status:** Tasks 1–10 evidence recorded. Five Task 11 security scans reported nine CI findings in total (eight medium, one low), all now fixed locally with focused GREEN evidence; a clean post-fix exact-head scan, the full local matrix, and all Task 12 work remain `PENDING`.
 **Truthfulness boundary:** This report is a durable evidence skeleton. It must not be read as `REPOSITORY_CLOSURE_VERIFIED` until sections 11, 13–15, and 21–23 are populated from fresh Task 11–12 evidence.
 
 ## 1. Starting SHA
@@ -91,7 +91,7 @@ The authoritative whole-workstream final list is `PENDING — TASK 12`. It must 
 | Basic Consent and exact-host GTM loading | Task 8 | Implemented; repository contracts green | `6c03ba9`, `0e05164`; 32-page inventory |
 | Network-isolated real-browser coverage | Task 9 | Implemented; 15 Chromium scenarios green | `039493a`, `bc7693b` |
 | Temporary B0.5 runtime surface removed and docs made truthful | Task 10 | Implemented locally; final Task 10 matrix pending below | Permanent negative contract and retirement diff |
-| Fresh security scan and complete exact-Node Windows matrix | Task 11 | Four scans complete with eight findings fixed locally; clean post-fix exact-head scan and full matrix `PENDING` | Sections 11 and 13–15 |
+| Fresh security scan and complete exact-Node Windows matrix | Task 11 | Five scans complete with nine findings fixed locally; clean post-fix exact-head scan and full matrix `PENDING` | Sections 11 and 13–15 |
 | Independent review, push, exact-head CI, and draft PR update | Task 12 | `PENDING` | Sections 2–5 and 21–23 |
 
 ## 7. Each original finding and final disposition
@@ -151,6 +151,8 @@ Final whole-branch disposition revalidation is `PENDING — TASKS 11–12`.
 - Task 11 fourth-scan reviewer GREEN under exact Node `22.23.2`: focused CI contracts 14/14 and root SEO contracts 22/22 passed; raw, single-quoted, and double-quoted negatives are rejected after scalar normalization, while quoted protected positives remain accepted.
 - Task 11 fourth-scan reviewer round-2 RED under exact Node `22.23.2`: focused CI contracts exited 1 with 13/14 passing because quoted scalars with trailing whitespace/comments bypassed final-quote normalization.
 - Task 11 fourth-scan reviewer round-2 GREEN under exact Node `22.23.2`: focused CI contracts 14/14 and root SEO contracts 22/22 passed; raw-prefix detection rejects negative entries despite quotes, trailing whitespace, or inline comments, while supported quoted positives with whitespace/comments normalize correctly.
+- Task 11 fifth-scan RED under exact Node `22.23.2`: focused CI contracts exited 1 with 13/14 passing because an unexpected YAML anchor/alias pair was accepted by the partial protected-subset check.
+- Task 11 fifth-scan GREEN under exact Node `22.23.2`: focused CI contracts 14/14 and root SEO contracts 22/22 passed; both workflows now require exact ordered normalized allowlists, with mutations for anchors/aliases, duplicates, unexpected positives, order, and removal/rename of every entry.
 
 ## 10. Windows evidence
 
@@ -218,7 +220,9 @@ Second scan `e600a4e9-df89-4738-ba45-dd2f5cf79d73` completed against exact SHA `
 
 Third scan `5d7b1766-ae4b-4f36-8a35-1b5591a205fb` completed against exact SHA `a3418664a50778bdd804178e22ad8cf18b5b8921`. It reported low finding `csf_f9cf35b9b493511cc30b8ae6` / `occ_fc4128e88418b7ed839c2ad1` because SEO triggers omitted `.gitignore`, and medium finding `csf_c26db902a80533eb61806d32` / `occ_a262706c2c1785e8984e0699` because the diagnostic-retirement executable inventory scanned only top-level JS files. `.gitignore` became an exact protected SEO trigger input with rename/removal mutations, and production JS enumeration became recursive and deterministically sorted with a self-cleaning nested-marker regression, before the fourth scan below.
 
-Fourth scan `72b5f9f3-9619-464b-b2d3-b336740e539b` completed against exact SHA `72db37501b17bd88dff9b89930d2eb59b802f03b`. It reported validated medium finding `csf_f214b571327db225d144d7d0` / `occ_b904dd6a7ba201cb5f62d304`: ordered negative path entries could re-exclude protected positives after the contract verified their presence. Reviewer rounds then proved valid quoted negatives and quoted negatives with trailing whitespace/comments bypassed earlier guards. The shared trigger helper now detects the negative prefix on the raw scalar with optional leading quote, independent of trailing content; compact normalization preserves supported unquoted/single-quoted/double-quoted positives with trailing whitespace/comments. All negative forms are mutation-tested for both `.gitignore` and `js/**/*.js`. A clean post-fix exact-head scan and the complete local matrix remain `PENDING — TASK 11`.
+Fourth scan `72b5f9f3-9619-464b-b2d3-b336740e539b` completed against exact SHA `72db37501b17bd88dff9b89930d2eb59b802f03b`. It reported validated medium finding `csf_f214b571327db225d144d7d0` / `occ_b904dd6a7ba201cb5f62d304`: ordered negative path entries could re-exclude protected positives after the contract verified their presence. Reviewer rounds then proved valid quoted negatives and quoted negatives with trailing whitespace/comments bypassed earlier guards. The shared trigger helper detects the negative prefix on the raw scalar with optional leading quote, independent of trailing content; compact normalization preserves supported unquoted/single-quoted/double-quoted positives with trailing whitespace/comments. All negative forms were mutation-tested for both `.gitignore` and `js/**/*.js` before the fifth scan below.
+
+Fifth scan `78b605ca-c8ad-4e1c-b489-9693277677fc` completed against exact SHA `d87d2d60460c5e142a286b2f8af711c9258847e1`. It reported validated medium finding `csf_e3981b8d2d5480d9d9fe595a` / `occ_66f31890f98020ad660937b1`: partial protected-subset checks still accepted YAML anchors/aliases, duplicates, unexpected paths, and order changes. SEO and Site Analytics now use full ordered normalized allowlists exactly matching their workflow paths; `assert.deepEqual` rejects missing, renamed, duplicate, unexpected, reordered, anchor/alias, tagged, and other nonliteral entries without a YAML dependency. A clean post-fix exact-head scan and the complete local matrix remain `PENDING — TASK 11`.
 
 ## 14. Dependency audit result
 
@@ -298,7 +302,7 @@ Focused reviews through Task 10 and the Task 11 security-remediation review/fix 
 
 `PENDING — NOT YET REPOSITORY_CLOSURE_VERIFIED`
 
-Task 11's first four security scans and their focused remediations are complete, but its clean post-fix exact-head scan and full local matrix remain unexecuted. Task 12 remains unexecuted. Do not emit `REPOSITORY_CLOSURE_VERIFIED` until the fresh security/local matrix, independent whole-branch review, final push, exact-head required CI, exact SHA proof, and draft-PR verification all pass and are recorded in this report.
+Task 11's first five security scans and their focused remediations are complete, but its clean post-fix exact-head scan and full local matrix remain unexecuted. Task 12 remains unexecuted. Do not emit `REPOSITORY_CLOSURE_VERIFIED` until the fresh security/local matrix, independent whole-branch review, final push, exact-head required CI, exact SHA proof, and draft-PR verification all pass and are recorded in this report.
 
 ## 24. Remaining owner-controlled external actions
 
