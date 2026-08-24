@@ -13,6 +13,12 @@ async function dataLayerConsentCommands(page) {
     .map((entry) => ({ command: entry[1], params: { ...entry[2] } })));
 }
 
+async function gtmBootstrapEvents(page) {
+  return page.evaluate(() => window.dataLayer
+    .filter((entry) => entry && entry.event === 'gtm.js')
+    .map((entry) => ({ event: entry.event, start: entry['gtm.start'] })));
+}
+
 async function acceptAnalytics(page) {
   const dialog = page.locator('#cc-main .cm[role="dialog"]');
   await expect(dialog).toBeVisible();
@@ -75,6 +81,19 @@ test('06 exact www host makes one locally fulfilled GTM attempt after acceptance
   const commands = await dataLayerConsentCommands(page);
   expect(commands.map((entry) => entry.command)).toEqual(['default', 'update']);
   expect(commands[1].params.analytics_storage).toBe('granted');
+  const bootstrapEvents = await gtmBootstrapEvents(page);
+  expect(bootstrapEvents).toHaveLength(1);
+  expect(bootstrapEvents[0].event).toBe('gtm.js');
+  expect(Number.isFinite(bootstrapEvents[0].start)).toBe(true);
+  const ordering = await page.evaluate(() => ({
+    bootstrap: window.dataLayer.findIndex((entry) => entry && entry.event === 'gtm.js'),
+    grant: window.dataLayer.findIndex(
+      (entry) => entry && entry[0] === 'consent' && entry[1] === 'update'
+        && entry[2]?.analytics_storage === 'granted',
+    ),
+  }));
+  expect(ordering.grant).toBeGreaterThanOrEqual(0);
+  expect(ordering.bootstrap).toBeGreaterThan(ordering.grant);
 });
 
 test('07 accepted analytics on loopback preview emits zero Google requests', async ({ page, network }) => {
@@ -105,6 +124,7 @@ test('08 repeated accepted consent commands keep GTM one-shot per document', asy
   expect(network.googleRequests).toHaveLength(1);
   await expect(page.locator(`script[src="${GTM_URL}"]`)).toHaveCount(1);
   await expect.poll(() => page.evaluate(() => window.__EVOCHIA_INTERCEPTED_GTM_EXECUTIONS__)).toBe(1);
+  expect(await gtmBootstrapEvents(page)).toHaveLength(1);
 });
 
 test('09 valid stored analytics consent restores GTM exactly once without a banner', async ({ context, page, network }) => {
@@ -129,4 +149,5 @@ test('09 valid stored analytics consent restores GTM exactly once without a bann
   const commands = await dataLayerConsentCommands(page);
   expect(commands.map((entry) => entry.command)).toEqual(['default', 'update']);
   expect(commands[1].params.analytics_storage).toBe('granted');
+  expect(await gtmBootstrapEvents(page)).toHaveLength(1);
 });
