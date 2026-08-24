@@ -2,8 +2,8 @@
 
 **Report date:** 2026-08-24
 **Branch:** `seo-system`
-**Working status:** Tasks 1–10 evidence recorded. Five Task 11 security scans reported nine CI findings in total (eight medium, one low), all now fixed locally with focused GREEN evidence; a clean post-fix exact-head scan, the full local matrix, and all Task 12 work remain `PENDING`.
-**Truthfulness boundary:** This report is a durable evidence skeleton. It must not be read as `REPOSITORY_CLOSURE_VERIFIED` until sections 11, 13–15, and 21–23 are populated from fresh Task 11–12 evidence.
+**Working status:** Tasks 1–11 are complete locally. Five Task 11 security scans reported nine CI findings in total (eight medium, one low), all fixed with focused GREEN evidence; final scan `9ce16485-9f81-4b52-b185-dc39f5d0ac3e` sealed exact local head `e45d5f7e251f77a7626cb830db2e6b8d87737bd3` with zero findings. The complete exact-Node Windows matrix is green except for the fail-closed local TruffleHog gate, whose Docker Linux engine is unavailable. Task 12 remains `PENDING`.
+**Truthfulness boundary:** This report must not be read as `REPOSITORY_CLOSURE_VERIFIED` until sections 21–23 are populated from fresh Task 12 review, push, exact-head CI, and draft-PR evidence.
 
 ## 1. Starting SHA
 
@@ -15,7 +15,7 @@ This is the owner-approved closure workstream baseline on `seo-system`.
 
 `PENDING — TASK 12`
 
-The final reviewed and pushed exact head does not yet exist. The latest committed local head before the Task 10 commit is `bc7693b958b19b640d07e00d2129b8f2de9d647d`. Task 12 must replace this section with the final full SHA only after review, final verification, non-force push, and exact-head CI.
+The final reviewed and pushed exact head does not yet exist. The latest fully verified local implementation head is `e45d5f7e251f77a7626cb830db2e6b8d87737bd3`; the Task 11 evidence update is not yet committed. Task 12 must replace this section with the final full SHA only after review, final verification, non-force push, and exact-head CI.
 
 ## 3. PR state
 
@@ -26,7 +26,7 @@ The final reviewed and pushed exact head does not yet exist. The latest committe
 
 ## 4. Exact commits created
 
-Current committed closure sequence through the first Task 11 remediation:
+Current committed closure sequence through Task 11:
 
 | Commit | Subject |
 |---|---|
@@ -51,9 +51,17 @@ Current committed closure sequence through the first Task 11 remediation:
 | `e0556076f8fef50d8883ef72e26485a1bab29bef` | `docs: retire temporary analytics diagnostic` |
 | `56d72686ffab3749cf37501be7564eb71fbb208d` | `docs: clarify diagnostic retirement evidence` |
 | `c19adf4ec84d1d9b494a7b9213e95e8746aa7cc4` | `fix(ci): harden pull request validation gates` |
+| `617b00f47e19d65c547b715a96c2e5a52583f121` | `test(ci): enforce pull request trigger shape` |
+| `aad8b7b39e297e3f7c721b30ddcc1d60f9c0cddd` | `docs: correct focused review status` |
+| `a3418664a50778bdd804178e22ad8cf18b5b8921` | `fix(ci): cover analytics production scripts` |
+| `72db37501b17bd88dff9b89930d2eb59b802f03b` | `fix(test): close nested contract coverage gaps` |
+| `63b0d1f9c9b0cd0936c64ea011af9020fa633b10` | `test(ci): reject negative path overrides` |
+| `12c9654f266d5467dc74de953c55f798aa2209a0` | `test(ci): reject quoted path exclusions` |
+| `d87d2d60460c5e142a286b2f8af711c9258847e1` | `test(ci): harden quoted path parsing` |
+| `e45d5f7e251f77a7626cb830db2e6b8d87737bd3` | `test(ci): enforce exact workflow path allowlists` |
 
 - Task 10 retirement/documentation commits: `e055607`, `56d7268`.
-- Task 11 first security remediation commit: `c19adf4`; the current reviewer fix-round commit will be included in Task 12's authoritative final commit inventory.
+- Task 11 security remediation sequence: `c19adf4` through `e45d5f7` as enumerated above.
 - Task 12 final evidence commits, if any: `PENDING`.
 
 ## 5. Exact files changed
@@ -86,12 +94,12 @@ The authoritative whole-workstream final list is `PENDING — TASK 12`. It must 
 | Fail-closed workbook identity before lookup/mutation | Task 3 | Implemented and focused-verified | `b98aa81`; shared verified-active-workbook guard |
 | Formula-safe Sheet serialization | Task 4 | Implemented and focused-verified | `cb43835`; serializer at the final `setValues()` boundary |
 | Current-runtime OAuth least privilege | Task 5 | Implemented and focused-verified | `ad133a6`, `6be8fa6`; two-scope production manifest |
-| Blocking dependency and secret gates | Task 6 | Implemented; fresh direct gates pending | `9cfcfc5`, `472e68e`, `5db136c`; Task 11 pending |
+| Blocking dependency and secret gates | Task 6 | Implemented; dependency audit green, local secret gate failed closed because Docker Linux engine is unavailable | `9cfcfc5`, `472e68e`, `5db136c`; exact-head Security CI required |
 | Truthful CodeMaestro and dedicated browser CI | Task 7 | Implemented and contract-verified | `16be468`, `d4acf28` |
 | Basic Consent and exact-host GTM loading | Task 8 | Implemented; repository contracts green | `6c03ba9`, `0e05164`; 32-page inventory |
 | Network-isolated real-browser coverage | Task 9 | Implemented; 15 Chromium scenarios green | `039493a`, `bc7693b` |
-| Temporary B0.5 runtime surface removed and docs made truthful | Task 10 | Implemented locally; final Task 10 matrix pending below | Permanent negative contract and retirement diff |
-| Fresh security scan and complete exact-Node Windows matrix | Task 11 | Five scans complete with nine findings fixed locally; clean post-fix exact-head scan and full matrix `PENDING` | Sections 11 and 13–15 |
+| Temporary B0.5 runtime surface removed and docs made truthful | Task 10 | Implemented and final-matrix verified | Permanent negative contract and retirement diff |
+| Fresh security scan and complete exact-Node Windows matrix | Task 11 | Complete: final scan zero findings; all runnable local gates green; TruffleHog blocked fail-closed by unavailable Docker engine | Sections 11 and 13–15 |
 | Independent review, push, exact-head CI, and draft PR update | Task 12 | `PENDING` | Sections 2–5 and 21–23 |
 
 ## 7. Each original finding and final disposition
@@ -104,14 +112,14 @@ The authoritative whole-workstream final list is `PENDING — TASK 12`. It must 
 | Workbook code could use an unverified active Sheet | Fixed; missing/mismatched identity fails before lookup or mutation |
 | Formula-like external strings could execute as Sheet formulas | Fixed; leading `=`, `+`, `-`, and `@` strings are apostrophe-neutralized at the write boundary |
 | Production Apps Script manifest requested future-only scopes | Fixed; production manifest has only current spreadsheet and container-UI scopes |
-| Dependency and secret checks were not blocking/fail-closed | Repository implementation fixed; fresh direct Task 11 execution remains pending |
+| Dependency and secret checks were not blocking/fail-closed | Fixed; dependency audit reports zero vulnerabilities and the local secret gate demonstrably fails closed when Docker is unavailable; exact-head CI must execute TruffleHog |
 | CodeMaestro exposed placeholder/skippable suites and imprecise runtime mapping | Fixed; only real suites remain, exact Node is required, bypass forms are contract-rejected |
 | Analytics used Advanced Consent-style immediate GTM loading | Fixed; all 32 localized pages default denied and contain no static GTM loader/noscript iframe |
 | Measurement could initialize on non-production/look-alike hosts | Fixed; only normalized exact `www.evochia.gr` may load GTM after consent |
 | Real browser behavior/network isolation lacked deterministic coverage | Fixed in repository; exactly 15 Chromium scenarios run with provider transports locally intercepted/aborted |
 | Temporary B0.5 diagnostic page/route/probe remained merge-blocking | Retired in Task 10 with a permanent negative file/route/executable-surface contract |
 
-Final whole-branch disposition revalidation is `PENDING — TASKS 11–12`.
+Final whole-branch disposition revalidation is `PENDING — TASK 12`.
 
 ## 8. Superseded/rejected finding dispositions
 
@@ -160,30 +168,32 @@ Final whole-branch disposition revalidation is `PENDING — TASKS 11–12`.
 - Task 1 preserved strict generated-byte checks with narrow LF Git attributes under host `core.autocrlf=true`.
 - Task 9 ran Chromium on Windows; the deterministic server reported exact Node `v22.23.2`.
 - Task 10 prerequisite analytics and Playwright suites ran on Windows under exact Node `22.23.2`.
-- Fresh clean-install/full-matrix Windows evidence, including rematerialized LF files and deterministic generation on the final tree: `PENDING — TASK 11`.
+- Fresh `npm ci`, full matrix, twice-built deterministic bundles, and Playwright all ran on Windows at `e45d5f7` under exact Node `v22.23.2`.
+- `npm ci` emitted one upstream deprecation warning for `whatwg-encoding@2.0.0`; audit remained zero vulnerabilities.
+- Both generated bundle passes matched committed artifacts; SHA-256 values were identical across passes. The generated tree and tracked worktree remained clean.
 
 ## 11. Full final local verification matrix
 
-This is not yet the final matrix. Task 11 must run every row freshly under exact Node `22.23.2`, record exit codes/counts/warnings, and confirm a clean deterministic tree.
+Fresh Task 11 matrix at exact local candidate `e45d5f7e251f77a7626cb830db2e6b8d87737bd3` under Node `22.23.2`:
 
 | Command/gate | Current evidence | Final status |
 |---|---|---|
-| Exact runtime (`node --version`) | Tasks 1–10 used/reported `v22.23.2` for focused gates | `PENDING TASK 11 RECONFIRMATION` |
-| Fresh `npm ci --ignore-scripts` | Not run in Task 10 | `PENDING` |
-| `npm run typecheck` | Task 10 post-retirement exact-Node run passed with no diagnostics | `PENDING TASK 11 FRESH RUN` |
-| `npm run typecheck:gas` | Passed through Task 7 | `PENDING` |
-| `npm run test:unit` | 19/19 at Task 7 | `PENDING FRESH RUN` |
-| `npm run test:analytics` | 146/146 prerequisite; 140/140 post-retirement under exact Node | `PENDING TASK 11 FRESH RUN` |
-| `npm run seo:test:apps-script` | 48/48 at Tasks 5–7 | `PENDING FRESH RUN` |
-| `npm run seo:test:apps-script-contracts` | 8/8 at Tasks 5–7 | `PENDING FRESH RUN` |
-| `npm run seo:build:apps-script` twice | Deterministic in earlier tasks | `PENDING FINAL-TREE RUN` |
-| `npm run seo:check:apps-script-bundle` twice | Passed in earlier tasks | `PENDING FINAL-TREE RUN` |
-| `npm run test:e2e` | 15/15 prerequisite and 15/15 post-retirement under exact Node | `PENDING TASK 11 FRESH RUN` |
-| `npm run security:dependency-audit` | 0 vulnerabilities at Task 7 | `PENDING FRESH RUN` |
-| `bash scripts/security/secret-scan.sh` | Local environment previously blocked | `PENDING TASK 11` |
-| `git diff --check` | Earlier task scopes clean | `PENDING FINAL-TREE RUN` |
-| `git diff --check main...HEAD` | Clean after Task 2 | `PENDING FINAL-TREE RUN` |
-| Generated tree clean after build/check | Earlier task scopes deterministic | `PENDING FINAL-TREE RUN` |
+| Exact runtime (`node --version`) | `v22.23.2` | `PASS`, exit 0 |
+| Fresh `npm ci` | 60 packages installed; 61 audited; one `whatwg-encoding` deprecation warning | `PASS`, exit 0; 0 vulnerabilities |
+| `npm run typecheck` | No diagnostics | `PASS`, exit 0 |
+| `npm run typecheck:gas` | No diagnostics | `PASS`, exit 0 |
+| `npm run test:unit` | 22 passed, 0 failed/skipped | `PASS`, exit 0 |
+| `npm run test:analytics` | 141 passed, 0 failed/skipped | `PASS`, exit 0 |
+| `npm run seo:test:apps-script` | 48 passed, 0 failed/skipped | `PASS`, exit 0 |
+| `npm run seo:test:apps-script-contracts` | 8 passed, 0 failed/skipped | `PASS`, exit 0 |
+| `npm run seo:build:apps-script` twice | Four artifact hashes identical across both passes | `PASS`, both exit 0 |
+| `npm run seo:check:apps-script-bundle` twice | Both reported committed bundles match a clean deterministic build | `PASS`, both exit 0 |
+| `npm run test:e2e` | 15 Chromium tests passed in 18.6 seconds; only expected `NO_COLOR`/`FORCE_COLOR` warnings | `PASS`, exit 0 |
+| `npm run security:dependency-audit` | Locked graph at moderate threshold | `PASS`, exit 0; 0 vulnerabilities |
+| Git Bash `scripts/security/secret-scan.sh` | Docker client installed, but `dockerDesktopLinuxEngine` pipe absent; script printed refusal to skip | `BLOCKED FAIL-CLOSED`, exit 1; exact-head CI required |
+| `git diff --check` | No errors; Git emitted an informational future CRLF→LF conversion warning for generated `appsscript.json` | `PASS`, exit 0 |
+| `git diff --check main...HEAD` | No errors | `PASS`, exit 0 |
+| Generated/tracked tree after build/check | `git status --short` empty | `PASS` |
 
 ## 12. Playwright test inventory/results
 
@@ -208,7 +218,7 @@ Current exact inventory: 15 Chromium tests in three dedicated files.
 - Fresh Task 10 prerequisite result: 15 passed, 0 failed in 17.0 seconds under exact Node `22.23.2`.
 - Initial post-retirement Task 10 run: 15 passed, 0 failed in 17.9 seconds under exact Node `22.23.2`.
 - Distinct final pre-commit rerun: 15 passed, 0 failed in 18.3 seconds under exact Node `22.23.2`; both runs emitted only the expected `NO_COLOR`/`FORCE_COLOR` warnings.
-- Final Task 11 exact-tree result: `PENDING`.
+- Final Task 11 exact-tree result: 15 passed, 0 failed in 18.6 seconds; only the expected `NO_COLOR`/`FORCE_COLOR` warnings were emitted.
 
 ## 13. Security scan results
 
@@ -222,19 +232,20 @@ Third scan `5d7b1766-ae4b-4f36-8a35-1b5591a205fb` completed against exact SHA `a
 
 Fourth scan `72b5f9f3-9619-464b-b2d3-b336740e539b` completed against exact SHA `72db37501b17bd88dff9b89930d2eb59b802f03b`. It reported validated medium finding `csf_f214b571327db225d144d7d0` / `occ_b904dd6a7ba201cb5f62d304`: ordered negative path entries could re-exclude protected positives after the contract verified their presence. Reviewer rounds then proved valid quoted negatives and quoted negatives with trailing whitespace/comments bypassed earlier guards. The shared trigger helper detects the negative prefix on the raw scalar with optional leading quote, independent of trailing content; compact normalization preserves supported unquoted/single-quoted/double-quoted positives with trailing whitespace/comments. All negative forms were mutation-tested for both `.gitignore` and `js/**/*.js` before the fifth scan below.
 
-Fifth scan `78b605ca-c8ad-4e1c-b489-9693277677fc` completed against exact SHA `d87d2d60460c5e142a286b2f8af711c9258847e1`. It reported validated medium finding `csf_e3981b8d2d5480d9d9fe595a` / `occ_66f31890f98020ad660937b1`: partial protected-subset checks still accepted YAML anchors/aliases, duplicates, unexpected paths, and order changes. SEO and Site Analytics now use full ordered normalized allowlists exactly matching their workflow paths; `assert.deepEqual` rejects missing, renamed, duplicate, unexpected, reordered, anchor/alias, tagged, and other nonliteral entries without a YAML dependency. A clean post-fix exact-head scan and the complete local matrix remain `PENDING — TASK 11`.
+Fifth scan `78b605ca-c8ad-4e1c-b489-9693277677fc` completed against exact SHA `d87d2d60460c5e142a286b2f8af711c9258847e1`. It reported validated medium finding `csf_e3981b8d2d5480d9d9fe595a` / `occ_66f31890f98020ad660937b1`: partial protected-subset checks still accepted YAML anchors/aliases, duplicates, unexpected paths, and order changes. SEO and Site Analytics now use full ordered normalized allowlists exactly matching their workflow paths; `assert.deepEqual` rejects missing, renamed, duplicate, unexpected, reordered, anchor/alias, tagged, and other nonliteral entries without a YAML dependency.
+
+Final scan `9ce16485-9f81-4b52-b185-dc39f5d0ac3e` sealed exact SHA `e45d5f7e251f77a7626cb830db2e6b8d87737bd3` as `COMPLETE` with `findingCount: 0`. Its retained report, findings JSON, coverage JSON, manifest, and SARIF are under `C:\Users\herax\AppData\Local\Temp\codex-security-scans-q38PoS\evochia_site\e45d5f7e251f77a7626cb830db2e6b8d87737bd3_20260824T110131Z_s7ia4a_u`. Scope limitation: after the exact clean 234-file inventory was confirmed, the scanner sealed from the prior exact full-source baseline, exact delta independent review, and retained source evidence because additional shell rereads were temporarily approval-blocked. Docker execution was unavailable and remains an exact-head CI obligation.
 
 ## 14. Dependency audit result
 
-- Last recorded direct result: Task 7 `npm run security:dependency-audit` passed with 0 vulnerabilities.
-- Fresh locked-graph audit at moderate threshold on the Task 11 final candidate: `PENDING`.
+- Fresh Task 11 locked-graph audit at moderate threshold on `e45d5f7`: exit 0, 0 vulnerabilities.
 - Exact-head CI dependency audit: `PENDING — TASK 12`.
 
 ## 15. Secret scan result
 
 - Repository gate: implemented, immutable TruffleHog v3.96.0 image digest, full-history checkout, verified/unknown result failure, scan-error failure, redacted output, and no bypass.
-- Prior local execution: blocked because the Linux Docker engine was unavailable; the gate failed closed and was not skipped.
-- Fresh final-history local scan or precise environment disposition: `PENDING — TASK 11`.
+- Fresh Task 11 local execution through installed Git Bash: exit 1 with `Docker is unavailable; refusing to skip the blocking secret scan.`
+- `docker info` confirmed Docker client 29.5.3 with `desktop-linux` context but no `dockerDesktopLinuxEngine` named pipe. This is a fail-closed environment block, not a pass or skip.
 - Exact-head CI secret scan: `PENDING — TASK 12`.
 
 ## 16. CodeMaestro disposition
@@ -271,7 +282,7 @@ No Google authorization occurred. Real data-free GAS V8 execution remains pendin
 - EN/EL/x-default reciprocity is contract-protected.
 - EN and EL privacy pages remain present, noindex, self-canonical, and language-switch cross-linked.
 - Both privacy URLs and their alternate blocks are absent from the sitemap.
-- Final full-matrix rerun is `PENDING — TASK 11`.
+- Final full-matrix rerun passed in Task 11: sitemap contracts are included in the 22/22 root SEO suite.
 
 ## 20. Diagnostic cleanup result
 
@@ -284,7 +295,7 @@ No Google authorization occurred. Real data-free GAS V8 execution remains pendin
 - Historical documents: retained only with explicit `HISTORICAL`/`RETIRED` banners; stale full-system and routing lifecycle statuses were corrected without deleting historical evidence.
 - Replacement prerequisite: analytics 146/146 and Playwright 15/15 passed before deletion.
 - Focused retirement GREEN: 1 passed, 0 failed under exact Node `22.23.2`.
-- Post-retirement regressions: analytics 140 passed/0 failed, Playwright 15 passed/0 failed, and root TypeScript check exited 0 with no diagnostics under exact Node `22.23.2`.
+- Post-retirement final regressions: expanded analytics 141 passed/0 failed, Playwright 15 passed/0 failed, root SEO 22 passed/0 failed, and both TypeScript checks exited 0 under exact Node `22.23.2`.
 
 ## 21. Fresh exact-head CI runs and SHA proof
 
@@ -302,7 +313,7 @@ Focused reviews through Task 10 and the Task 11 security-remediation review/fix 
 
 `PENDING — NOT YET REPOSITORY_CLOSURE_VERIFIED`
 
-Task 11's first five security scans and their focused remediations are complete, but its clean post-fix exact-head scan and full local matrix remain unexecuted. Task 12 remains unexecuted. Do not emit `REPOSITORY_CLOSURE_VERIFIED` until the fresh security/local matrix, independent whole-branch review, final push, exact-head required CI, exact SHA proof, and draft-PR verification all pass and are recorded in this report.
+Task 11 is complete locally: nine findings were remediated, the final Codex Security scan reports zero findings, and every locally runnable exact-Node gate passed. The local full-history TruffleHog gate remains fail-closed because the Docker Linux engine is unavailable, so Task 12 exact-head Security Validation is mandatory. Do not emit `REPOSITORY_CLOSURE_VERIFIED` until independent whole-branch review, final push, exact-head required CI (including TruffleHog), exact SHA proof, and draft-PR verification all pass and are recorded in this report.
 
 ## 24. Remaining owner-controlled external actions
 
