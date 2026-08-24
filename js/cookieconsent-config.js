@@ -252,6 +252,8 @@ function ensureAnalyticsScript() {
 
   if (existing) return true;
 
+  window.dataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
+
   var script = document.createElement('script');
   script.async = true;
   script.src = GTM_SCRIPT_URL;

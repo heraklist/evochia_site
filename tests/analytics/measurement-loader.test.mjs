@@ -39,8 +39,12 @@ async function createConsentHarness({
       storedAnalyticsConsented: () => storedAccepted,
     },
     dataLayer: {
-      push(argsLike) {
-        effects.push({ type: 'gtag', args: Array.from(argsLike) });
+      push(entry) {
+        if (entry && entry.event === 'gtm.js') {
+          effects.push({ type: 'gtm-bootstrap', entry });
+          return;
+        }
+        effects.push({ type: 'gtag', args: Array.from(entry) });
       },
     },
     location: {
@@ -121,7 +125,7 @@ function deniedEffect(effect) {
     && effect.args[2]?.analytics_storage === 'denied';
 }
 
-test('accepted analytics grants consent before inserting the fixed GTM script', async () => {
+test('accepted analytics queues the standard GTM bootstrap after consent and before script insertion', async () => {
   const harness = await createConsentHarness();
   harness.setAccepted(true);
 
@@ -129,10 +133,16 @@ test('accepted analytics grants consent before inserting the fixed GTM script', 
 
   assert.deepEqual(
     harness.effects.map((effect) => effect.type),
-    ['gtag', 'append'],
+    ['gtag', 'gtm-bootstrap', 'append'],
   );
   assert.equal(grantedEffect(harness.effects[0]), true);
-  assert.deepEqual(harness.effects[1], {
+  assert.deepEqual(
+    Object.keys(harness.effects[1].entry).sort(),
+    ['event', 'gtm.start'],
+  );
+  assert.equal(harness.effects[1].entry.event, 'gtm.js');
+  assert.equal(Number.isFinite(harness.effects[1].entry['gtm.start']), true);
+  assert.deepEqual(harness.effects[2], {
     type: 'append',
     src: GTM_URL,
     async: true,
@@ -181,6 +191,10 @@ test('stored consent restoration uses the shared parser and initializes GTM once
     harness.effects.filter((effect) => effect.type === 'append').length,
     1,
   );
+  assert.equal(
+    harness.effects.filter((effect) => effect.type === 'gtm-bootstrap').length,
+    1,
+  );
   assert.equal(harness.effects.filter(grantedEffect).length, 1);
 });
 
@@ -197,6 +211,10 @@ test('repeated accepted callbacks insert GTM only once', async () => {
     harness.effects.filter((effect) => effect.type === 'append').length,
     1,
   );
+  assert.equal(
+    harness.effects.filter((effect) => effect.type === 'gtm-bootstrap').length,
+    1,
+  );
   assert.equal(harness.effects.filter(grantedEffect).length, 1);
 });
 
@@ -209,6 +227,10 @@ test('an already-present fixed GTM script is treated as initialized', async () =
 
   assert.equal(
     harness.effects.filter((effect) => effect.type === 'append').length,
+    0,
+  );
+  assert.equal(
+    harness.effects.filter((effect) => effect.type === 'gtm-bootstrap').length,
     0,
   );
   assert.equal(harness.effects.length, 1, 'existing script recognition must have one side effect');
