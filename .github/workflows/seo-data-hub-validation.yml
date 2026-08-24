@@ -16,6 +16,7 @@ on:
       - en/privacy.html
       - el/privacy.html
       - .gitattributes
+      - .gitignore
       - docs/seo/**
       - scripts/security/secret-scan.sh
       - .github/workflows/security-validation.yml

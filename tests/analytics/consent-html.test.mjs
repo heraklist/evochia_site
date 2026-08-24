@@ -1,7 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import middleware from '../../middleware.ts';
@@ -56,13 +64,22 @@ function localizedHtmlFiles() {
 
 const publicPages = localizedHtmlFiles();
 
+function productionJavascriptFiles(directory = join(ROOT, 'js'), prefix = 'js') {
+  return readdirSync(directory, { withFileTypes: true })
+    .sort((left, right) => (left.name < right.name ? -1 : left.name > right.name ? 1 : 0))
+    .flatMap((entry) => {
+      const absolutePath = join(directory, entry.name);
+      const repositoryPath = `${prefix}/${entry.name}`;
+      if (entry.isDirectory()) return productionJavascriptFiles(absolutePath, repositoryPath);
+      return entry.isFile() && entry.name.endsWith('.js') ? [repositoryPath] : [];
+    });
+}
+
 function productionExecutableFiles() {
   return [
     'middleware.ts',
     ...publicPages,
-    ...readdirSync(join(ROOT, 'js'))
-      .filter((filename) => filename.endsWith('.js'))
-      .map((filename) => `js/${filename}`),
+    ...productionJavascriptFiles(),
   ];
 }
 
@@ -88,6 +105,27 @@ test('the retired B0.5 diagnostic has no file, route, or executable probe surfac
       executableReferences: [],
     },
   );
+});
+
+test('the retired diagnostic inventory detects markers in nested production JavaScript', () => {
+  const fixtureDirectory = mkdtempSync(join(ROOT, 'js', '.retirement-inventory-'));
+  const fixtureFile = join(fixtureDirectory, 'nested', 'probe.js');
+  const fixturePath = relative(ROOT, fixtureFile).replaceAll('\\', '/');
+  let executableReferences;
+
+  try {
+    mkdirSync(join(fixtureDirectory, 'nested'));
+    writeFileSync(fixtureFile, 'const retiredProbe = "ga_diag_target";\n');
+    executableReferences = productionExecutableFiles().filter((file) =>
+      /ga-b05-diagnostic|ga_diag_target|B0\.5 diagnostic/i.test(
+        readFileSync(join(ROOT, file), 'utf8'),
+      ),
+    );
+  } finally {
+    rmSync(fixtureDirectory, { force: true, recursive: true });
+  }
+
+  assert.deepEqual(executableReferences, [fixturePath]);
 });
 
 test('the public localized HTML inventory is exactly the approved 32 pages', () => {

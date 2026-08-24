@@ -12,6 +12,7 @@ const SEO_CONTRACT_INPUT_PATHS = [
   '.github/workflows/site-analytics-validation.yml',
   '.github/workflows/browser-e2e-validation.yml',
   'scripts/security/secret-scan.sh',
+  '.gitignore',
 ];
 const SITE_ANALYTICS_CONTRACT_INPUT_PATHS = ['middleware.ts', 'js/**/*.js'];
 
@@ -485,6 +486,16 @@ test('SEO and analytics path filters include every contract-consumed input exact
       `${protectedPath} mutation must fail closed`,
     );
   }
+  assert.throws(
+    () =>
+      assertExactTriggerPaths(
+        seoWorkflow.replace('      - .gitignore\n', ''),
+        'SEO workflow',
+        SEO_CONTRACT_INPUT_PATHS,
+      ),
+    /\.gitignore/,
+    '.gitignore removal must fail closed',
+  );
 
   assertExactTriggerPaths(
     analyticsWorkflow,
