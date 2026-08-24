@@ -15,6 +15,7 @@ const LF_MANAGED_PATHS = [
 
 const production = () => readFileSync('seo/apps-script/generated/Code.gs', 'utf8');
 const smoke = () => readFileSync('seo/apps-script/generated-smoke/Code.gs', 'utf8');
+const FUTURE_ONLY_GOOGLE_SERVICE_CALL = /\b(?:UrlFetchApp|ScriptApp|DriveApp|TagManager|Drive)\s*\.\s*[A-Za-z_$][\w$]*/;
 
 test('production bundle contains no module syntax or smoke entrypoint', () => {
   const code = production();
@@ -25,7 +26,7 @@ test('production bundle contains no module syntax or smoke entrypoint', () => {
 
 test('production bundle excludes future-only Google API capabilities and endpoints', () => {
   const code = production();
-  assert.doesNotMatch(code, /\b(?:UrlFetchApp|ScriptApp|DriveApp)\b/);
+  assert.doesNotMatch(code, FUTURE_ONLY_GOOGLE_SERVICE_CALL);
   assert.doesNotMatch(code, /(?:analyticsdata|searchconsole)\.googleapis\.com/);
   assert.doesNotMatch(code, /webmasters\/v3|urlInspection/);
 });
