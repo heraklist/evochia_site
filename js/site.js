@@ -103,7 +103,9 @@
   function analyticsConsented() {
     try {
       if (typeof CookieConsent !== 'undefined' &&
-          typeof CookieConsent.acceptedCategory === 'function') {
+          typeof CookieConsent.validConsent === 'function' &&
+          CookieConsent.validConsent()) {
+        if (typeof CookieConsent.acceptedCategory !== 'function') return false;
         return CookieConsent.acceptedCategory('analytics');
       }
       return storedAnalyticsConsented();
