@@ -40,7 +40,12 @@ function evaluateAnalyticsConsented(options = {}) {
 }
 
 function storedConsentCookie(categories) {
-  return 'cc_cookie=' + encodeURIComponent(JSON.stringify({ categories }));
+  return 'cc_cookie=' + encodeURIComponent(JSON.stringify({
+    categories,
+    consentId: 'unit-test-consent-id',
+    consentTimestamp: '2026-08-25T00:00:00.000Z',
+    lastConsentTimestamp: '2026-08-25T00:00:00.000Z',
+  }));
 }
 
 function gaEventRegion() {
@@ -236,6 +241,31 @@ test('pre-boot CookieConsent defers to rejected, malformed, or absent persisted 
     false,
     'malformed persisted state must fail closed',
   );
+  const invalidPersistedStates = [
+    { categories: ['necessary', 'analytics'] },
+    {
+      categories: ['necessary', 'analytics'],
+      consentId: '',
+      consentTimestamp: '2026-08-25T00:00:00.000Z',
+      lastConsentTimestamp: '2026-08-25T00:00:00.000Z',
+    },
+    {
+      categories: ['necessary', 'analytics'],
+      consentId: 'unit-test-consent-id',
+      consentTimestamp: 'not-a-date',
+      lastConsentTimestamp: '2026-08-25T00:00:00.000Z',
+    },
+  ];
+  for (const invalidState of invalidPersistedStates) {
+    assert.equal(
+      evaluateAnalyticsConsented({
+        cookie: 'cc_cookie=' + encodeURIComponent(JSON.stringify(invalidState)),
+        cookieConsent,
+      }),
+      false,
+      'semantically invalid persisted consent must fail closed before boot',
+    );
+  }
   assert.equal(
     evaluateAnalyticsConsented({ cookieConsent }),
     false,
