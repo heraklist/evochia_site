@@ -204,7 +204,49 @@ test('14 locally mocked Formspree failure dispatches form_submit_error and no le
   expectPrivacyPayloadsAreExactAndPiiFree(events, 'el');
 });
 
-test('15 exact provider requests stay local while unregistered providers and WebRTC egress are denied', async ({ page, network }) => {
+test('15 returning mobile consent permits a pre-boot event and live revocation blocks the next event', async ({ page, network }) => {
+  const now = new Date().toISOString();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.context().addCookies([{
+    domain: '.www.evochia.gr',
+    name: 'cc_cookie',
+    path: '/',
+    value: JSON.stringify({
+      categories: ['necessary', 'analytics'],
+      consentId: 'e2e-returning-mobile-consent',
+      consentTimestamp: now,
+      lastConsentTimestamp: now,
+      languageCode: 'en',
+      services: {},
+    }),
+  }]);
+  network.expectGtmRequest();
+
+  await page.goto(`${PRODUCTION_ORIGIN}/en/contact/`);
+  await expect.poll(() => network.gtmRequests.length).toBe(1);
+  expect(await page.evaluate(() => window.CookieConsent.validConsent())).toBe(false);
+
+  await clickWithoutNavigation(page, '#main a[href^="tel:"]');
+  const preBootEvents = await dataLayerEvents(page);
+  expect(namedEvents(preBootEvents, 'contact_click')).toHaveLength(1);
+  expectPrivacyPayloadsAreExactAndPiiFree(preBootEvents, 'en');
+
+  await expect.poll(() => page.evaluate(() => window.CookieConsent.validConsent())).toBe(true);
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: 'load' }),
+    page.evaluate(() => window.CookieConsent.acceptCategory([])),
+  ]);
+
+  const consentCookies = (await page.context().cookies())
+    .filter((cookie) => cookie.name === 'cc_cookie');
+  expect(consentCookies).toHaveLength(1);
+  expect(JSON.parse(decodeURIComponent(consentCookies[0].value)).categories).toEqual(['necessary']);
+
+  await clickWithoutNavigation(page, '#main a[href^="tel:"]');
+  expect(namedEvents(await dataLayerEvents(page), 'contact_click')).toHaveLength(0);
+});
+
+test('16 exact provider requests stay local while unregistered providers and WebRTC egress are denied', async ({ page, network }) => {
   const isolationProbeUrl = 'https://example.invalid/e2e-isolation-probe';
   const googleProbeUrl = 'https://www.google-analytics.com/g/collect?v=2';
   const formspreeProbeUrl = 'https://formspree.io/f/not-allowed';

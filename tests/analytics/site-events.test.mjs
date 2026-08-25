@@ -40,7 +40,12 @@ function evaluateAnalyticsConsented(options = {}) {
 }
 
 function storedConsentCookie(categories) {
-  return 'cc_cookie=' + encodeURIComponent(JSON.stringify({ categories }));
+  return 'cc_cookie=' + encodeURIComponent(JSON.stringify({
+    categories,
+    consentId: 'unit-test-consent-id',
+    consentTimestamp: '2026-08-25T00:00:00.000Z',
+    lastConsentTimestamp: '2026-08-25T00:00:00.000Z',
+  }));
 }
 
 function gaEventRegion() {
@@ -76,6 +81,38 @@ function evaluateGaEvent({
 
   runInNewContext(
     `${gaEventRegion()}\nresult = gaEvent(inputName, inputParams);`,
+    context,
+  );
+  return { calls, result: context.result };
+}
+
+function evaluateConsentGatedGaEvent({
+  cookie = '',
+  cookieConsent,
+  name = 'contact_click',
+  params = { contact_method: 'phone', lead_source: 'site' },
+} = {}) {
+  const calls = [];
+  const context = {
+    window: {
+      location: { pathname: '/en/contact/' },
+      __GA_DEBUG__: false,
+    },
+    document: { cookie },
+    lang: 'en',
+    getPageType: () => 'contact',
+    getServiceIntent: () => 'lead_capture',
+    gtag: (...args) => calls.push(args),
+    inputName: name,
+    inputParams: params,
+    result: null,
+  };
+  if (cookieConsent !== undefined) {
+    context.CookieConsent = cookieConsent;
+  }
+
+  runInNewContext(
+    `${analyticsConsentRegion()}\n${gaEventRegion()}\nresult = gaEvent(inputName, inputParams);`,
     context,
   );
   return { calls, result: context.result };
@@ -159,33 +196,112 @@ test('site.js guards against double initialization', () => {
   assert.match(site, /if \(window\.__EVOCHIA_SITE_INIT__\) return;/);
 });
 
-test('analytics consent behavior handles pre-boot state and live withdrawal', () => {
+test('pre-boot CookieConsent defers to accepted persisted consent and permits dispatch', () => {
+  const cookieConsent = {
+    validConsent: () => false,
+    acceptedCategory: () => false,
+  };
+
   assert.equal(
     evaluateAnalyticsConsented({
       cookie: storedConsentCookie(['necessary', 'analytics']),
+      cookieConsent,
     }),
     true,
-    'returning analytics-consented visitors must be allowed before CookieConsent boots',
+    'an uninitialized CookieConsent API must not override accepted persisted consent',
   );
+
+  const dispatched = evaluateConsentGatedGaEvent({
+    cookie: storedConsentCookie(['necessary', 'analytics']),
+    cookieConsent,
+  });
+  assert.equal(dispatched.result, true);
+  assert.equal(dispatched.calls.length, 1);
+  assert.equal(dispatched.calls[0][0], 'event');
+  assert.equal(dispatched.calls[0][1], 'contact_click');
+  assert.equal(dispatched.calls[0][2].send_to, 'G-2R3S78PTDL');
+});
+
+test('pre-boot CookieConsent defers to rejected, malformed, or absent persisted consent', () => {
+  const cookieConsent = {
+    validConsent: () => false,
+    acceptedCategory: () => true,
+  };
 
   assert.equal(
     evaluateAnalyticsConsented({
       cookie: storedConsentCookie(['necessary']),
+      cookieConsent,
     }),
     false,
-    'pre-boot visitors without analytics consent must remain denied',
+    'persisted rejection must remain denied before CookieConsent initializes',
+  );
+  assert.equal(
+    evaluateAnalyticsConsented({ cookie: 'cc_cookie=%7Bmalformed', cookieConsent }),
+    false,
+    'malformed persisted state must fail closed',
+  );
+  const invalidPersistedStates = [
+    { categories: ['necessary', 'analytics'] },
+    {
+      categories: ['necessary', 'analytics'],
+      consentId: '',
+      consentTimestamp: '2026-08-25T00:00:00.000Z',
+      lastConsentTimestamp: '2026-08-25T00:00:00.000Z',
+    },
+    {
+      categories: ['necessary', 'analytics'],
+      consentId: 'unit-test-consent-id',
+      consentTimestamp: 'not-a-date',
+      lastConsentTimestamp: '2026-08-25T00:00:00.000Z',
+    },
+  ];
+  for (const invalidState of invalidPersistedStates) {
+    assert.equal(
+      evaluateAnalyticsConsented({
+        cookie: 'cc_cookie=' + encodeURIComponent(JSON.stringify(invalidState)),
+        cookieConsent,
+      }),
+      false,
+      'semantically invalid persisted consent must fail closed before boot',
+    );
+  }
+  assert.equal(
+    evaluateAnalyticsConsented({ cookieConsent }),
+    false,
+    'missing persisted state must fail closed',
   );
 
+  const blocked = evaluateConsentGatedGaEvent({
+    cookie: storedConsentCookie(['necessary']),
+    cookieConsent,
+  });
+  assert.equal(blocked.result, false);
+  assert.deepEqual(blocked.calls, []);
+});
+
+test('initialized CookieConsent is authoritative for acceptance and immediate revocation', () => {
   assert.equal(
     evaluateAnalyticsConsented({
-      cookie: storedConsentCookie(['necessary', 'analytics']),
+      cookie: storedConsentCookie(['necessary']),
       cookieConsent: {
-        acceptedCategory: (category) => category === 'analytics' ? false : false,
+        validConsent: () => true,
+        acceptedCategory: (category) => category === 'analytics',
       },
     }),
-    false,
-    'once CookieConsent is live, withdrawal must override stale persisted consent',
+    true,
+    'initialized live acceptance must override an older persisted rejection',
   );
+
+  const revoked = evaluateConsentGatedGaEvent({
+    cookie: storedConsentCookie(['necessary', 'analytics']),
+    cookieConsent: {
+      validConsent: () => true,
+      acceptedCategory: () => false,
+    },
+  });
+  assert.equal(revoked.result, false, 'initialized live revocation must override stale persisted acceptance');
+  assert.deepEqual(revoked.calls, []);
 });
 
 test('site exposes the persisted analytics consent helper as the shared source', () => {

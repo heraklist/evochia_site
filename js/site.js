@@ -86,7 +86,15 @@
       if (!match) return false;
       var stored = JSON.parse(decodeURIComponent(match[1]));
       var categories = stored && stored.categories;
-      return Array.isArray(categories) && categories.indexOf('analytics') > -1;
+      var consentId = stored && stored.consentId;
+      var consentTimestamp = stored && stored.consentTimestamp;
+      var lastConsentTimestamp = stored && stored.lastConsentTimestamp;
+      var hasValidMetadata =
+        typeof consentId === 'string' && consentId.length > 0 &&
+        typeof consentTimestamp === 'string' && !isNaN(Date.parse(consentTimestamp)) &&
+        typeof lastConsentTimestamp === 'string' && !isNaN(Date.parse(lastConsentTimestamp));
+      return hasValidMetadata &&
+        Array.isArray(categories) && categories.indexOf('analytics') > -1;
     } catch (e) {
       return false;
     }
@@ -103,7 +111,9 @@
   function analyticsConsented() {
     try {
       if (typeof CookieConsent !== 'undefined' &&
-          typeof CookieConsent.acceptedCategory === 'function') {
+          typeof CookieConsent.validConsent === 'function' &&
+          CookieConsent.validConsent()) {
+        if (typeof CookieConsent.acceptedCategory !== 'function') return false;
         return CookieConsent.acceptedCategory('analytics');
       }
       return storedAnalyticsConsented();
