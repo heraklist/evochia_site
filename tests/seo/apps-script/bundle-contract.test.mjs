@@ -16,6 +16,7 @@ const LF_MANAGED_PATHS = [
 const production = () => readFileSync('seo/apps-script/generated/Code.gs', 'utf8');
 const smoke = () => readFileSync('seo/apps-script/generated-smoke/Code.gs', 'utf8');
 const FUTURE_ONLY_GOOGLE_SERVICE_CALL = /\b(?:UrlFetchApp|ScriptApp|DriveApp|TagManager|Drive)\s*\.\s*[A-Za-z_$][\w$]*/;
+const PUBLIC_CLASS_FIELD_DECLARATION = /\bclass(?:\s+[A-Za-z_$][\w$]*)?(?:\s+extends\s+[^\s{]+)?\s*{\s*(?:[A-Za-z_$][\w$]*;\s*)+(?=constructor\s*\()/;
 
 test('production bundle contains no module syntax or smoke entrypoint', () => {
   const code = production();
@@ -35,6 +36,19 @@ test('smoke bundle contains runtime smoke and no unresolved module syntax', () =
   const code = smoke();
   assert.doesNotMatch(code, /^\s*(?:import|export)\s/m);
   assert.match(code, /runRuntimeSmoke/);
+});
+
+test('generated bundles exclude Apps Script-incompatible public class fields', () => {
+  for (const [relativePath, code] of [
+    ['generated/Code.gs', production()],
+    ['generated-smoke/Code.gs', smoke()],
+  ]) {
+    assert.doesNotMatch(
+      code,
+      PUBLIC_CLASS_FIELD_DECLARATION,
+      `${relativePath} contains an emitted public class field declaration`,
+    );
+  }
 });
 
 test('Apps Script manifest and generated artifacts use explicit LF Git attributes', () => {
