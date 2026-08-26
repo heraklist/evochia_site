@@ -1,6 +1,10 @@
 // GENERATED FILE — DO NOT EDIT. Run: npm run seo:build:apps-script
 "use strict";
 (() => {
+  var __defProp = Object.defineProperty;
+  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+
   // seo/apps-script/src/RuntimeCompat.ts
   function calendarDateParts(date, timeZone) {
     const parts = new Intl.DateTimeFormat("en-CA", {
@@ -105,10 +109,10 @@
 
   // seo/apps-script/src/Ga4Client.ts
   var Ga4PipelineError = class extends Error {
-    status;
-    responseBody;
     constructor(status, responseBody) {
       super(`ga4-data-api request failed with HTTP ${status}`);
+      __publicField(this, "status");
+      __publicField(this, "responseBody");
       this.name = "Ga4PipelineError";
       this.status = status;
       this.responseBody = responseBody;
@@ -119,7 +123,7 @@
   }
   function authorizationHeader(accessToken) {
     return {
-      Authorization: `Bearer ${accessToken ?? ScriptApp.getOAuthToken()}`
+      Authorization: `Bearer ${accessToken != null ? accessToken : ScriptApp.getOAuthToken()}`
     };
   }
   function parseMetric(value) {
@@ -130,30 +134,40 @@
     return Number.isFinite(parsed) ? parsed : null;
   }
   function normalizeGa4Response(response2) {
-    const dimensionNames = (response2.dimensionHeaders ?? []).map((header) => header.name ?? "");
-    const metricNames = (response2.metricHeaders ?? []).map((header) => header.name ?? "");
-    return (response2.rows ?? []).map((rawRow) => {
+    var _a, _b, _c;
+    const dimensionNames = ((_a = response2.dimensionHeaders) != null ? _a : []).map((header) => {
+      var _a2;
+      return (_a2 = header.name) != null ? _a2 : "";
+    });
+    const metricNames = ((_b = response2.metricHeaders) != null ? _b : []).map((header) => {
+      var _a2;
+      return (_a2 = header.name) != null ? _a2 : "";
+    });
+    return ((_c = response2.rows) != null ? _c : []).map((rawRow) => {
       const row = {};
       dimensionNames.forEach((name, index) => {
+        var _a2, _b2;
         if (!name) return;
-        const value = rawRow.dimensionValues?.[index]?.value;
+        const value = (_b2 = (_a2 = rawRow.dimensionValues) == null ? void 0 : _a2[index]) == null ? void 0 : _b2.value;
         row[name] = value == null ? null : value;
       });
       metricNames.forEach((name, index) => {
+        var _a2, _b2;
         if (!name) return;
-        row[name] = parseMetric(rawRow.metricValues?.[index]?.value);
+        row[name] = parseMetric((_b2 = (_a2 = rawRow.metricValues) == null ? void 0 : _a2[index]) == null ? void 0 : _b2.value);
       });
       return row;
     });
   }
   function runGa4Report(request) {
+    var _a, _b, _c;
     if (!/^properties\/\d+$/.test(request.propertyResource)) {
       throw new Error(`Invalid GA4 property resource: ${request.propertyResource}`);
     }
-    const transport = request.transport ?? defaultTransport;
-    const pageLimit = request.pageLimit ?? 1e5;
+    const transport = (_a = request.transport) != null ? _a : defaultTransport;
+    const pageLimit = (_b = request.pageLimit) != null ? _b : 1e5;
     const rows = [];
-    let offset = request.body.offset ?? 0;
+    let offset = (_c = request.body.offset) != null ? _c : 0;
     while (true) {
       const body = {
         ...request.body,
@@ -322,6 +336,7 @@
     return { normalizedPagePath, anomalyTypes };
   }
   function runGa4Reports(range, dependencies = {}) {
+    var _a, _b, _c, _d;
     if (range.verificationStatus !== "verified") {
       throw new Error("GA4 collection requires a verified production configuration");
     }
@@ -331,11 +346,11 @@
     if (!isValidHostname(range.productionHostname)) {
       throw new Error("productionHostname must be a lowercase hostname without scheme, path, port, or trailing dot");
     }
-    const now = range.now ?? /* @__PURE__ */ new Date();
+    const now = (_a = range.now) != null ? _a : /* @__PURE__ */ new Date();
     const defaultDate = getAvailableGa4Date(now, range.ga4PropertyTimeZone, 2);
-    const startDate = range.startDate ?? defaultDate;
-    const endDate = range.endDate ?? defaultDate;
-    const collectedAt = dependencies.collectedAt ?? now.toISOString();
+    const startDate = (_b = range.startDate) != null ? _b : defaultDate;
+    const endDate = (_c = range.endDate) != null ? _c : defaultDate;
+    const collectedAt = (_d = dependencies.collectedAt) != null ? _d : now.toISOString();
     const common = {
       propertyResource: range.propertyResource,
       accessToken: dependencies.accessToken,
@@ -406,19 +421,21 @@
     });
     const pageTitles = selectPageTitles(pageTitleRows);
     const pages = pageMetrics.map((row) => {
+      var _a2;
       const date = rowString(row, "date");
       const hostName = rowString(row, "hostName");
       const pagePath = rowString(row, "pagePath");
       const classification = classifyPagePath(pagePath);
       return {
         ...row,
-        pageTitle: pageTitles.get(pageKey(date, hostName, pagePath)) ?? null,
+        pageTitle: (_a2 = pageTitles.get(pageKey(date, hostName, pagePath))) != null ? _a2 : null,
         ...classification,
         dataAsOf: endDate,
         collectedAt
       };
     });
     const urlQuality = urlQualityRows.flatMap((row) => {
+      var _a2;
       const date = rowString(row, "date");
       const hostName = rowString(row, "hostName");
       const rawUrl = rowString(row, "pagePathPlusQueryString");
@@ -428,7 +445,7 @@
         ...row,
         normalizedPagePath: quality.normalizedPagePath,
         anomalyTypes: quality.anomalyTypes.join(","),
-        pageTitle: pageTitles.get(pageKey(date, hostName, quality.normalizedPagePath)) ?? null,
+        pageTitle: (_a2 = pageTitles.get(pageKey(date, hostName, quality.normalizedPagePath))) != null ? _a2 : null,
         dataAsOf: endDate,
         collectedAt
       }];
@@ -447,11 +464,11 @@
 
   // seo/apps-script/src/GscClient.ts
   var PipelineError = class extends Error {
-    source;
-    status;
-    responseBody;
     constructor(source, status, responseBody) {
       super(`${source} request failed with HTTP ${status}`);
+      __publicField(this, "source");
+      __publicField(this, "status");
+      __publicField(this, "responseBody");
       this.name = "PipelineError";
       this.source = source;
       this.status = status;
@@ -462,7 +479,7 @@
     return UrlFetchApp.fetch(url, options);
   }
   function authHeaders(accessToken) {
-    const token = accessToken ?? ScriptApp.getOAuthToken();
+    const token = accessToken != null ? accessToken : ScriptApp.getOAuthToken();
     return {
       Authorization: `Bearer ${token}`
     };
@@ -482,18 +499,20 @@
     return typeof value === "number" && Number.isFinite(value) ? value : 0;
   }
   function normalizeSearchAnalyticsRow(dimensions, raw) {
+    var _a, _b, _c, _d, _e, _f;
     const values = /* @__PURE__ */ new Map();
     dimensions.forEach((dimension, index) => {
-      const value = raw.keys?.[index];
+      var _a2;
+      const value = (_a2 = raw.keys) == null ? void 0 : _a2[index];
       values.set(dimension, value == null ? "" : String(value));
     });
     return {
-      date: values.get("date") ?? "",
-      query: values.get("query") ?? "",
-      page: values.get("page") ?? "",
-      country: values.get("country") ?? "",
-      device: values.get("device") ?? "",
-      searchAppearance: values.get("searchAppearance") ?? "",
+      date: (_a = values.get("date")) != null ? _a : "",
+      query: (_b = values.get("query")) != null ? _b : "",
+      page: (_c = values.get("page")) != null ? _c : "",
+      country: (_d = values.get("country")) != null ? _d : "",
+      device: (_e = values.get("device")) != null ? _e : "",
+      searchAppearance: (_f = values.get("searchAppearance")) != null ? _f : "",
       clicks: numberOrZero(raw.clicks),
       impressions: numberOrZero(raw.impressions),
       ctr: numberOrZero(raw.ctr),
@@ -501,11 +520,12 @@
     };
   }
   function fetchSearchAnalytics(request) {
+    var _a, _b, _c, _d;
     const dimensions = [...request.dimensions];
-    const rowLimit = request.rowLimit ?? 25e3;
-    const transport = request.transport ?? defaultTransport2;
+    const rowLimit = (_a = request.rowLimit) != null ? _a : 25e3;
+    const transport = (_b = request.transport) != null ? _b : defaultTransport2;
     const rows = [];
-    let startRow = request.startRow ?? 0;
+    let startRow = (_c = request.startRow) != null ? _c : 0;
     while (true) {
       const response2 = transport(
         `https://searchconsole.googleapis.com/webmasters/v3/sites/${encodeURIComponent(request.siteUrl)}/searchAnalytics/query`,
@@ -526,7 +546,7 @@
         }
       );
       const parsed = parseJson(response2, "gsc-search-analytics");
-      const pageRows = parsed.rows ?? [];
+      const pageRows = (_d = parsed.rows) != null ? _d : [];
       rows.push(...pageRows.map((row) => normalizeSearchAnalyticsRow(dimensions, row)));
       if (pageRows.length < rowLimit) {
         break;
@@ -538,8 +558,9 @@
 
   // seo/apps-script/src/WorkbookIdentity.ts
   function getVerifiedActiveWorkbook(dependencies) {
-    const getVerifiedConfig = dependencies?.getConfig ?? getConfig;
-    const getActiveWorkbook = dependencies?.getActiveWorkbook ?? (() => SpreadsheetApp.getActiveSpreadsheet());
+    var _a, _b;
+    const getVerifiedConfig = (_a = dependencies == null ? void 0 : dependencies.getConfig) != null ? _a : getConfig;
+    const getActiveWorkbook = (_b = dependencies == null ? void 0 : dependencies.getActiveWorkbook) != null ? _b : (() => SpreadsheetApp.getActiveSpreadsheet());
     const config = getVerifiedConfig();
     const workbook = getActiveWorkbook();
     if (!workbook) {
@@ -556,7 +577,7 @@
     if (typeof value === "string" && /^[=+\-@]/.test(value)) {
       return `'${value}`;
     }
-    return value ?? "";
+    return value != null ? value : "";
   }
   function cellPart(value) {
     if (value instanceof Date) {
@@ -644,7 +665,8 @@
     const existingRows = existingValues.slice(1).map((values) => {
       const row = {};
       headers.forEach((header, index) => {
-        row[header] = values[index] ?? null;
+        var _a;
+        row[header] = (_a = values[index]) != null ? _a : null;
       });
       return row;
     });
@@ -652,7 +674,10 @@
     const merged = mergeRowRecords(headers, existingRows, keyColumns, incomingRows, timeZone);
     const output = [
       headers,
-      ...merged.rows.map((row) => headers.map((header) => row[header] ?? ""))
+      ...merged.rows.map((row) => headers.map((header) => {
+        var _a;
+        return (_a = row[header]) != null ? _a : "";
+      }))
     ];
     sheet.getRange(1, 1, output.length, headers.length).setValues(
       output.map((row) => row.map(serializeLiteralCell))
@@ -695,14 +720,18 @@
   function deduplicateGscRows(rows, keyColumns) {
     const byKey = /* @__PURE__ */ new Map();
     for (const row of rows) {
-      const key = keyColumns.map((column) => String(row[column] ?? "")).join("");
+      const key = keyColumns.map((column) => {
+        var _a;
+        return String((_a = row[column]) != null ? _a : "");
+      }).join("");
       byKey.set(key, row);
     }
     return [...byKey.values()];
   }
   function importSearchAnalyticsDay(config, now, dependencies = {}) {
+    var _a, _b;
     const dataAsOf = getAvailableGscDate(now, 3);
-    const collectedAt = dependencies.collectedAt ?? now.toISOString();
+    const collectedAt = (_a = dependencies.collectedAt) != null ? _a : now.toISOString();
     const fetchedReports = GSC_REPORT_SPECS.map((spec) => ({
       spec,
       rows: fetchSearchAnalytics({
@@ -715,7 +744,7 @@
         accessToken: dependencies.accessToken
       })
     }));
-    const writer = dependencies.writeRows ?? upsertRows;
+    const writer = (_b = dependencies.writeRows) != null ? _b : upsertRows;
     const reports = {};
     for (const { spec, rows: fetched } of fetchedReports) {
       const rows = deduplicateGscRows(fetched, spec.keyColumns).map((row) => ({

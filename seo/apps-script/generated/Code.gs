@@ -81,8 +81,9 @@
 
   // seo/apps-script/src/WorkbookIdentity.ts
   function getVerifiedActiveWorkbook(dependencies) {
-    const getVerifiedConfig = dependencies?.getConfig ?? getConfig;
-    const getActiveWorkbook = dependencies?.getActiveWorkbook ?? (() => SpreadsheetApp.getActiveSpreadsheet());
+    var _a, _b;
+    const getVerifiedConfig = (_a = dependencies == null ? void 0 : dependencies.getConfig) != null ? _a : getConfig;
+    const getActiveWorkbook = (_b = dependencies == null ? void 0 : dependencies.getActiveWorkbook) != null ? _b : (() => SpreadsheetApp.getActiveSpreadsheet());
     const config = getVerifiedConfig();
     const workbook = getActiveWorkbook();
     if (!workbook) {
@@ -127,7 +128,8 @@
     return { created, existing };
   }
   function setupWorkbook(dependencies = { getVerifiedActiveWorkbook }) {
-    const setupSheets = dependencies.ensureWorkbookSheets ?? ensureWorkbookSheets;
+    var _a;
+    const setupSheets = (_a = dependencies.ensureWorkbookSheets) != null ? _a : ensureWorkbookSheets;
     setupSheets(dependencies.getVerifiedActiveWorkbook());
   }
 

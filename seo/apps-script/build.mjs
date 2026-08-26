@@ -32,7 +32,7 @@ async function bundle(entryPath) {
     write: false,
     format: 'iife',
     platform: 'neutral',
-    target: ['es2022'],
+    target: ['es2019'],
     treeShaking: true,
     legalComments: 'none',
     charset: 'utf8',
