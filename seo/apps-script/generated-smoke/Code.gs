@@ -1088,6 +1088,11 @@
   }
 
   // seo/apps-script/entrypoints/smoke.ts
-  var gas = globalThis;
-  gas.runRuntimeSmoke = runRuntimeSmoke;
+  var host = globalThis;
+  var registry = host.__evochiaAppsScriptEntrypoints__ || {};
+  host.__evochiaAppsScriptEntrypoints__ = registry;
+  registry.runRuntimeSmoke = runRuntimeSmoke;
 })();
+function runRuntimeSmoke() {
+  return globalThis.__evochiaAppsScriptEntrypoints__.runRuntimeSmoke.apply(this, arguments);
+}

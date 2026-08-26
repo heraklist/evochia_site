@@ -6,18 +6,43 @@ import path from 'node:path';
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const GENERATED_HEADER = '// GENERATED FILE — DO NOT EDIT. Run: npm run seo:build:apps-script\n';
 
+// Private, collision-resistant global registry the bundled entrypoints populate
+// from inside the IIFE. MUST match the key used in entrypoints/*.ts.
+const ENTRYPOINT_REGISTRY_GLOBAL = '__evochiaAppsScriptEntrypoints__';
+
 const TARGETS = [
   {
     entry: 'entrypoints/production.ts',
     outputDirectory: 'generated',
     outputFile: 'Code.gs',
+    // Callable Apps Script functions this bundle must expose at top level.
+    entrypoints: ['onOpen', 'setupWorkbookFromMenu', 'verifyConfiguration'],
   },
   {
     entry: 'entrypoints/smoke.ts',
     outputDirectory: 'generated-smoke',
     outputFile: 'Code.gs',
+    entrypoints: ['runRuntimeSmoke'],
   },
 ];
+
+// esbuild's `iife` format encloses every declaration inside `(() => { ... })();`,
+// which Apps Script's static function discovery cannot see. We append genuine
+// top-level `function` declarations OUTSIDE that closure, one per entrypoint,
+// each forwarding its arguments and return value to the implementation the
+// bundle registered on the private global registry. Because Apps Script
+// re-evaluates the whole script file on every invocation, the IIFE runs (and
+// populates the registry) before any wrapper is called.
+function entrypointFooter(entrypoints) {
+  return entrypoints
+    .map(
+      (name) =>
+        `function ${name}() {\n` +
+        `  return globalThis.${ENTRYPOINT_REGISTRY_GLOBAL}.${name}.apply(this, arguments);\n` +
+        `}`,
+    )
+    .join('\n');
+}
 
 const SMOKE_MANIFEST = {
   timeZone: 'Europe/Athens',
@@ -25,7 +50,7 @@ const SMOKE_MANIFEST = {
   runtimeVersion: 'V8',
 };
 
-async function bundle(entryPath) {
+async function bundle(entryPath, entrypoints) {
   const result = await build({
     entryPoints: [entryPath],
     bundle: true,
@@ -37,6 +62,7 @@ async function bundle(entryPath) {
     legalComments: 'none',
     charset: 'utf8',
     minify: false,
+    footer: { js: entrypointFooter(entrypoints) },
   });
 
   if (result.outputFiles.length !== 1) {
@@ -49,7 +75,7 @@ export async function buildAppsScript(outputRoot = SCRIPT_DIR) {
   for (const target of TARGETS) {
     const directory = path.join(outputRoot, target.outputDirectory);
     await mkdir(directory, { recursive: true });
-    const code = await bundle(path.join(SCRIPT_DIR, target.entry));
+    const code = await bundle(path.join(SCRIPT_DIR, target.entry), target.entrypoints);
     await writeFile(path.join(directory, target.outputFile), code, 'utf8');
   }
 

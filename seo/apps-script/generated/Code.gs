@@ -166,8 +166,19 @@
   }
 
   // seo/apps-script/entrypoints/production.ts
-  var gas = globalThis;
-  gas.onOpen = onOpen;
-  gas.setupWorkbookFromMenu = setupWorkbookFromMenu;
-  gas.verifyConfiguration = verifyConfiguration;
+  var host = globalThis;
+  var registry = host.__evochiaAppsScriptEntrypoints__ || {};
+  host.__evochiaAppsScriptEntrypoints__ = registry;
+  registry.onOpen = onOpen;
+  registry.setupWorkbookFromMenu = setupWorkbookFromMenu;
+  registry.verifyConfiguration = verifyConfiguration;
 })();
+function onOpen() {
+  return globalThis.__evochiaAppsScriptEntrypoints__.onOpen.apply(this, arguments);
+}
+function setupWorkbookFromMenu() {
+  return globalThis.__evochiaAppsScriptEntrypoints__.setupWorkbookFromMenu.apply(this, arguments);
+}
+function verifyConfiguration() {
+  return globalThis.__evochiaAppsScriptEntrypoints__.verifyConfiguration.apply(this, arguments);
+}
