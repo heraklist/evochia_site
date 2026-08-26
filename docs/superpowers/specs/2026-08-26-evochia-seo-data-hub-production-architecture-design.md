@@ -1,444 +1,203 @@
-# Evochia SEO Data Hub Production Architecture Design
+# Evochia SEO Data Hub Production Activation Work Order
 
-**Status:** Draft for owner review
+**Status:** Revised after technical review; pending owner approval for implementation
 
-**Scope:** Complete the Evochia SEO Data Hub as one authoritative corporate, bound Google Apps Script production system with layered capabilities for GSC, GA4, GTM, Drive snapshots, operational health, deterministic findings, scheduled jobs, weekly ChatGPT intelligence, and controlled retirement/archive of the legacy personal Apps Script automation.
+**Baseline:** `main` @ `fe3a791da35fc1810bb4f774f12b4626f3a2343d`
 
-**Approved design direction:** Layered single-project architecture.
+**Purpose:** Activate the already-built GSC and GA4 Apps Script pipeline in production with the smallest safe wiring change. Do not rebuild capabilities that already exist. Defer GTM, Drive snapshots, findings lifecycle, Pipeline Health, and programmatic trigger management until a concrete production need justifies them.
 
-## Context
+This document replaces the broader architecture text previously stored at this path. It is intentionally a bounded V1 work order rather than a second full-system design.
 
-The repository already contains a deterministic Apps Script build, GAS-specific type/runtime compatibility checks, GSC and GA4 read-only clients/importers, workbook identity checks, setup/menu entrypoints, production/smoke bundle separation, and a real non-production GAS V8 smoke that has passed. The current production bundle is still scaffold-only: it exposes setup/configuration entrypoints but does not yet expose production ingestion orchestration for GSC or GA4, and no GTM/Drive/jobs/triggers implementation exists.
+## 1. Verified repository baseline
 
-The current production resource verification is also too coupled: setup and workbook verification are blocked unless unrelated future resources such as GTM and Drive are already verified. The existing Data Hub workbook still uses the legacy underscore-named scaffold and is effectively headers-only. A separate legacy personal Apps Script project remains production-capable and must ultimately be retired and archived, not deleted.
+The following behavior already exists and must be preserved rather than re-specified or rewritten:
 
-This design completes the architecture end to end rather than stopping at a partial activation phase.
+| Contract | Existing implementation |
+| --- | --- |
+| Canonical workbook tabs | `seo/apps-script/src/Setup.ts` — `REQUIRED_SHEET_NAMES`, idempotent `ensureWorkbookSheets` |
+| Fail-closed bound workbook identity | `seo/apps-script/src/WorkbookIdentity.ts` |
+| GSC Search Analytics import | `seo/apps-script/src/GscImporter.ts` |
+| GSC fetch-before-write | `importSearchAnalyticsDay()` fetches all three reports before its write loop |
+| GSC idempotent report keys | `GSC_REPORT_SPECS` |
+| GA4 six-report collection bundle | `seo/apps-script/src/Ga4Importer.ts` — `runGa4Reports()` |
+| GA4 property-timezone date logic | `getAvailableGa4Date()` |
+| Composite-key upserts | `seo/apps-script/src/SheetWriter.ts` |
+| Formula-injection defense | `serializeLiteralCell()` |
+| Deterministic GAS build | `seo/apps-script/build.mjs` and bundle-equivalence tooling |
+| Real GAS V8 compatibility | existing smoke bundle/runtime gate |
 
-## Goals
+The production gap is narrow:
 
-1. Establish one authoritative production workbook owned by the corporate Google account.
-2. Establish one authoritative corporate bound Apps Script production project.
-3. Keep one production repository/build path and deterministic deploy artifacts.
-4. Implement GSC, GA4, GTM, Drive snapshot, health, findings, orchestration, and trigger capabilities in one layered project.
-5. Replace monolithic global resource verification with capability-specific verification while preserving fail-closed common trust boundaries.
-6. Migrate the existing Data Hub non-destructively into a canonical schema while preserving a full backup and legacy tabs.
-7. Backfill and reconcile production data before automation is enabled.
-8. Prevent split-brain scheduling by freezing the legacy personal automation before corporate production triggers are installed.
-9. Preserve the legacy personal project and historical Sheet as archival evidence; do not delete them.
-10. Make pipeline health and data freshness explicit so missing or stale data is never interpreted as zero.
-11. Keep Apps Script deterministic and operational; keep contextual SEO/business reasoning in the ChatGPT intelligence layer.
-12. Avoid unnecessary credentials and scopes, including no GitHub token in Apps Script.
+1. configuration verification is over-coupled to resources that are not needed for workbook/GSC/GA4 operation;
+2. GA4 returns a complete bundle but has no sheet-write specification;
+3. there is no production GSC+GA4 orchestrator;
+4. production registration/build exposes only `onOpen`, `setupWorkbookFromMenu`, and `verifyConfiguration`;
+5. the production manifest still contains only the two existing Sheet/UI scopes.
 
-## Non-goals
+## 2. Scope
 
-This design does not authorize Google-side production mutation merely by existing. Separate owner approval remains required before any production Apps Script deployment, OAuth scope grant, Script Property write, Sheet rename/create/delete/timezone mutation, Drive folder creation/write, trigger installation/removal, or legacy personal project mutation.
+### V1 includes
 
-The system will not:
+- capability-scoped config verification for `workbook`, `gsc`, and `ga4`;
+- GA4 report-to-sheet specs and composite keys;
+- exact read-only GSC/GA4 OAuth scopes plus `script.external_request`;
+- one production `runDailyImport()` orchestrator;
+- independent GSC/GA4 failure isolation with `SUCCESS` / `PARTIAL` / `FAILED` overall result;
+- minimal Run Log evidence;
+- one additional top-level production entrypoint and menu item;
+- manual production validation and idempotency proof;
+- manual installation of the corporate daily trigger only after legacy triggers are verified at zero.
 
-- expose an Apps Script Web App (`doGet`/`doPost`);
-- mutate GA4 configuration or data;
-- mutate Search Console state, sitemaps, or indexing;
-- mutate GTM workspaces, tags, versions, or publishing state;
-- introduce Gmail/calendar scopes;
-- store OAuth tokens, refresh tokens, GitHub tokens, cookies, or credentials in Sheets or source control;
-- make the legacy personal automation an automatic failover;
-- fabricate zero values for unavailable, thresholded, stale, or failed data.
+### V1 explicitly excludes
 
-## 1. Canonical production topology
+- GTM API integration or fingerprinting;
+- Drive snapshots or any Drive API scope;
+- `Pipeline Health` implementation;
+- findings lifecycle/state machine;
+- `runWeeklyInspection()`;
+- programmatic trigger installation/removal;
+- `script.scriptapp` scope;
+- a separate backfill/checkpoint subsystem;
+- a 17-stage promotion state machine;
+- workbook-tab renames/deletes or destructive migration;
+- Apps Script Web App endpoints;
+- Gmail/Calendar scopes;
+- credentials or tokens in Sheets/source control.
 
-The authoritative topology is:
+Existing empty canonical tabs such as `Pipeline Health`, `GTM Versions`, `GTM Changes`, and `Findings Summary` remain untouched. Removing them would create unnecessary churn and is not part of V1.
 
-```text
-Corporate Google account
-└── Evochia SEO Data Hub (authoritative workbook)
-    └── Bound production Apps Script
-        ├── Core
-        ├── GSC capability
-        ├── GA4 capability
-        ├── GTM capability
-        ├── Drive snapshot capability
-        ├── Pipeline Health / Run Log
-        ├── Findings Summary
-        └── Jobs / Triggers / Operator entrypoints
+## 3. T1 — Capability-scoped configuration
+
+### Problem
+
+`Config.ts` currently requires every resource key to be populated and non-`UNVERIFIED`. `getConfig()` always performs that full verification, and `getVerifiedActiveWorkbook()` calls `getConfig()`. Therefore workbook setup is blocked by unrelated, currently unconfigured GTM/Drive resources.
+
+### Required change
+
+Introduce a bounded capability contract equivalent to:
+
+```ts
+export type CapabilityKey = 'workbook' | 'gsc' | 'ga4';
+
+const CAPABILITY_RESOURCES: Record<CapabilityKey, readonly string[]> = {
+  workbook: ['sheetId'],
+  gsc: ['gscProperty'],
+  ga4: ['ga4PropertyId', 'ga4PropertyTimeZone', 'productionHostname'],
+};
 ```
 
-The legacy personal Apps Script and its historical spreadsheet remain outside this topology and are eventually marked retired/archival.
+`verifyConfig()` accepts an explicit capability list, defaulting to `['workbook']`.
 
-## 2. Layered single-project architecture
+`getConfig()` accepts/threads the same capability request. `getVerifiedActiveWorkbook()` verifies only the workbook capability. GSC and GA4 callers request their own capability requirements.
 
-### Core
+The existing owner and global verification checks remain fail-closed. Existing format validators remain in place and continue to validate configured values.
 
-Core owns:
+`gtmAccountId`, `gtmContainerId`, and `driveFolderId` must not block V1. `ga4AccountId` and `gtmPublicContainerId` may remain configuration metadata but are not V1 readiness requirements unless a concrete call uses them.
 
-- production configuration schema;
-- workbook identity verification;
-- production hostname verification;
-- common date/time helpers;
-- shared normalization/error types;
-- endpoint allowlisting;
-- run identity and lock semantics.
+### Tests
 
-### Capability modules
+- workbook-only config succeeds with GTM/Drive values absent or `UNVERIFIED`;
+- GSC config fails when `gscProperty` is missing/unverified;
+- missing GA4 property ID fails GA4 but not workbook verification;
+- missing/invalid GA4 timezone fails GA4 but not GSC/workbook;
+- workbook setup succeeds when GTM/Drive are not configured;
+- workbook ID mismatch still hard-fails.
 
-Each integration has an independent capability boundary:
+## 4. T2 — GA4 report write specifications
 
-- `GSC`: Search Analytics and URL Inspection, read-only.
-- `GA4`: Data API reports, read-only.
-- `GTM`: published container/version inventory, normalization, fingerprinting and semantic change detection, read-only.
-- `Drive`: bounded snapshot storage only.
-- `Automation`: installation/removal and verification of canonical time-driven triggers.
+`runGa4Reports()` already returns six complete arrays. Do not rewrite the GA4 client/report assembly.
 
-A temporary failure in one capability must not make unrelated healthy sources unusable.
+Add `GA4_REPORT_SPECS`, mirroring the existing GSC pattern:
 
-## 3. Capability-specific configuration and verification
+| Bundle key | Sheet | Composite key |
+| --- | --- | --- |
+| `daily` | `GA4 Daily` | `date`, `deviceCategory` |
+| `acquisition` | `GA4 Acquisition` | `date`, `sessionSourceMedium`, `sessionDefaultChannelGroup` |
+| `landingPages` | `GA4 Landing Pages` | `date`, `landingPagePlusQueryString`, `sessionDefaultChannelGroup`, `deviceCategory` |
+| `events` | `GA4 Events` | `date`, `eventName` |
+| `pages` | `GA4 Pages` | `date`, `hostName`, `pagePath` |
+| `urlQuality` | `GA4 URL Quality` | `date`, `hostName`, `pagePathPlusQueryString` |
 
-The current all-resources-at-once verification must be replaced by versioned, capability-specific verification.
+Use the existing `upsertRows()` implementation. Do not introduce a second writer abstraction.
 
-The production Script Property remains the runtime source of truth, for example `SEO_GOOGLE_RESOURCES_JSON`, with a schema equivalent to:
+The GA4 bundle must be fully fetched before any GA4 sheet write begins. `runGa4Reports()` already provides that fetch boundary; the new writer runs only after it returns successfully.
 
-```text
-configVersion
-  environment
-  owner
-  workbook
-  site
-  gsc
-  ga4
-  gtm
-  drive
-  automation
-```
+### Tests
 
-Each capability has explicit resource identity and verification state.
+- every bundle grain writes to the correct canonical sheet;
+- every spec uses the exact key columns above;
+- re-writing the identical bundle inserts zero new logical rows;
+- changed values for an existing key update rather than duplicate;
+- formula-injection protection remains intact through the shared writer.
 
-Required verification layers:
+## 5. T3 — Exact V1 manifest
 
-```text
-RESOURCE_IDENTITY_VERIFIED
-        ↓
-LIVE_ACCESS_VERIFIED
-        ↓
-CAPABILITY_READY
-```
-
-Changing a stored value to `verified` is not sufficient. Production readiness requires a real minimal live access check.
-
-### Common/global blockers
-
-The following remain global hard blockers:
-
-- wrong bound workbook ID;
-- unsupported configuration version;
-- wrong production environment/owner identity;
-- invalid production artifact identity where required by the runbook.
-
-A workbook identity failure must cause zero writes for the entire job.
-
-## 4. OAuth and least-privilege security contract
-
-The final production manifest is intended to contain only the scopes required by the approved complete architecture:
+The V1 production manifest must contain exactly these five scopes:
 
 ```text
 https://www.googleapis.com/auth/spreadsheets.currentonly
 https://www.googleapis.com/auth/script.container.ui
 https://www.googleapis.com/auth/webmasters.readonly
 https://www.googleapis.com/auth/analytics.readonly
-https://www.googleapis.com/auth/tagmanager.readonly
-https://www.googleapis.com/auth/drive.file
 https://www.googleapis.com/auth/script.external_request
-https://www.googleapis.com/auth/script.scriptapp
 ```
 
-The implementation plan must verify that every listed scope is actually required by the chosen Google API mechanism and must not silently broaden a scope. If a narrower scope/mechanism can satisfy the approved capability, the narrower option is preferred. Any required deviation from this exact proposed set is an owner review gate before production authorization.
+Do not add:
 
-Explicitly prohibited unless separately redesigned and approved:
+- `tagmanager.readonly`;
+- `drive.file` or broad Drive scope;
+- `script.scriptapp`;
+- Search Console write scope;
+- GA4 admin/edit scope;
+- Gmail/Calendar scope.
 
-- broad Drive scope;
-- broad spreadsheet scope when `spreadsheets.currentonly` is sufficient;
-- GA4 edit/admin mutation scopes;
-- GTM edit/publish scopes;
-- Search Console write-capable actions;
-- Gmail/calendar scopes.
+`script.external_request` remains required because the existing GSC and GA4 clients use `UrlFetchApp` with `ScriptApp.getOAuthToken()`; replacing those tested clients with Advanced Services solely to remove this scope is out of scope.
 
-### Endpoint allowlist
+### Backup rule
 
-Outbound HTTP must be restricted to the approved Google API hosts required by the capability implementation. Dynamic arbitrary hosts sourced from Sheet data are prohibited.
+V1 does not use a Drive API scope to back up the pre-existing production workbook. If a pre-activation backup is desired, it is a manual owner runbook action (`File` → `Make a copy`) and its completion is recorded as evidence. No scope escalation is permitted for this purpose.
 
-Adding another outbound hostname requires code change, tests, review, and owner approval.
+### Tests
 
-## 5. Canonical workbook and migration
+The manifest contract test asserts the exact five-scope set and rejects any additional production scope.
 
-The existing Evochia SEO Data Hub remains the authoritative workbook; no replacement production spreadsheet is created.
+## 6. T4 — `runDailyImport()` orchestrator
 
-Before mutation:
+Add a single production orchestration path that reuses the existing importers.
 
-1. create and verify a full Drive backup copy;
-2. preserve the original file ID and ownership of the production workbook;
-3. archive legacy tabs non-destructively;
-4. create canonical tabs idempotently;
-5. change the workbook/operator timezone to `Europe/Athens` only under an explicit production mutation gate;
-6. preserve GSC's intentional `America/Los_Angeles` source-calendar logic independently;
-7. use the verified GA4 property timezone for GA4 source-date semantics.
+### Required behavior
 
-Legacy records are historical evidence, not source rows to be force-transformed into new grains.
+1. verify the bound workbook;
+2. obtain one OAuth token with `ScriptApp.getOAuthToken()`;
+3. run GSC using workbook+GSC configuration;
+4. independently run GA4 using workbook+GA4 configuration;
+5. persist GA4 through `GA4_REPORT_SPECS` only after the full GA4 bundle has been fetched;
+6. record source results in `Run Log`;
+7. return an overall status.
 
-### Canonical tabs
-
-The authoritative schema is:
+GSC and GA4 are isolated at the source level:
 
 ```text
-Config
-Run Log
-Pipeline Health
-GSC Daily
-GSC Pages
-GSC Queries
-GSC Indexing
-GA4 Daily
-GA4 Acquisition
-GA4 Landing Pages
-GA4 Events
-GA4 Pages
-GA4 URL Quality
-GTM Versions
-GTM Changes
-Findings Summary
+GSC success + GA4 success = SUCCESS
+exactly one source succeeds = PARTIAL
+both sources fail = FAILED
 ```
 
-`Config` is an operator-visible mirror/status surface only. Secrets must never be written into workbook cells.
+A failure in GSC must not prevent GA4 from running/writing. A failure in GA4 must not remove or roll back valid GSC data.
 
-## 6. Production orchestration
+`PARTIAL` must never be logged or presented as success.
 
-The final public Apps Script surface should remain intentionally small and discoverable:
+### Minimal Run Log contract
 
-```text
-onOpen()
-verifyConfiguration()
-verifyAllAccess()
-setupWorkbookFromMenu()
-runInitialBackfill()
-runDailyImport()
-runWeeklyInspection()
-installTriggers()
-removeTriggers()
-```
-
-Additional internal helpers must not become unnecessary public top-level functions.
-
-### Run model
-
-Each production job gets a unique `runId` and records a run state.
-
-Capability outcomes:
-
-```text
-SUCCESS
-FAILED
-SKIPPED_NOT_READY
-SKIPPED_NO_CHANGE
-```
-
-Overall outcomes:
-
-```text
-SUCCESS
-PARTIAL
-FAILED
-```
-
-`PARTIAL` must never be presented as complete success.
-
-### Fetch-before-write
-
-For each capability:
-
-```text
-VERIFY
-→ FETCH ALL REQUIRED REMOTE DATA
-→ NORMALIZE
-→ VALIDATE BUNDLE
-→ WRITE
-```
-
-Any failure before `WRITE` must produce zero writes for that capability.
-
-The system does not perform global rollback of valid GSC data merely because GA4 or GTM failed. Source integrity and cross-source completeness are separate states.
-
-## 7. Application-level write semantics
-
-Google Sheets does not provide an ACID transaction across multiple tabs. The design therefore promises application-level atomicity, not database transactional guarantees.
-
-Rules:
-
-- collect and validate complete capability bundles before sheet writes begin;
-- do not mark a capability successful until all of its required writes finish;
-- write idempotently using explicit logical keys/upserts;
-- never use blind full-sheet clear/rewrite as the default ingestion strategy;
-- preserve formula-injection defenses for text values;
-- include `runId`, `dataAsOf`, and collection metadata where useful for reconciliation;
-- if a multi-sheet write partially fails, record the capability as `FAILED`, preserve evidence, and do not report the run as complete.
-
-## 8. Concurrency and retry semantics
-
-Production jobs use an Apps Script lock to prevent overlapping writes.
-
-A second overlapping execution must skip cleanly rather than wait indefinitely or run concurrently.
-
-Retries are bounded and only for transient classes such as 429/5xx/backend failures. Authentication, authorization, resource identity, config, and schema failures must not be blindly retried.
-
-No infinite recursion/self-scheduling retry loop is permitted.
-
-## 9. GSC capability
-
-The GSC production capability is read-only and includes:
-
-- Search Analytics property totals;
-- page-grain reporting;
-- query-grain reporting;
-- URL Inspection for an explicit monitored URL allowlist.
-
-It must not submit/delete sitemaps, request indexing, remove URLs, or perform any Search Console mutation.
-
-GSC source-calendar behavior remains `America/Los_Angeles` with the configured finalization lag. Missing/anonymized query rows must not be reverse-engineered into fabricated totals.
-
-## 10. GA4 capability
-
-The GA4 production capability uses read-only reporting only.
-
-Expected canonical outputs:
-
-- Daily;
-- Acquisition;
-- Landing Pages;
-- Events;
-- Pages;
-- URL Quality.
-
-Report grains remain independent. The system must not add dimensions and then sum incompatible grains to invent property totals.
-
-GA4 report dates use the verified GA4 property timezone and processing lag.
-
-## 11. GTM capability
-
-GTM remains read-only.
-
-The capability reads the currently published production container/version, normalizes the relevant state, and computes a deterministic fingerprint.
-
-```text
-published state
-→ normalize
-→ fingerprint
-→ compare with latest verified fingerprint
-```
-
-If unchanged:
-
-- record healthy/no-change state;
-- do not create a duplicate Drive snapshot;
-- do not emit duplicate change rows.
-
-If changed:
-
-- record version metadata;
-- compute semantic changes;
-- write one bounded Drive snapshot;
-- consider the capability failed if the required archival snapshot cannot be completed.
-
-No workspace creation, tag edits, version creation, or publishing is permitted.
-
-## 12. Drive snapshot containment
-
-Drive is used only for approved production snapshot artifacts.
-
-A dedicated snapshot folder is required. The folder identity must be verified before use.
-
-`drive.file` is preferred specifically to constrain file access to files created/opened by the app. The implementation plan must validate the practical behavior of this scope with a bound Apps Script and the chosen dedicated folder workflow before production authorization. If the intended folder workflow cannot be enforced with the proposed scope, stop and request owner review rather than silently upgrading to broad Drive scope.
-
-A live access test should create a harmless temporary verification artifact in the approved destination, verify it, and remove it. Test garbage must not remain.
-
-## 13. Initial baseline/backfill
-
-`runInitialBackfill()` is a distinct production workflow, not a parameterized daily job.
-
-Approved initial baseline:
-
-```text
-GSC: 90 finalized source-days
-GA4: 90 processed source-days
-GTM: current published baseline
-GSC URL Inspection: explicit canonical monitored URL set
-```
-
-Backfill should be bounded, chunked, idempotent, and resumable from verified checkpoints.
-
-## 14. Reconciliation gates
-
-Successful API calls and successful Sheet writes are not enough. Production data must be reconciled against the corresponding live Google surfaces/semantics.
-
-### GSC
-
-Reconcile comparable property totals and selected page/query samples over finalized ranges. Expected privacy/anonymization effects at query grain are not automatically defects.
-
-### GA4
-
-Reconcile reports only when date range, timezone, dimensions, metrics, and filter semantics match. Different report grains are not expected to sum to identical values.
-
-### GTM
-
-Verify that the normalized snapshot and fingerprint correspond to the currently published production container version and relevant tag/trigger/variable inventory.
-
-### Promotion result
-
-Only after all required capability baselines are reconciled may the system enter `BASELINE_RECONCILED`.
-
-## 15. Manual production verification before triggers
-
-After baseline reconciliation, run the real production `runDailyImport()` manually.
-
-Then run it a second time against the same logical source window to prove idempotency.
-
-Required evidence includes:
-
-- no duplicate logical GSC/GA4 rows;
-- no duplicate GTM snapshot when fingerprint is unchanged;
-- correct `Pipeline Health`;
-- correct `Run Log`;
-- correct findings lifecycle behavior;
-- no unexpected external calls;
-- no unexpected triggers.
-
-Only then can the system become `AUTOMATION_READY`.
-
-## 16. Trigger architecture
-
-Canonical production scheduling:
-
-```text
-Daily import: approximately 06:00 Europe/Athens
-Weekly inspection: Monday approximately 08:00 Europe/Athens
-ChatGPT weekly intelligence: Monday 09:00 Europe/Athens
-```
-
-The ChatGPT automation remains separate from Apps Script.
-
-`installTriggers()` must be idempotent. Expected triggers are created once; exact existing canonical triggers cause no duplicate; unexpected/conflicting triggers cause a stop/report.
-
-Trigger installation is forbidden until all required baseline, manual runtime, idempotency, and legacy-freeze gates have passed.
-
-Scheduled automation is not considered verified until at least the first real scheduled daily and weekly executions have been observed and reconciled.
-
-## 17. Run Log and Pipeline Health
-
-`Run Log` is append-oriented operational history. It should record fields equivalent to:
+Use one row per attempted source, sharing the same `runId`. Each row contains only operational evidence needed for V1:
 
 ```text
 runId
 startedAt
 finishedAt
-job
-environment
 source
-status
+sourceStatus
+overallStatus
 dataAsOf
 fetchedRows
 insertedRows
@@ -446,311 +205,216 @@ updatedRows
 unchangedRows
 errorClass
 errorMessage
-artifactVersion
 ```
 
-`Pipeline Health` is current state, not history. It should expose capability status, last attempt/success, actual and expected `dataAsOf`, freshness, consecutive failures, latest run, and bounded error summary.
+Do not build `Pipeline Health` in V1. Do not store stack traces, OAuth tokens, response bodies containing sensitive data, or credentials in the sheet.
 
-Source-specific freshness states include:
+### Error behavior
+
+- configuration/auth/resource failures are recorded as failures and are not blindly retried;
+- no synthetic zero rows are written for unavailable data;
+- source-level errors do not suppress the other source;
+- unexpected errors remain fail-visible.
+
+### Tests
+
+Use synthetic transports only; no live API calls in CI.
+
+Required cases:
+
+- both sources succeed → `SUCCESS`;
+- GSC fails, GA4 succeeds → `PARTIAL`, GA4 rows present;
+- GA4 fails, GSC succeeds → `PARTIAL`, GSC rows preserved;
+- both fail → `FAILED`;
+- identical second run produces no duplicate logical data;
+- Run Log source rows carry the correct shared `runId`, source status and overall status.
+
+## 7. T5 — Production registration and menu
+
+Register `runDailyImport` in `seo/apps-script/entrypoints/production.ts`.
+
+Add `runDailyImport` to the production target entrypoint list in `seo/apps-script/build.mjs` so the generated bundle contains a genuine top-level Apps Script wrapper outside the IIFE.
+
+Add a single operator menu item in `Menu.ts` to run the daily import manually.
+
+The production callable surface after V1 is:
 
 ```text
-CURRENT
-DELAYED_EXPECTED
-STALE
-FAILED
-NOT_READY
-DISABLED
+onOpen()
+setupWorkbookFromMenu()
+verifyConfiguration()
+runDailyImport()
 ```
 
-Expected source lag is not a failure.
+Do not add `verifyAllAccess`, `runWeeklyInspection`, `installTriggers`, or `removeTriggers` in V1.
 
-## 18. Findings Summary
+### Tests
 
-`Findings Summary` contains deterministic evidence-derived signals from the canonical Data Hub, not opaque AI judgments and not GitHub API data fetched by Apps Script.
+- entrypoint-discoverability test finds a top-level `function runDailyImport()` outside the IIFE;
+- production build remains deterministic;
+- generated bundle equivalence remains green;
+- smoke bundle remains separate and unchanged in purpose.
 
-No GitHub token is stored in Apps Script.
+## 8. T6 — Historical range import only if needed
 
-Findings use stable identity and lifecycle states:
+Do not create a separate backfill subsystem, checkpoint model, or second orchestration architecture.
+
+If historical baseline rows are required after the one-day production path is verified, add a bounded internal range runner that calls the same per-date import path with an injected `now`/source date. It must reuse the exact T4 behavior and idempotent writer.
+
+Do not add a second public production entrypoint unless operator usability demonstrates a real need. Do not add checkpoint/resume machinery unless an actual Apps Script execution-limit failure is observed.
+
+## 9. GSC source-time semantics
+
+Keep `GSC_TIME_ZONE = 'America/Los_Angeles'` for the Search Analytics API.
+
+The technical review suggested that this constant may be obsolete due to property-local-time reporting. That objection is not supported by the current official Search Analytics API contract: `startDate` and `endDate` are documented in PT (UTC-7/UTC-8), and incomplete-data metadata is documented in `America/Los_Angeles`.
+
+Official reference:
+
+`https://developers.google.com/webmaster-tools/v1/searchanalytics/query`
+
+Therefore V1 must not change this constant without contrary official API documentation or reproducible live evidence showing different Search Analytics API semantics.
+
+A live production reconciliation may still record a known-date comparison as operational evidence, but it is not a prerequisite for retaining the documented PT calendar contract.
+
+## 10. Workbook handling
+
+V1 is additive only:
+
+- keep the existing authoritative workbook/file ID;
+- keep all legacy underscore-named tabs untouched;
+- create missing canonical tabs idempotently through existing setup;
+- do not rename/delete legacy tabs;
+- do not change workbook timezone as part of V1;
+- do not transform legacy headers-only data into new grains.
+
+This avoids a migration project before the ingestion path itself is proven.
+
+## 11. Trigger and legacy cutover
+
+Programmatic trigger management is out of V1. Do not request `script.scriptapp`.
+
+After manual production validation and idempotency pass:
+
+1. perform the final read-only inventory of the legacy personal automation;
+2. remove its scheduled triggers under the separate owner-approved legacy retirement action;
+3. verify legacy trigger count is exactly zero;
+4. only then install one corporate daily trigger manually from the Apps Script UI;
+5. observe the first real scheduled execution.
+
+The legacy project and historical spreadsheet are archived, not deleted.
+
+The corporate production trigger is never installed while the legacy scheduled pipeline remains active.
+
+## 12. Five observable promotion states
+
+V1 uses only these evidence-backed states:
 
 ```text
-NEW
-ACTIVE
-CHANGED
-RESOLVED
+ARTIFACT_BUILT
+OAUTH_AUTHORIZED
+LIVE_ACCESS_OK
+IDEMPOTENT
+SCHEDULED
 ```
 
-Severity remains deterministic and bounded (`INFO`, `LOW`, `MEDIUM`, `HIGH`, `CRITICAL`), with `CRITICAL` reserved for truly severe operational/integrity conditions.
+### `ARTIFACT_BUILT`
 
-## 19. Report readiness and ChatGPT intelligence contract
-
-The reporting layer must inspect health before metrics.
-
-Aggregate report states:
-
-```text
-REPORT_READY
-REPORT_DEGRADED
-REPORT_BLOCKED
-```
-
-The weekly ChatGPT automation reads, in order:
-
-1. `Pipeline Health`;
-2. report readiness;
-3. relevant canonical datasets;
-4. `Findings Summary`;
-5. source-aware date windows;
-6. only then analysis and recommendations.
-
-Stale or unavailable data must suppress affected comparisons rather than be converted to zero.
-
-Cross-source comparisons use the latest reconciled common date and equal complete windows.
-
-The weekly report should cover:
-
-- executive data-health/confidence status;
-- Search Console performance;
-- GA4 site/engagement performance;
-- landing-page/service performance;
-- query/content opportunities;
-- technical/indexing/URL-quality evidence;
-- GTM measurement integrity;
-- new/changed/resolved findings;
-- prioritized actions;
-- compact provenance (`dataAsOf`, latest successful run, production artifact version, generated-at time).
-
-Repository/GitHub context may be consulted by ChatGPT through the connected GitHub integration when a technical finding requires code reconciliation. It is not pulled into Apps Script with a secret token.
-
-## 20. Legacy personal Apps Script retirement
-
-The legacy personal project is retired and archived, not deleted.
-
-### Read-only inventory
-
-Before mutation, capture:
-
-- project identity;
-- code/manifest hashes;
-- OAuth scopes;
-- active triggers;
-- relevant recent executions;
-- target spreadsheet identity;
-- last known data activity;
-- Script Property names only, never secret values.
-
-Classify it as active or dormant based on evidence, not assumption.
-
-### Cutover order
-
-The legacy system remains untouched while the corporate replacement is built and manually verified.
-
-Cutover order:
-
-```text
-Corporate baseline reconciled
-+ manual daily pass
-+ idempotency pass
-↓
-final legacy inventory
-↓
-remove all legacy scheduled triggers
-↓
-verify legacy trigger count = 0
-↓
-verify no unexpected legacy execution
-↓
-LEGACY_FROZEN
-↓
-install corporate production triggers
-```
-
-There must never be two accepted active scheduled Evochia SEO ingestion pipelines.
-
-### Archive state
-
-Preserve:
-
-- legacy project;
-- legacy code and manifest;
-- historical spreadsheet;
-- retirement evidence.
-
-Rename/archive labels may be applied only under explicit owner approval. Underlying IDs are preserved.
-
-### Authorization retirement
-
-After the corporate scheduled system has stabilized, the old personal OAuth authorization should be revoked as a separate owner-approved step. The archived project remains, but manual execution would require fresh authorization.
-
-Any future legacy reactivation is a new explicit owner gate and requires a fresh audit.
-
-## 21. Artifact provenance and deployment
-
-Production code is deployed only from deterministic generated repository artifacts.
-
-```text
-GitHub main
-→ deterministic build
-→ generated Code.gs / appsscript.json
-→ recorded artifact hashes
-→ production Apps Script
-```
-
-Generated production files are never hand-edited.
-
-Before production authorization, repository SHA, generated artifact hashes, manifest, and Google-side saved artifacts must be reconciled. Any unexplained drift is a stop condition.
-
-No Apps Script Web App deployment is part of this architecture.
-
-## 22. Production promotion lifecycle
-
-Canonical lifecycle:
-
-```text
-CODE_ACCEPTED
-→ PRODUCTION_ARTIFACT_VERIFIED
-→ PRODUCTION_PROJECT_BOUND
-→ OAUTH_AUTHORIZED
-→ RESOURCE_IDENTITIES_VERIFIED
-→ LIVE_ACCESS_VERIFIED
-→ BASELINE_BACKFILL_COMPLETED
-→ BASELINE_RECONCILED
-→ MANUAL_DAILY_RUN_VERIFIED
-→ IDEMPOTENCY_VERIFIED
-→ LEGACY_FROZEN
-→ AUTOMATION_READY
-→ TRIGGERS_INSTALLED
-→ FIRST_SCHEDULED_DAILY_PASS
-→ FIRST_SCHEDULED_WEEKLY_PASS
-→ AUTOMATED_VERIFIED
-→ WEEKLY_CHATGPT_CUTOVER
-```
-
-No stage is inferred merely because a prior stage succeeded.
-
-## 23. Rollback topology
-
-Rollback is non-destructive by default.
-
-- Before OAuth: no Google-side state should be changed.
-- After deployment but before triggers: restore/replace only with an approved artifact.
-- After triggers: remove canonical triggers and return to manual-only operation.
-- On major data/schema failure: freeze automation, preserve the current workbook, and use the pre-migration backup for forensic comparison.
-- Destructive workbook restoration requires a new owner gate.
-- Legacy personal automation is never an automatic failover.
-
-## 24. Testing requirements
-
-Implementation must use strict task-by-task TDD and keep normal repository gates green.
-
-Required test coverage includes at minimum:
-
-- capability-specific config verification;
-- common hard blockers and wrong-workbook fail-closed behavior;
-- production entrypoint discoverability;
-- exact manifest/scope contract checks;
-- outbound host allowlisting;
-- GSC/GA4 orchestration with synthetic transports;
-- GTM normalization/fingerprinting/change semantics;
-- Drive snapshot abstraction with synthetic transport/fakes in CI;
-- fetch-before-write behavior;
-- idempotent composite-key writes;
-- multi-sheet partial-write failure reporting;
-- pipeline health/freshness computation;
-- run status reconciliation;
-- deterministic findings lifecycle;
-- lock/concurrency behavior;
-- bounded retry classification;
-- trigger idempotency and conflict detection;
-- legacy coexistence gate logic where representable in repository code;
-- bundle equivalence and GAS-specific compatibility gates;
-- no live Google API calls in CI.
-
-Real Google-side validation remains a separate runtime gate and must never be falsely claimed from CI alone.
-
-## 25. Acceptance criteria / Definition of Done
-
-The architecture is complete only when all relevant gates are PASS:
-
-### Repository
-
-- architecture implemented;
-- tests green;
-- typecheck green;
-- GAS build green;
+- repository gates green;
+- production build green;
 - bundle equivalence green;
-- security validation green.
+- exact production manifest verified.
 
-### Google production
+### `OAUTH_AUTHORIZED`
 
-- corporate ownership verified;
-- production binding verified;
-- exact artifact identity verified;
-- exact approved OAuth scopes verified;
-- explicit resource identities verified;
-- live access verified.
+- corporate Apps Script project shows only the approved V1 scopes;
+- unexpected scope → stop, do not authorize.
 
-### Data Hub
+### `LIVE_ACCESS_OK`
 
-- full backup verified;
-- canonical migration verified;
-- legacy tabs/data preserved;
-- approved workbook timezone verified.
+- one manual production `runDailyImport()` completes;
+- at least one real GSC row and at least one real GA4 row are written for an eligible source day;
+- Run Log contains truthful source statuses/data dates.
 
-### GSC / GA4 / GTM
+### `IDEMPOTENT`
 
-- baselines complete;
-- reconciliation complete;
-- manual runtime verified;
-- GTM snapshot and no-change idempotency verified.
+- rerun the same logical source window;
+- zero duplicate logical rows are inserted;
+- updates/unchanged counts match expectations.
 
-### Operations
+### `SCHEDULED`
 
-- Run Log correct;
-- Pipeline Health correct;
-- Findings Summary correct;
-- failure isolation correct;
-- locking/retry behavior correct.
+- legacy scheduled triggers verified at zero;
+- corporate daily trigger installed manually;
+- first scheduled run observed and logged successfully.
 
-### Automation and legacy
+No additional lifecycle state machine is implemented in V1.
 
-- legacy scheduled triggers = 0 before corporate trigger activation;
-- corporate triggers installed exactly once;
-- first scheduled daily pass;
-- first scheduled weekly pass;
-- weekly ChatGPT automation migrated to canonical contract;
-- legacy source/history preserved and archived;
-- legacy OAuth retirement separately verified after stabilization.
+## 13. Repository gates
 
-## 26. Final invariants
+Strict TDD applies task by task. Every task returns the existing repository gates to green before the next task begins.
 
-The completed system must satisfy:
+At minimum verify:
 
 ```text
-ONE corporate owner
-+ ONE authoritative workbook
-+ ONE corporate production Apps Script
-+ ONE canonical data model
-+ ONE scheduled ingestion pipeline
-+ ONE ChatGPT intelligence layer
-+ ONE archived legacy system
+typecheck
+GAS-scoped typecheck
+unit tests
+Apps Script tests
+entrypoint discoverability
+production/smoke bundle contracts
+bundle equivalence
+security validation
 ```
 
-And:
+No live GSC/GA4 call is permitted in CI.
+
+Generated artifacts are derivatives of source and must never be hand-edited.
+
+## 14. V1 Definition of Done
+
+V1 is complete only when all of the following are true:
+
+- capability-scoped config no longer blocks workbook/GSC/GA4 on absent GTM/Drive resources;
+- GA4 report specs persist all six existing report grains through `upsertRows()`;
+- production manifest contains exactly five approved scopes;
+- production bundle exposes top-level `runDailyImport()`;
+- all repository gates are green;
+- one manual real production run writes real GSC and GA4 data;
+- a second run over the same logical source window inserts zero duplicate logical rows;
+- Run Log truthfully represents source and overall status;
+- missing/unavailable data is never fabricated as zero;
+- legacy personal triggers are verified at zero before corporate scheduling;
+- one manually configured corporate daily trigger executes successfully at least once.
+
+## 15. Deferred capabilities
+
+The following may return only when a concrete decision or operational problem requires them:
+
+- GTM drift monitoring;
+- Drive snapshot archival;
+- Pipeline Health dashboard/state machine;
+- findings lifecycle (`NEW`/`ACTIVE`/`CHANGED`/`RESOLVED`);
+- programmatic trigger management;
+- weekly inspection orchestration;
+- checkpointed/resumable backfill;
+- broader workbook migration/legacy-tab retirement.
+
+Reintroducing a deferred capability requires a bounded design/approval for that capability. It must not be restored simply because it existed in an earlier architecture diagram.
+
+## 16. Implementation order
+
+Implement exactly in this order:
 
 ```text
-No duplicate scheduled pipelines
-No guessed production resource identities
-No broad unnecessary scopes
-No hidden zero fabrication
-No uncontrolled outbound endpoints
-No production hand edits
-No trigger activation before reconciliation
-No destructive legacy deletion
-No production mutation without the applicable owner gate
+T1 capability-scoped config
+→ T2 GA4 report specs/writes
+→ T3 exact manifest
+→ T4 runDailyImport orchestrator + Run Log
+→ T5 production entrypoint/menu/build registration
+→ T6 bounded historical range helper only if needed
 ```
 
-## 27. Implementation planning boundary
+Do not produce another implementation-plan document for V1. This work order is the implementation contract.
 
-This document is the architectural source of truth once approved by the owner. It does not itself authorize implementation or any Google-side production mutation.
-
-After owner approval of this written spec, the next step is to create a task-by-task implementation plan using the Superpowers planning workflow. That plan must preserve the approval gates and must separate repository implementation from production Google actions so repository work cannot accidentally consume authorization intended for live systems.
+Implementation itself remains a separate owner gate. No Google-side production mutation is authorized by this document.
