@@ -16,7 +16,13 @@ const TARGETS = [
     outputDirectory: 'generated',
     outputFile: 'Code.gs',
     // Callable Apps Script functions this bundle must expose at top level.
-    entrypoints: ['onOpen', 'setupWorkbookFromMenu', 'verifyConfiguration'],
+    entrypoints: [
+      'onOpen',
+      'setupWorkbookFromMenu',
+      'verifyConfiguration',
+      'runDailyImport',
+      'runRangeImportFromMenu',
+    ],
   },
   {
     entry: 'entrypoints/smoke.ts',
