@@ -26,7 +26,7 @@ on:
       - .github/workflows/seo-data-hub-validation.yml
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: seo-validation-${{ github.event.pull_request.number || github.ref }}-data-hub
@@ -41,6 +41,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
+          ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
 
       - name: Set up Node.js
@@ -58,6 +59,23 @@ jobs:
 
       - name: Run Apps Script unit tests
         run: npm run seo:test:apps-script
+
+      - name: Build canonical Apps Script bundles for Task 5 handoff
+        run: npm run seo:build:apps-script
+
+      - name: Commit canonical Apps Script bundles to implementation branch
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          git add seo/apps-script/generated seo/apps-script/generated-smoke
+          if git diff --cached --quiet; then
+            echo "Canonical generated artifacts already match."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "build(seo): regenerate canonical Apps Script bundles"
+          git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "HEAD:${GITHUB_HEAD_REF}"
 
       - name: Run Apps Script contract tests
         run: npm run seo:test:apps-script-contracts
