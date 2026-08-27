@@ -15,6 +15,8 @@ export const RESOURCE_KEYS = [
   'driveFolderId',
 ] as const;
 
+export type CapabilityKey = 'workbook' | 'gsc' | 'ga4';
+
 export interface SeoConfig {
   gscProperty: string;
   ga4AccountId: string;
@@ -35,10 +37,30 @@ export interface VerificationResult {
   errors: string[];
 }
 
-export function verifyConfig(config: Partial<SeoConfig>): VerificationResult {
-  const errors: string[] = [];
+const CAPABILITY_RESOURCES: Record<CapabilityKey, readonly (keyof SeoConfig)[]> = {
+  workbook: ['sheetId'],
+  gsc: ['gscProperty'],
+  ga4: ['ga4PropertyId', 'ga4PropertyTimeZone', 'productionHostname'],
+};
 
-  for (const key of RESOURCE_KEYS) {
+function requiredResources(capabilities: readonly CapabilityKey[]): Set<keyof SeoConfig> {
+  const required = new Set<keyof SeoConfig>();
+  for (const capability of capabilities) {
+    for (const key of CAPABILITY_RESOURCES[capability]) {
+      required.add(key);
+    }
+  }
+  return required;
+}
+
+export function verifyConfig(
+  config: Partial<SeoConfig>,
+  capabilities: readonly CapabilityKey[] = ['workbook'],
+): VerificationResult {
+  const errors: string[] = [];
+  const required = requiredResources(capabilities);
+
+  for (const key of required) {
     const value = config[key];
     if (typeof value !== 'string' || value.trim() === '') {
       errors.push(`${key} is required`);
@@ -56,7 +78,8 @@ export function verifyConfig(config: Partial<SeoConfig>): VerificationResult {
   }
 
   if (
-    typeof config.ga4PropertyTimeZone === 'string'
+    required.has('ga4PropertyTimeZone')
+    && typeof config.ga4PropertyTimeZone === 'string'
     && config.ga4PropertyTimeZone !== 'UNVERIFIED'
     && !isValidIanaTimeZone(config.ga4PropertyTimeZone)
   ) {
@@ -64,7 +87,8 @@ export function verifyConfig(config: Partial<SeoConfig>): VerificationResult {
   }
 
   if (
-    typeof config.productionHostname === 'string'
+    required.has('productionHostname')
+    && typeof config.productionHostname === 'string'
     && config.productionHostname !== 'UNVERIFIED'
     && !isValidHostname(config.productionHostname)
   ) {
@@ -72,24 +96,20 @@ export function verifyConfig(config: Partial<SeoConfig>): VerificationResult {
   }
 
   if (
-    typeof config.gtmPublicContainerId === 'string'
-    && config.gtmPublicContainerId !== 'UNVERIFIED'
-    && !/^GTM-[A-Z0-9]+$/.test(config.gtmPublicContainerId)
+    required.has('ga4PropertyId')
+    && typeof config.ga4PropertyId === 'string'
+    && config.ga4PropertyId !== 'UNVERIFIED'
+    && !/^\d+$/.test(config.ga4PropertyId)
   ) {
-    errors.push('gtmPublicContainerId has an invalid format');
-  }
-
-  for (const key of ['ga4AccountId', 'ga4PropertyId', 'gtmAccountId', 'gtmContainerId'] as const) {
-    const value = config[key];
-    if (typeof value === 'string' && value !== 'UNVERIFIED' && !/^\d+$/.test(value)) {
-      errors.push(`${key} must contain digits only`);
-    }
+    errors.push('ga4PropertyId must contain digits only');
   }
 
   return { ok: errors.length === 0, errors };
 }
 
-export function getConfig(): SeoConfig {
+export function getConfig(
+  capabilities: readonly CapabilityKey[] = ['workbook'],
+): SeoConfig {
   const raw = PropertiesService.getScriptProperties().getProperty(CONFIG_PROPERTY_KEY);
   if (!raw) {
     throw new Error(`Missing Script Property: ${CONFIG_PROPERTY_KEY}`);
@@ -102,7 +122,7 @@ export function getConfig(): SeoConfig {
     throw new Error(`Invalid JSON in ${CONFIG_PROPERTY_KEY}: ${String(error)}`);
   }
 
-  const result = verifyConfig(parsed as Partial<SeoConfig>);
+  const result = verifyConfig(parsed as Partial<SeoConfig>, capabilities);
   if (!result.ok) {
     throw new Error(`SEO configuration is not verified: ${result.errors.join('; ')}`);
   }
