@@ -268,8 +268,13 @@ export function runRuntimeSmoke(): RuntimeSmokeResult {
       equal(isValidHostname('https://www.evochia.gr'), false, 'scheme rejected');
     }),
     check('config_validation', () => {
-      equal(verifyConfig(VERIFIED_CONFIG).ok, true, 'synthetic config accepted');
-      equal(verifyConfig({ ...VERIFIED_CONFIG, productionHostname: 'WWW.evochia.gr' }).ok, false, 'uppercase hostname rejected');
+      const capabilities = ['workbook', 'gsc', 'ga4'] as const;
+      equal(verifyConfig(VERIFIED_CONFIG, capabilities).ok, true, 'synthetic config accepted');
+      equal(
+        verifyConfig({ ...VERIFIED_CONFIG, productionHostname: 'WWW.evochia.gr' }, capabilities).ok,
+        false,
+        'uppercase hostname rejected',
+      );
     }),
     check('ga4_import_assembly', () => {
       const bundle = runGa4Reports(
