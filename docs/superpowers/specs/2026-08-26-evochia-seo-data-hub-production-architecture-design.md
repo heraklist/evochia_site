@@ -1,6 +1,6 @@
 # Evochia SEO Data Hub V1 Canonical Architecture
 
-**Status:** Revised after code-behavior review; pending owner approval for implementation plan  
+**Status:** Revised after code-behavior and live workbook review; pending owner approval for implementation plan  
 **Baseline:** `main` @ `fe3a791da35fc1810bb4f774f12b4626f3a2343d`
 
 ## Purpose
@@ -60,11 +60,11 @@ V1 implements branded-query normalization only: Unicode NFD, removal of combinin
 
 `MIN_PAGE_IMPRESSIONS` starts as `null`; any decision path requiring it fails explicitly as `not calibrated`. No temporary default is allowed. `VISIBLE_POSITION_MAX = 5` is owner-locked.
 
-## 4. Range import, sizing gate and initial backfill
+## 4. Range import, GATE-A sizing and initial backfill
 
 The Search Analytics client already accepts ranges; add a range-capable importer that accepts explicit `startDate`/`endDate`, keeps `date` in every grain, preserves fetch-before-write, and reuses the same report specs, normalization and composite keys.
 
-The implementation plan MUST begin with a live read-only sizing gate as soon as the minimum corporate GSC callable/OAuth surface exists: fetch `date + page + query` for one finalized day, record the returned row count, and extrapolate the approximate 13-month row volume. This measurement decides the write strategy; no writer-performance assumption is treated as verified beforehand.
+**GATE-A: sizing before backfill** occurs after the production GSC callable/OAuth path exists and before the 13-month backfill task begins. Run one live read-only `date + page + query` fetch for one finalized day, record the returned row count, and extrapolate the approximate 13-month row volume. This measurement decides the write strategy; no writer-performance assumption is treated as verified beforehand.
 
 This gate is required because current `upsertRows()` reads the complete existing sheet and rewrites the complete merged sheet on every call. Its computational cost therefore grows with accumulated `GSC Page Queries` history.
 
@@ -76,7 +76,7 @@ The initial 13-month backfill uses bounded calendar-month chunks. If the sizing 
 - headers are written/validated once;
 - append mode is never used for arbitrary repair/replay over existing history.
 
-Daily ingestion and M1 range repair retain idempotent semantics. If the sizing gate shows that daily whole-sheet rewrite of the mature `GSC Page Queries` sheet would itself be disproportionate, the implementation plan must add a bounded writer-optimization task before production scheduling rather than silently accepting the cost.
+Daily ingestion and M1 range repair retain idempotent semantics. If GATE-A shows that daily whole-sheet rewrite of the mature `GSC Page Queries` sheet would itself be disproportionate, the implementation plan must add a bounded writer-optimization task before production scheduling rather than silently accepting the cost.
 
 No checkpoint/resume state machine is added unless a real execution-limit failure later demonstrates the need. Pages that did not exist for the full history simply have shorter history; no synthetic prior-year rows are created.
 
@@ -105,7 +105,9 @@ A source failure does not suppress the other source. `PARTIAL` is never represen
 
 The reusable range implementation is `runRangeImport(startDate, endDate)`. Because a Sheets custom-menu callback is invoked by function name rather than supplied arbitrary arguments, the production operator surface exposes a no-argument `runRangeImportFromMenu()` wrapper that prompts for bounded ISO start/end dates and delegates to `runRangeImport`. Register `runDailyImport` and `runRangeImportFromMenu` in `entrypoints/production.ts` and the production `build.mjs` entrypoint list. The menu wrapper uses only the already-approved container UI capability.
 
-Freshness is a fixed block, not a new sheet/subsystem. The real production `Config` sheet already uses columns `A:C`; verified-unused `E:H` is reserved for V1 operational metadata. Store freshness at exactly `Config!E1:F4`:
+A direct read of the connected production workbook on **2026-08-27** confirmed that `Config!A:C` contains the legacy configuration table and that `Config!E:H` is empty within the inspected range `1:20`. This is live workbook evidence, not a repository inference. Reserve `Config!E:H` for V1 operational metadata unless a later owner edit changes that state before deployment.
+
+Store freshness at exactly `Config!E1:F4`:
 
 ```text
 E1 GSC dataAsOf   | F1 value
@@ -132,12 +134,12 @@ https://www.googleapis.com/auth/script.external_request
 
 No GTM, Drive, `script.scriptapp`, Search Console write, GA4 admin/edit, Gmail or Calendar scope is permitted. `script.external_request` remains required by the existing `UrlFetchApp` clients.
 
-The GSC source-calendar implementation remains `America/Los_Angeles`, matching the current Search Analytics API PT contract. After the 13-month backfill and before M1 activation, perform one manual reconciliation of a known finalized date against the Search Console UI under equivalent filters and record PASS/FAIL. A mismatch blocks M1 activation and requires investigation; it does not trigger an unreviewed timezone change.
+The GSC source-calendar implementation remains `America/Los_Angeles`, matching the current Search Analytics API PT contract. After the 13-month backfill and before M1 activation, perform one manual reconciliation of a known finalized date at **property grain**: compare the `GSC Daily` `byProperty` clicks/impressions for that date against the Search Console UI property-level totals under equivalent filters. Do not use summed page-level rows for this check. Record PASS/FAIL. A mismatch blocks M1 activation and requires investigation; it does not trigger an unreviewed timezone change.
 
 ## V1 boundary
 
-Implementation ends when the daily GSC/GA4 path is production-capable and idempotent, the sizing-gated 13-month GSC backfill is complete, freshness is visible, and the stored data can supply the locked M1/M2 contracts.
+Implementation ends when the daily GSC/GA4 path is production-capable and idempotent, the GATE-A-sized 13-month GSC backfill is complete, freshness is visible, and the stored data can supply the locked M1/M2 contracts.
 
-After backfill, three evidence steps occur before M1/M2 activation: populate the curated Evochia alias list from observed queries; choose `MIN_PAGE_IMPRESSIONS` with recorded value/rationale/eligibility impact/review date; and complete the GSC date-boundary reconciliation.
+After backfill, three evidence steps occur before M1/M2 activation: populate the curated Evochia alias list from observed queries; choose `MIN_PAGE_IMPRESSIONS` with recorded value/rationale/eligibility impact/review date; and complete the property-grain GSC date-boundary reconciliation.
 
 No monthly report generator, alerting, URL Inspection integration, GTM ingestion, Drive automation, Pipeline Health subsystem, findings lifecycle, scoring engine, automatic change detection or M3–M7 recurring contract is part of V1.
