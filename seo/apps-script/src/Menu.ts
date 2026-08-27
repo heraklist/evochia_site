@@ -13,8 +13,9 @@ export function verifyConfiguration(): void {
   const ui = SpreadsheetApp.getUi();
 
   try {
-    const config = getConfig();
-    const result = verifyConfig(config);
+    const capabilities = ['workbook', 'gsc', 'ga4'] as const;
+    const config = getConfig(capabilities);
+    const result = verifyConfig(config, capabilities);
     if (!result.ok) {
       ui.alert('Evochia SEO configuration', result.errors.join('\n'), ui.ButtonSet.OK);
       return;
