@@ -15,7 +15,7 @@ const LF_MANAGED_PATHS = [
 
 const production = () => readFileSync('seo/apps-script/generated/Code.gs', 'utf8');
 const smoke = () => readFileSync('seo/apps-script/generated-smoke/Code.gs', 'utf8');
-const FUTURE_ONLY_GOOGLE_SERVICE_CALL = /\b(?:UrlFetchApp|ScriptApp|DriveApp|TagManager|Drive)\s*\.\s*[A-Za-z_$][\w$]*/;
+const FORBIDDEN_PRODUCTION_CAPABILITY = /\b(?:DriveApp|TagManager|MailApp|GmailApp)\s*\.|\bScriptApp\s*\.\s*(?:newTrigger|getProjectTriggers|deleteTrigger)\s*\(/;
 const PUBLIC_CLASS_FIELD_DECLARATION = /\bclass(?:\s+[A-Za-z_$][\w$]*)?(?:\s+extends\s+[^\s{]+)?\s*{\s*(?:[A-Za-z_$][\w$]*;\s*)+(?=constructor\s*\()/;
 
 test('production bundle contains no module syntax or smoke entrypoint', () => {
@@ -25,11 +25,19 @@ test('production bundle contains no module syntax or smoke entrypoint', () => {
   assert.match(code, /onOpen/);
 });
 
-test('production bundle excludes future-only Google API capabilities and endpoints', () => {
+test('production bundle contains only the intended read-only Google API surface', () => {
   const code = production();
-  assert.doesNotMatch(code, FUTURE_ONLY_GOOGLE_SERVICE_CALL);
-  assert.doesNotMatch(code, /(?:analyticsdata|searchconsole)\.googleapis\.com/);
-  assert.doesNotMatch(code, /webmasters\/v3|urlInspection/);
+  assert.match(code, /UrlFetchApp\s*\.\s*fetch/);
+  assert.match(code, /ScriptApp\s*\.\s*getOAuthToken/);
+  assert.match(code, /searchconsole\.googleapis\.com\/webmasters\/v3\/sites\//);
+  assert.match(code, /searchAnalytics\/query/);
+  assert.match(code, /analyticsdata\.googleapis\.com\/v1beta\//);
+  assert.match(code, /:runReport/);
+
+  assert.doesNotMatch(code, FORBIDDEN_PRODUCTION_CAPABILITY);
+  assert.doesNotMatch(code, /(?:www\.)?googleapis\.com\/drive\//i);
+  assert.doesNotMatch(code, /tagmanager\.googleapis\.com/i);
+  assert.doesNotMatch(code, /urlInspection\/index:inspect/);
 });
 
 test('smoke bundle contains runtime smoke and no unresolved module syntax', () => {
