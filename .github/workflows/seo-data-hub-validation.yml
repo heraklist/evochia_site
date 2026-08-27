@@ -59,6 +59,18 @@ jobs:
       - name: Run Apps Script unit tests
         run: npm run seo:test:apps-script
 
+      - name: Build canonical Apps Script bundles for Task 5 handoff
+        run: npm run seo:build:apps-script
+
+      - name: Upload canonical Apps Script bundles for Task 5 handoff
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: apps-script-canonical-task5
+          path: |
+            seo/apps-script/generated
+            seo/apps-script/generated-smoke
+          if-no-files-found: error
+
       - name: Run Apps Script contract tests
         run: npm run seo:test:apps-script-contracts
 
