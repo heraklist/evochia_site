@@ -1,19 +1,15 @@
 # Evochia SEO Data Hub V1 Canonical Architecture
 
-**Status:** Owner-locked design; pending implementation plan  
+**Status:** Revised after code-behavior review; pending owner approval for implementation plan  
 **Baseline:** `main` @ `fe3a791da35fc1810bb4f774f12b4626f3a2343d`
 
 ## Purpose
 
-V1 exists to activate the smallest reliable production pipeline that automatically stores canonical GSC and GA4 history for later decision-making. The owner-approved M1/M2 product contracts are already locked and are not re-specified here. This document defines only the architecture needed to support them.
-
-M3–M7 remain frozen, not deleted. They may return only when a recurring decision cannot be made without them.
+V1 activates the smallest reliable production pipeline that stores canonical GSC and GA4 history for later decision-making. The owner-approved M1/M2 product contracts are already locked and are not re-specified here. M3–M7 remain frozen, not deleted, and may return only when a recurring decision cannot be made without them.
 
 ## 1. Capability-scoped configuration verification
 
-`Config.ts` must stop treating all future resources as one production-readiness gate.
-
-Use explicit capabilities:
+`Config.ts` must stop treating all future resources as one readiness gate.
 
 ```ts
 type CapabilityKey = 'workbook' | 'gsc' | 'ga4';
@@ -25,15 +21,13 @@ const CAPABILITY_RESOURCES = {
 } as const;
 ```
 
-`verifyConfig()` and `getConfig()` accept the requested capability set. `getVerifiedActiveWorkbook()` requests only `workbook`; GSC and GA4 callers request their own capability requirements.
+`verifyConfig()` and `getConfig()` accept the requested capability set. `getVerifiedActiveWorkbook()` requests only `workbook`; GSC and GA4 callers request their own requirements.
 
-Existing owner identity, workbook identity, verification-status, and format validation remain fail-closed. GTM and Drive resource values must not block workbook/GSC/GA4 V1 operation. `ga4AccountId` and `gtmPublicContainerId` are metadata only unless a V1 runtime call actually requires them.
-
-No V1 path may silently fall back from a missing required resource.
+Existing owner identity, workbook identity, verification-status and format validation remain fail-closed. GTM/Drive resources must not block V1. No V1 path may silently fall back from a missing required resource.
 
 ## 2. GA4 persistence specifications
 
-Keep the existing GA4 client and `runGa4Reports()` assembly. Add one write specification table and persist each completed bundle through the existing `upsertRows()` writer.
+Keep the existing GA4 client and `runGa4Reports()` assembly. Add `GA4_REPORT_SPECS` and persist a successfully fetched bundle through the existing writer semantics.
 
 | Bundle | Sheet | Composite key |
 | --- | --- | --- |
@@ -44,7 +38,7 @@ Keep the existing GA4 client and `runGa4Reports()` assembly. Add one write speci
 | `pages` | `GA4 Pages` | `date`, `hostName`, `pagePath` |
 | `urlQuality` | `GA4 URL Quality` | `date`, `hostName`, `pagePathPlusQueryString` |
 
-The complete GA4 bundle must be fetched successfully before any GA4 sheet write begins. Re-running the same logical range must update/leave unchanged existing keys rather than duplicate rows. No second writer abstraction is introduced.
+The complete GA4 bundle is fetched before any GA4 write begins. Re-running the same logical range must not create duplicate logical rows.
 
 ## 3. Fourth GSC report grain
 
@@ -60,48 +54,44 @@ Extend `GSC_REPORT_SPECS` with:
 }
 ```
 
-The existing three grains remain unchanged. `GSC Daily` remains property-grain trend data; it is not used as a subtractive page-level baseline.
+The existing grains remain unchanged. `GSC Daily` stays property-grain trend data and is never subtracted from page-grain data.
 
-The branded-query implementation is deliberately data-dependent. V1 implements only:
+V1 implements branded-query normalization only: Unicode NFD, removal of combining marks, lowercase, stable punctuation/whitespace normalization, seed forms `evochia` and `ευωχια`, and an initially empty curated alias set. No fuzzy/Levenshtein matching is permitted. Aliases are populated after backfill inspection.
 
-- Unicode NFD normalization;
-- removal of combining marks/accents;
-- lowercase normalization;
-- stable punctuation/whitespace normalization;
-- seed brand forms `evochia` and `ευωχια`;
-- an initially empty curated alias set.
+`MIN_PAGE_IMPRESSIONS` starts as `null`; any decision path requiring it fails explicitly as `not calibrated`. No temporary default is allowed. `VISIBLE_POSITION_MAX = 5` is owner-locked.
 
-The alias set is populated only after the 13-month backfill is inspected. No fuzzy/Levenshtein matching is permitted.
+## 4. Range import, sizing gate and initial backfill
 
-`MIN_PAGE_IMPRESSIONS` starts as `null`. Any decision path that requires it must fail explicitly with `not calibrated`; no temporary numeric default is allowed. `VISIBLE_POSITION_MAX = 5` is already owner-locked and is not recalibrated by the backfill.
+The Search Analytics client already accepts ranges; add a range-capable importer that accepts explicit `startDate`/`endDate`, keeps `date` in every grain, preserves fetch-before-write, and reuses the same report specs, normalization and composite keys.
 
-## 4. Range-based GSC import and initial backfill
+The implementation plan MUST begin with a live read-only sizing gate as soon as the minimum corporate GSC callable/OAuth surface exists: fetch `date + page + query` for one finalized day, record the returned row count, and extrapolate the approximate 13-month row volume. This measurement decides the write strategy; no writer-performance assumption is treated as verified beforehand.
 
-Do not implement the 13-month baseline as a per-day loop.
+This gate is required because current `upsertRows()` reads the complete existing sheet and rewrites the complete merged sheet on every call. Its computational cost therefore grows with accumulated `GSC Page Queries` history.
 
-Add a range-capable variant of the existing importer that accepts explicit `startDate` and `endDate`, uses the existing Search Analytics client, includes `date` in every report grain, preserves the current fetch-before-write behavior, and writes through the same idempotent composite keys.
+The initial 13-month backfill uses bounded calendar-month chunks. If the sizing evidence shows whole-sheet upsert remains operationally small, the existing upsert path may be reused. If not, V1 may add an append-only **initial-backfill path** using the same serialization and row schema, with these fail-closed preconditions:
 
-The initial backfill uses bounded calendar-month chunks over the available 13-month history. With four GSC specs this is approximately 52 base Search Analytics requests before pagination, rather than roughly 1,500 daily-spec requests. Pagination remains the responsibility of the existing client.
+- target sheet has no existing data rows before the one-shot backfill;
+- chunks are non-overlapping;
+- each chunk is deduplicated by the canonical composite key before append;
+- headers are written/validated once;
+- append mode is never used for arbitrary repair/replay over existing history.
 
-The range importer is a reuse path, not a second pipeline: same report specs, same normalization, same writer, same error semantics. No checkpoint subsystem or resumable state machine is added unless a real execution-limit failure later demonstrates the need.
+Daily ingestion and M1 range repair retain idempotent semantics. If the sizing gate shows that daily whole-sheet rewrite of the mature `GSC Page Queries` sheet would itself be disproportionate, the implementation plan must add a bounded writer-optimization task before production scheduling rather than silently accepting the cost.
 
-Pages that did not exist for the full history simply have shorter history; V1 must never synthesize prior-year rows.
+No checkpoint/resume state machine is added unless a real execution-limit failure later demonstrates the need. Pages that did not exist for the full history simply have shorter history; no synthetic prior-year rows are created.
 
-Before an M1 matured-window evaluation, the exact before/after GSC ranges are re-fetched and idempotently upserted. This repairs gaps caused by missed daily trigger executions without inferring completeness from missing date rows.
+Before M1 evaluation, the exact before/after ranges are re-fetched and idempotently reconciled so missed daily runs cannot create silent gaps.
 
-## 5. `runDailyImport()` and visible freshness
+## 5. Production orchestration, range invocation and visible freshness
 
-Add one production orchestrator, `runDailyImport()`.
-
-Its contract is:
+Add `runDailyImport()`:
 
 1. verify the bound workbook;
 2. obtain the OAuth token once;
-3. attempt the finalized GSC source date;
-4. independently attempt the finalized GA4 source date;
-5. persist each source only after that source's full fetch bundle succeeds;
-6. record minimal execution evidence in the existing `Run Log`;
-7. update the visible freshness block.
+3. independently attempt finalized GSC and GA4 source dates;
+4. persist each source only after that source's full fetch bundle succeeds;
+5. record minimal evidence in `Run Log`;
+6. update the visible freshness block.
 
 Overall status is exact:
 
@@ -111,22 +101,26 @@ exactly one source succeeds = PARTIAL
 both sources fail = FAILED
 ```
 
-A source failure must not prevent the other source from running or persisting. `PARTIAL` must never be represented as success. Missing source data is never fabricated as zero.
+A source failure does not suppress the other source. `PARTIAL` is never represented as success and unavailable data is never fabricated as zero.
 
-Freshness is not a new sheet or monitoring subsystem. `runDailyImport()` maintains one fixed visible block near the top of the workbook's first sheet containing exactly:
+The reusable range implementation is `runRangeImport(startDate, endDate)`. Because a Sheets custom-menu callback is invoked by function name rather than supplied arbitrary arguments, the production operator surface exposes a no-argument `runRangeImportFromMenu()` wrapper that prompts for bounded ISO start/end dates and delegates to `runRangeImport`. Register `runDailyImport` and `runRangeImportFromMenu` in `entrypoints/production.ts` and the production `build.mjs` entrypoint list. The menu wrapper uses only the already-approved container UI capability.
+
+Freshness is a fixed block, not a new sheet/subsystem. The real production `Config` sheet already uses columns `A:C`; verified-unused `E:H` is reserved for V1 operational metadata. Store freshness at exactly `Config!E1:F4`:
 
 ```text
-GSC dataAsOf
-GA4 dataAsOf
-last run
-status
+E1 GSC dataAsOf   | F1 value
+E2 GA4 dataAsOf   | F2 value
+E3 last run       | F3 value
+E4 status         | F4 value
 ```
 
-A source `dataAsOf` advances only when that source succeeds. `last run` and overall `status` reflect every attempted run. No email alert, `MailApp`, `GmailApp`, Pipeline Health subsystem, or failure watcher is added.
+A source `dataAsOf` advances only when that source succeeds; `last run` and `status` reflect every attempted run. `Config!E7:H9` is reserved for human-readable threshold provenance (`key`, `value`, `rationale`, `last reviewed`) without touching legacy `A:C` configuration.
 
-## 6. Exact production OAuth surface
+No email alert, `MailApp`, `GmailApp`, Pipeline Health subsystem or failure watcher is added.
 
-The production manifest contains exactly these five scopes:
+## 6. Exact OAuth surface and post-backfill verification
+
+The production manifest contains exactly:
 
 ```text
 https://www.googleapis.com/auth/spreadsheets.currentonly
@@ -136,14 +130,14 @@ https://www.googleapis.com/auth/analytics.readonly
 https://www.googleapis.com/auth/script.external_request
 ```
 
-No GTM, Drive, `script.scriptapp`, Search Console write, GA4 admin/edit, Gmail, or Calendar scope is permitted in V1.
+No GTM, Drive, `script.scriptapp`, Search Console write, GA4 admin/edit, Gmail or Calendar scope is permitted. `script.external_request` remains required by the existing `UrlFetchApp` clients.
 
-`script.external_request` remains required because the existing tested GSC/GA4 clients use `UrlFetchApp` with the Apps Script OAuth token.
+The GSC source-calendar implementation remains `America/Los_Angeles`, matching the current Search Analytics API PT contract. After the 13-month backfill and before M1 activation, perform one manual reconciliation of a known finalized date against the Search Console UI under equivalent filters and record PASS/FAIL. A mismatch blocks M1 activation and requires investigation; it does not trigger an unreviewed timezone change.
 
 ## V1 boundary
 
-Implementation ends when the daily GSC/GA4 path is production-capable, idempotent, range-backfilled for 13 months, visibly fresh, and capable of supplying the locked M1/M2 contracts.
+Implementation ends when the daily GSC/GA4 path is production-capable and idempotent, the sizing-gated 13-month GSC backfill is complete, freshness is visible, and the stored data can supply the locked M1/M2 contracts.
 
-After the backfill, two human calibration actions occur from the observed data: populate the curated Evochia brand alias list and choose `MIN_PAGE_IMPRESSIONS` with a recorded value, rationale, eligibility impact, and review date.
+After backfill, three evidence steps occur before M1/M2 activation: populate the curated Evochia alias list from observed queries; choose `MIN_PAGE_IMPRESSIONS` with recorded value/rationale/eligibility impact/review date; and complete the GSC date-boundary reconciliation.
 
-No monthly report generator, alerting, URL Inspection integration, GTM ingestion, Drive automation, Pipeline Health subsystem, findings lifecycle, scoring engine, automatic change detection, or M3–M7 recurring contract is part of V1.
+No monthly report generator, alerting, URL Inspection integration, GTM ingestion, Drive automation, Pipeline Health subsystem, findings lifecycle, scoring engine, automatic change detection or M3–M7 recurring contract is part of V1.
