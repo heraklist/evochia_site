@@ -1010,17 +1010,19 @@
     };
   }
   function runDailyImport(dependencies = {}) {
-    var _a, _b, _c, _d, _e, _f, _g, _h;
-    const now = (_a = dependencies.now) != null ? _a : defaultNow;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _i;
+    const verifyWorkbook = (_a = dependencies.getVerifiedActiveWorkbook) != null ? _a : (() => getVerifiedActiveWorkbook());
+    verifyWorkbook();
+    const now = (_b = dependencies.now) != null ? _b : defaultNow;
     const started = now();
     const startedAt = started.toISOString();
-    const runId = ((_b = dependencies.createRunId) != null ? _b : defaultRunId)();
-    const accessToken = ((_c = dependencies.getOAuthToken) != null ? _c : defaultOAuthToken)();
-    const configReader = (_d = dependencies.getConfig) != null ? _d : getConfig;
-    const importGsc = (_e = dependencies.importGscDay) != null ? _e : importSearchAnalyticsDay;
-    const importGa4 = (_f = dependencies.importGa4) != null ? _f : importGa4Reports;
-    const writer = (_g = dependencies.writeRows) != null ? _g : upsertRows;
-    const updateFreshness = (_h = dependencies.updateFreshness) != null ? _h : updateOperationalFreshness;
+    const runId = ((_c = dependencies.createRunId) != null ? _c : defaultRunId)();
+    const accessToken = ((_d = dependencies.getOAuthToken) != null ? _d : defaultOAuthToken)();
+    const configReader = (_e = dependencies.getConfig) != null ? _e : getConfig;
+    const importGsc = (_f = dependencies.importGscDay) != null ? _f : importSearchAnalyticsDay;
+    const importGa4 = (_g = dependencies.importGa4) != null ? _g : importGa4Reports;
+    const writer = (_h = dependencies.writeRows) != null ? _h : upsertRows;
+    const updateFreshness = (_i = dependencies.updateFreshness) != null ? _i : updateOperationalFreshness;
     let gsc;
     try {
       const config = configReader(["gsc"]);
