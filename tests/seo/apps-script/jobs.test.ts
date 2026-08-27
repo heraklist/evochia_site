@@ -68,6 +68,7 @@ function dependencies(options: { gscFails?: boolean; ga4Fails?: boolean } = {}) 
   const deps: JobDependencies = {
     now: () => new Date('2026-08-27T12:00:00.000Z'),
     createRunId: () => 'run-1',
+    getVerifiedActiveWorkbook: () => ({ getId: () => config.sheetId }),
     getOAuthToken: () => {
       tokenCalls += 1;
       return 'token-1';
@@ -125,7 +126,7 @@ test('daily job verifies the bound workbook before OAuth or any source/write act
   let writerCalls = 0;
   let freshnessCalls = 0;
 
-  const deps = {
+  const deps: JobDependencies = {
     now: () => new Date('2026-08-27T12:00:00.000Z'),
     createRunId: () => 'run-workbook-fail',
     getVerifiedActiveWorkbook: () => {
@@ -153,7 +154,7 @@ test('daily job verifies the bound workbook before OAuth or any source/write act
     updateFreshness: () => {
       freshnessCalls += 1;
     },
-  } as JobDependencies & { getVerifiedActiveWorkbook: () => unknown };
+  };
 
   assert.throws(() => runDailyImport(deps), /workbook mismatch/);
   assert.deepEqual(order, ['workbook']);
