@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 import { verifyConfig, type SeoConfig } from '../../../seo/apps-script/src/Config.ts';
-import { verifyConfiguration } from '../../../seo/apps-script/src/Menu.ts';
+import { runRangeImportFromMenu, verifyConfiguration } from '../../../seo/apps-script/src/Menu.ts';
 import {
   ensureWorkbookSheets,
   REQUIRED_SHEET_NAMES,
@@ -178,6 +178,90 @@ test('menu configuration verification checks the complete V1 capability set with
     assert.equal(alerts.length, 1);
     assert.equal(alerts[0][1], 'Configuration contract is verified.');
   });
+});
+
+test('range menu Measure only performs one read-only page-query request and zero Sheet writes', () => {
+  const originalDescriptors = new Map<string, PropertyDescriptor | undefined>();
+  for (const name of ['PropertiesService', 'SpreadsheetApp', 'ScriptApp', 'UrlFetchApp']) {
+    originalDescriptors.set(name, Object.getOwnPropertyDescriptor(globalThis, name));
+  }
+
+  let promptIndex = 0;
+  let fetchCalls = 0;
+  let rangeCalls = 0;
+  const alerts: unknown[][] = [];
+  const responses = ['2026-08-24', '2026-08-24', 'Measure only'];
+  const button = { OK: 'OK', CANCEL: 'CANCEL' };
+  const ui = {
+    Button: button,
+    ButtonSet: { OK: 'OK', OK_CANCEL: 'OK_CANCEL' },
+    prompt: () => ({
+      getSelectedButton: () => button.OK,
+      getResponseText: () => responses[promptIndex++],
+    }),
+    alert: (...args: unknown[]) => alerts.push(args),
+  };
+
+  Object.defineProperty(globalThis, 'PropertiesService', {
+    configurable: true,
+    value: {
+      getScriptProperties: () => ({
+        getProperty: () => JSON.stringify({
+          ...verifiedConfig,
+          gtmPublicContainerId: 'UNVERIFIED',
+          gtmAccountId: 'UNVERIFIED',
+          gtmContainerId: 'UNVERIFIED',
+          driveFolderId: 'UNVERIFIED',
+        }),
+      }),
+    },
+  });
+  Object.defineProperty(globalThis, 'SpreadsheetApp', {
+    configurable: true,
+    value: {
+      Button: button,
+      ButtonSet: ui.ButtonSet,
+      getUi: () => ui,
+      getActiveSpreadsheet: () => ({
+        getId: () => verifiedConfig.sheetId,
+        getRange: () => { rangeCalls += 1; throw new Error('Measure only must not touch Sheet ranges'); },
+      }),
+    },
+  });
+  Object.defineProperty(globalThis, 'ScriptApp', {
+    configurable: true,
+    value: { getOAuthToken: () => 'synthetic-token' },
+  });
+  Object.defineProperty(globalThis, 'UrlFetchApp', {
+    configurable: true,
+    value: {
+      fetch: () => {
+        fetchCalls += 1;
+        return {
+          getResponseCode: () => 200,
+          getContentText: () => JSON.stringify({
+            rows: [
+              { keys: ['2026-08-24', 'https://www.evochia.gr/en/private-chef/', 'private chef greece'], clicks: 1, impressions: 5, ctr: 0.2, position: 4 },
+              { keys: ['2026-08-24', 'https://www.evochia.gr/en/catering/', 'catering athens'], clicks: 0, impressions: 3, ctr: 0, position: 8 },
+            ],
+          }),
+        };
+      },
+    },
+  });
+
+  try {
+    runRangeImportFromMenu();
+    assert.equal(promptIndex, 3);
+    assert.equal(fetchCalls, 1);
+    assert.equal(rangeCalls, 0);
+    assert.equal(alerts.some((args) => args.some((value) => String(value).includes('GSC Page Queries rows: 2'))), true);
+  } finally {
+    for (const [name, descriptor] of originalDescriptors) {
+      if (descriptor) Object.defineProperty(globalThis, name, descriptor);
+      else delete (globalThis as Record<string, unknown>)[name];
+    }
+  }
 });
 
 test('creates every required sheet once and is idempotent', () => {
