@@ -1,4 +1,4 @@
-import { runDailyImport } from '../src/Jobs.ts';
+import { runDailyImport as runDailyImportJob } from '../src/Jobs.ts';
 import {
   onOpen,
   runRangeImportFromMenu,
@@ -16,6 +16,10 @@ type EntrypointRegistry = Record<string, AppsScriptEntrypoint>;
 type RegistryHost = typeof globalThis & {
   __evochiaAppsScriptEntrypoints__?: EntrypointRegistry;
 };
+
+function runDailyImport(): unknown {
+  return runDailyImportJob();
+}
 
 const host = globalThis as RegistryHost;
 const registry: EntrypointRegistry = host.__evochiaAppsScriptEntrypoints__ || {};
