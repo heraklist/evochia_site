@@ -118,6 +118,51 @@ test('daily job reports SUCCESS and obtains one OAuth token for both sources', (
   assert.equal(state.freshnessCalls.length, 1);
 });
 
+test('daily job verifies the bound workbook before OAuth or any source/write activity', () => {
+  const order: string[] = [];
+  let oauthCalls = 0;
+  let sourceCalls = 0;
+  let writerCalls = 0;
+  let freshnessCalls = 0;
+
+  const deps = {
+    now: () => new Date('2026-08-27T12:00:00.000Z'),
+    createRunId: () => 'run-workbook-fail',
+    getVerifiedActiveWorkbook: () => {
+      order.push('workbook');
+      throw new Error('workbook mismatch');
+    },
+    getOAuthToken: () => {
+      order.push('oauth');
+      oauthCalls += 1;
+      return 'token';
+    },
+    getConfig: () => config,
+    importGscDay: () => {
+      sourceCalls += 1;
+      return gscResult();
+    },
+    importGa4: () => {
+      sourceCalls += 1;
+      return ga4Result();
+    },
+    writeRows: () => {
+      writerCalls += 1;
+      return zeroWrite;
+    },
+    updateFreshness: () => {
+      freshnessCalls += 1;
+    },
+  } as JobDependencies & { getVerifiedActiveWorkbook: () => unknown };
+
+  assert.throws(() => runDailyImport(deps), /workbook mismatch/);
+  assert.deepEqual(order, ['workbook']);
+  assert.equal(oauthCalls, 0);
+  assert.equal(sourceCalls, 0);
+  assert.equal(writerCalls, 0);
+  assert.equal(freshnessCalls, 0);
+});
+
 test('daily job isolates a GSC failure and reports PARTIAL', () => {
   const { deps, state } = dependencies({ gscFails: true });
   const result = runDailyImport(deps);
