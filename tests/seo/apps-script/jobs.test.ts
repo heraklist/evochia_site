@@ -168,8 +168,30 @@ test('measurePageQueryRows fetches only date+page+query and never calls a writer
     searchAnalytics: (request) => {
       payloads.push(request);
       return [
-        { date: '2026-08-24', page: 'https://www.evochia.gr/en/private-chef/', query: 'private chef greece', clicks: 1, impressions: 5, ctr: 0.2, position: 4 },
-        { date: '2026-08-24', page: 'https://www.evochia.gr/en/catering/', query: 'catering athens', clicks: 0, impressions: 3, ctr: 0, position: 8 },
+        {
+          date: '2026-08-24',
+          page: 'https://www.evochia.gr/en/private-chef/',
+          query: 'private chef greece',
+          country: '',
+          device: '',
+          searchAppearance: '',
+          clicks: 1,
+          impressions: 5,
+          ctr: 0.2,
+          position: 4,
+        },
+        {
+          date: '2026-08-24',
+          page: 'https://www.evochia.gr/en/catering/',
+          query: 'catering athens',
+          country: '',
+          device: '',
+          searchAppearance: '',
+          clicks: 0,
+          impressions: 3,
+          ctr: 0,
+          position: 8,
+        },
       ];
     },
     writeRows: () => { writerCalls += 1; return zeroWrite; },
