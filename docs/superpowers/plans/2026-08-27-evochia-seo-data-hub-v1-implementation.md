@@ -24,6 +24,15 @@
 - CI uses synthetic transports only; no live GSC/GA4 request in automated tests.
 - Every task must return all repository gates to green before the next task.
 
+## Mandatory Review Invariants Between Tasks
+
+Every fresh reviewer must explicitly report **PASS/FAIL** for both invariants below before the next task begins. These are intentional product constraints, not missing implementation.
+
+1. **Uncalibrated threshold remains uncalibrated:** before Task 6 owner calibration, `MIN_PAGE_IMPRESSIONS` must have no numeric fallback, default, heuristic, environment value, or test-only production substitute. Any decision path that requires it must remain explicitly unavailable / `not calibrated`. A reviewer must reject any “sensible default” added for convenience.
+2. **Observed-only aliases remain observed-only:** before Task 6 query review, `BRAND_ALIASES` must remain empty. Only the locked seeds `evochia` and `ευωχια` may exist by default. A reviewer must reject guessed spelling, Greeklish, phonetic, edit-distance, or other “obvious” aliases unless they were actually observed in the backfilled GSC queries and approved during Task 6.
+
+After Task 6 calibration, the same review gate changes from “must remain empty/null” to “every non-null threshold / non-seed alias has recorded provenance from the Task 6 evidence.”
+
 ```bash
 npm run typecheck
 npm run typecheck:gas
