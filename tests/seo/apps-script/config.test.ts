@@ -256,10 +256,13 @@ test('setup rejects a mismatched workbook before any sheet lookup or insertion',
   assert.equal(sheetInsertions, 0);
 });
 
-test('manifest contains only the approved least-privilege scopes', () => {
+test('manifest contains exactly the approved V1 least-privilege scopes', () => {
   const manifest = JSON.parse(fs.readFileSync('seo/apps-script/appsscript.json', 'utf8'));
   assert.deepEqual(manifest.oauthScopes, [
     'https://www.googleapis.com/auth/spreadsheets.currentonly',
     'https://www.googleapis.com/auth/script.container.ui',
+    'https://www.googleapis.com/auth/webmasters.readonly',
+    'https://www.googleapis.com/auth/analytics.readonly',
+    'https://www.googleapis.com/auth/script.external_request',
   ]);
 });
