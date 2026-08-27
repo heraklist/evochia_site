@@ -5,6 +5,11 @@ import {
 } from './Ga4Client.ts';
 import type { HttpTransport } from './GscClient.ts';
 import { calendarDateParts, isValidHostname } from './RuntimeCompat.ts';
+import {
+  upsertRows,
+  type RowRecord,
+  type WriteSummary,
+} from './SheetWriter.ts';
 
 export interface Ga4ReportRange {
   propertyResource: string;
@@ -20,6 +25,11 @@ export interface Ga4ImportDependencies {
   accessToken?: string;
   transport?: HttpTransport;
   collectedAt?: string;
+  writeRows?: (
+    sheetName: string,
+    keyColumns: string[],
+    rows: RowRecord[],
+  ) => WriteSummary;
 }
 
 export interface Ga4ImportBundle {
@@ -31,6 +41,60 @@ export interface Ga4ImportBundle {
   events: Ga4Row[];
   pages: Ga4Row[];
   urlQuality: Ga4Row[];
+}
+
+export type Ga4ReportId = 'daily'
+  | 'acquisition'
+  | 'landingPages'
+  | 'events'
+  | 'pages'
+  | 'urlQuality';
+
+export const GA4_REPORT_SPECS = [
+  {
+    id: 'daily',
+    sheetName: 'GA4 Daily',
+    keyColumns: ['date', 'deviceCategory'],
+  },
+  {
+    id: 'acquisition',
+    sheetName: 'GA4 Acquisition',
+    keyColumns: ['date', 'sessionSourceMedium', 'sessionDefaultChannelGroup'],
+  },
+  {
+    id: 'landingPages',
+    sheetName: 'GA4 Landing Pages',
+    keyColumns: [
+      'date',
+      'landingPagePlusQueryString',
+      'sessionDefaultChannelGroup',
+      'deviceCategory',
+    ],
+  },
+  {
+    id: 'events',
+    sheetName: 'GA4 Events',
+    keyColumns: ['date', 'eventName'],
+  },
+  {
+    id: 'pages',
+    sheetName: 'GA4 Pages',
+    keyColumns: ['date', 'hostName', 'pagePath'],
+  },
+  {
+    id: 'urlQuality',
+    sheetName: 'GA4 URL Quality',
+    keyColumns: ['date', 'hostName', 'pagePathPlusQueryString'],
+  },
+] as const satisfies ReadonlyArray<{
+  id: Ga4ReportId;
+  sheetName: string;
+  keyColumns: readonly string[];
+}>;
+
+export interface Ga4PersistenceResult {
+  bundle: Ga4ImportBundle;
+  writes: Record<Ga4ReportId, WriteSummary>;
 }
 
 export function getAvailableGa4Date(
@@ -359,4 +423,23 @@ export function runGa4Reports(
     pages,
     urlQuality,
   };
+}
+
+export function importGa4Reports(
+  range: Ga4ReportRange,
+  dependencies: Ga4ImportDependencies = {},
+): Ga4PersistenceResult {
+  const bundle = runGa4Reports(range, dependencies);
+  const writer = dependencies.writeRows ?? upsertRows;
+  const writes = {} as Record<Ga4ReportId, WriteSummary>;
+
+  for (const spec of GA4_REPORT_SPECS) {
+    writes[spec.id] = writer(
+      spec.sheetName,
+      [...spec.keyColumns],
+      bundle[spec.id] as RowRecord[],
+    );
+  }
+
+  return { bundle, writes };
 }
