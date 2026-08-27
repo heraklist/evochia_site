@@ -30,6 +30,7 @@ import {
   type RowRecord,
   type WriteSummary,
 } from './SheetWriter.ts';
+import { getVerifiedActiveWorkbook } from './WorkbookIdentity.ts';
 
 export interface RunLogRow extends RowRecord {
   runId: string;
@@ -62,6 +63,7 @@ interface SourceOutcome {
 export interface JobDependencies {
   now?: () => Date;
   createRunId?: () => string;
+  getVerifiedActiveWorkbook?: () => unknown;
   getOAuthToken?: () => string;
   getConfig?: (capabilities: readonly CapabilityKey[]) => SeoConfig;
   importGscDay?: (
@@ -199,6 +201,9 @@ function toRunLogRow(
 }
 
 export function runDailyImport(dependencies: JobDependencies = {}): DailyJobResult {
+  const verifyWorkbook = dependencies.getVerifiedActiveWorkbook ?? (() => getVerifiedActiveWorkbook());
+  verifyWorkbook();
+
   const now = dependencies.now ?? defaultNow;
   const started = now();
   const startedAt = started.toISOString();
