@@ -215,7 +215,10 @@ function gscTransport(options: { empty?: boolean; failOnCall?: number } = {}): H
     if (key === 'date,page') {
       return response({ rows: [{ keys: ['2026-08-02', 'https://www.evochia.gr/en/private-chef/'], clicks: 3, impressions: 30, ctr: 0.1, position: 5 }] });
     }
-    return response({ rows: [{ keys: ['2026-08-02', 'private chef greece'], clicks: 2, impressions: 20, ctr: 0.1, position: 6 }] });
+    if (key === 'date,query') {
+      return response({ rows: [{ keys: ['2026-08-02', 'private chef greece'], clicks: 2, impressions: 20, ctr: 0.1, position: 6 }] });
+    }
+    return response({ rows: [{ keys: ['2026-08-02', 'https://www.evochia.gr/en/private-chef/', 'private chef greece'], clicks: 2, impressions: 20, ctr: 0.1, position: 6 }] });
   };
 }
 
@@ -311,7 +314,7 @@ export function runRuntimeSmoke(): RuntimeSmokeResult {
         },
       );
       equal(result.dataAsOf, '2026-08-02', 'GSC data-as-of date');
-      equal(writes.join(','), '1,1,1', 'synthetic writer calls');
+      equal(writes.join(','), '1,1,1,1', 'synthetic writer calls');
     }),
     check('sparse_and_error_semantics', () => {
       const sparse = runGa4Reports(
