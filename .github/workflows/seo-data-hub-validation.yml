@@ -26,7 +26,7 @@ on:
       - .github/workflows/seo-data-hub-validation.yml
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: seo-validation-${{ github.event.pull_request.number || github.ref }}-data-hub
@@ -38,11 +38,10 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - name: Check out implementation branch for canonical generation
+      - name: Check out repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          ref: codex/evochia-seo-data-hub-v1
-          persist-credentials: true
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -54,15 +53,20 @@ jobs:
       - name: Install locked dependencies
         run: npm ci --ignore-scripts
 
-      - name: Generate and commit canonical Apps Script bundles
-        run: |
-          npm run seo:build:apps-script
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add seo/apps-script/generated/Code.gs seo/apps-script/generated-smoke/Code.gs seo/apps-script/generated/appsscript.json seo/apps-script/generated-smoke/appsscript.json
-          if git diff --cached --quiet; then
-            echo "No generated bundle changes to commit."
-          else
-            git commit -m "build(seo): regenerate Apps Script bundles"
-            git push origin HEAD:codex/evochia-seo-data-hub-v1
-          fi
+      - name: Run root SEO contracts
+        run: npm run test:unit
+
+      - name: Run Apps Script unit tests
+        run: npm run seo:test:apps-script
+
+      - name: Run Apps Script contract tests
+        run: npm run seo:test:apps-script-contracts
+
+      - name: Run TypeScript validation
+        run: npm run typecheck
+
+      - name: Run Apps Script TypeScript validation
+        run: npm run typecheck:gas
+
+      - name: Verify committed Apps Script bundles
+        run: npm run seo:check:apps-script-bundle
