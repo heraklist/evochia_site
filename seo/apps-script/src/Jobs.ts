@@ -99,6 +99,11 @@ export interface DailyJobResult {
   };
 }
 
+interface DateRangeChunk {
+  startDate: string;
+  endDate: string;
+}
+
 function defaultNow(): Date {
   return new Date();
 }
@@ -200,6 +205,41 @@ function toRunLogRow(
   };
 }
 
+function parseIsoDate(value: string): Date {
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+function formatIsoDate(value: Date): string {
+  return value.toISOString().slice(0, 10);
+}
+
+function calendarMonthChunks(startDate: string, endDate: string): DateRangeChunk[] {
+  const chunks: DateRangeChunk[] = [];
+  let cursor = parseIsoDate(startDate);
+  const finalDate = parseIsoDate(endDate);
+
+  while (cursor <= finalDate) {
+    const monthEnd = new Date(Date.UTC(
+      cursor.getUTCFullYear(),
+      cursor.getUTCMonth() + 1,
+      0,
+    ));
+    const chunkEnd = monthEnd < finalDate ? monthEnd : finalDate;
+    chunks.push({
+      startDate: formatIsoDate(cursor),
+      endDate: formatIsoDate(chunkEnd),
+    });
+    cursor = new Date(Date.UTC(
+      chunkEnd.getUTCFullYear(),
+      chunkEnd.getUTCMonth(),
+      chunkEnd.getUTCDate() + 1,
+    ));
+  }
+
+  return chunks;
+}
+
 export function runDailyImport(dependencies: JobDependencies = {}): DailyJobResult {
   const verifyWorkbook = dependencies.getVerifiedActiveWorkbook ?? (() => getVerifiedActiveWorkbook());
   verifyWorkbook();
@@ -266,12 +306,23 @@ export function runRangeImport(
   const accessToken = (dependencies.getOAuthToken ?? defaultOAuthToken)();
   const config = (dependencies.getConfig ?? getConfig)(['gsc']);
   const importer = dependencies.importGscRange ?? importSearchAnalyticsRange;
-  return importer(
-    { siteUrl: config.gscProperty, monitoredUrls: [] },
-    startDate,
-    endDate,
-    { accessToken, collectedAt: (dependencies.now ?? defaultNow)().toISOString() },
-  );
+  const collectedAt = (dependencies.now ?? defaultNow)().toISOString();
+  let result: GscImportResult | undefined;
+
+  for (const chunk of calendarMonthChunks(startDate, endDate)) {
+    result = importer(
+      { siteUrl: config.gscProperty, monitoredUrls: [] },
+      chunk.startDate,
+      chunk.endDate,
+      { accessToken, collectedAt },
+    );
+  }
+
+  if (!result) {
+    throw new Error('Range import requires at least one calendar date');
+  }
+
+  return result;
 }
 
 export function measurePageQueryRows(
