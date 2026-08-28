@@ -1009,6 +1009,36 @@
       errorMessage: outcome.errorMessage
     };
   }
+  function parseIsoDate(value) {
+    const [year, month, day] = value.split("-").map(Number);
+    return new Date(Date.UTC(year, month - 1, day));
+  }
+  function formatIsoDate(value) {
+    return value.toISOString().slice(0, 10);
+  }
+  function calendarMonthChunks(startDate, endDate) {
+    const chunks = [];
+    let cursor = parseIsoDate(startDate);
+    const finalDate = parseIsoDate(endDate);
+    while (cursor <= finalDate) {
+      const monthEnd = new Date(Date.UTC(
+        cursor.getUTCFullYear(),
+        cursor.getUTCMonth() + 1,
+        0
+      ));
+      const chunkEnd = monthEnd < finalDate ? monthEnd : finalDate;
+      chunks.push({
+        startDate: formatIsoDate(cursor),
+        endDate: formatIsoDate(chunkEnd)
+      });
+      cursor = new Date(Date.UTC(
+        chunkEnd.getUTCFullYear(),
+        chunkEnd.getUTCMonth(),
+        chunkEnd.getUTCDate() + 1
+      ));
+    }
+    return chunks;
+  }
   function runDailyImport(dependencies = {}) {
     var _a, _b, _c, _d, _e, _f, _g, _h, _i;
     const verifyWorkbook = (_a = dependencies.getVerifiedActiveWorkbook) != null ? _a : (() => getVerifiedActiveWorkbook());
@@ -1067,12 +1097,20 @@
     const accessToken = ((_a = dependencies.getOAuthToken) != null ? _a : defaultOAuthToken)();
     const config = ((_b = dependencies.getConfig) != null ? _b : getConfig)(["gsc"]);
     const importer = (_c = dependencies.importGscRange) != null ? _c : importSearchAnalyticsRange;
-    return importer(
-      { siteUrl: config.gscProperty, monitoredUrls: [] },
-      startDate,
-      endDate,
-      { accessToken, collectedAt: ((_d = dependencies.now) != null ? _d : defaultNow)().toISOString() }
-    );
+    const collectedAt = ((_d = dependencies.now) != null ? _d : defaultNow)().toISOString();
+    let result;
+    for (const chunk of calendarMonthChunks(startDate, endDate)) {
+      result = importer(
+        { siteUrl: config.gscProperty, monitoredUrls: [] },
+        chunk.startDate,
+        chunk.endDate,
+        { accessToken, collectedAt }
+      );
+    }
+    if (!result) {
+      throw new Error("Range import requires at least one calendar date");
+    }
+    return result;
   }
   function measurePageQueryRows(startDate, endDate, dependencies = {}) {
     var _a, _b, _c;
