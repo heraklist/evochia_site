@@ -1162,6 +1162,7 @@
     const ui = SpreadsheetApp.getUi();
     try {
       setupWorkbook();
+      ensureOperationalMetadata();
       ui.alert(
         "Evochia SEO workbook",
         "Required sheets are present. Re-running setup is safe.",
