@@ -1,5 +1,6 @@
 import { getConfig, verifyConfig } from './Config.ts';
 import { measurePageQueryRows, runRangeImport } from './Jobs.ts';
+import { ensureOperationalMetadata } from './OperationalMetadata.ts';
 import { setupWorkbook } from './Setup.ts';
 
 function isIsoCalendarDate(value: string): boolean {
@@ -55,6 +56,7 @@ export function setupWorkbookFromMenu(): void {
 
   try {
     setupWorkbook();
+    ensureOperationalMetadata();
     ui.alert(
       'Evochia SEO workbook',
       'Required sheets are present. Re-running setup is safe.',
