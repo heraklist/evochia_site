@@ -1,5 +1,5 @@
 export const BRAND_SEEDS = ['evochia', 'ευωχια'] as const;
-export const BRAND_ALIASES: readonly string[] = [];
+export const BRAND_ALIASES: readonly string[] = ['evohia'];
 
 export function normalizeBrandText(value: string): string {
   return value
