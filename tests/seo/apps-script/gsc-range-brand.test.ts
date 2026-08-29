@@ -131,16 +131,18 @@ test('range import rejects malformed and reversed dates before any transport cal
   assert.equal(calls, 0);
 });
 
-test('brand normalization uses only locked seeds until observed aliases are approved', () => {
+test('brand normalization uses locked seeds plus the owner-approved observed alias', () => {
   assert.deepEqual(BRAND_SEEDS, ['evochia', 'ευωχια']);
-  assert.deepEqual(BRAND_ALIASES, []);
+  assert.deepEqual(BRAND_ALIASES, ['evohia']);
   assert.equal(normalizeBrandText('ΕΥΩΧΊΑ'), 'ευωχια');
   assert.equal(isBrandedQuery('Evochia private chef'), true);
   assert.equal(isBrandedQuery('Ευωχία private chef'), true);
   assert.equal(isBrandedQuery('ευωχια'), true);
   assert.equal(isBrandedQuery('evo-chia'), true);
+  assert.equal(isBrandedQuery('evohia'), true);
+  assert.equal(isBrandedQuery('evohia private chef'), true);
   assert.equal(isBrandedQuery('euphoria'), false);
   assert.equal(isBrandedQuery('Heraklis Xekalos'), false);
-  assert.equal(isBrandedQuery('evohia'), false);
-  assert.equal(isBrandedQuery('evohia', ['evohia']), true);
+  assert.equal(isBrandedQuery('evoxia'), false);
+  assert.equal(isBrandedQuery('evoxia', ['evoxia']), true);
 });
