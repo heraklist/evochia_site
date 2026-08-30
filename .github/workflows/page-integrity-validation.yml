@@ -10,6 +10,7 @@ on:
       - middleware.ts
       - sitemap.xml
       - tests/seo/page-integrity.test.mjs
+      - tests/seo/page-integrity-workflow-contract.test.mjs
       - package.json
       - package-lock.json
       - .github/workflows/page-integrity-validation.yml
