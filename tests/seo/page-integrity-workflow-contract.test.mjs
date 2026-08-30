@@ -41,6 +41,31 @@ function stepBlock(workflow, stepName) {
     : workflow.slice(start, start + marker.length + nextStep);
 }
 
+function runCommands(workflow) {
+  const commands = [];
+  const lines = workflow.split('\n');
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const scalar = line.match(/^\s{8}run:\s+(.+)$/)?.[1];
+    if (scalar) {
+      commands.push(scalar);
+      continue;
+    }
+
+    if (/^\s{8}run:\s*\|\s*$/.test(line)) {
+      const block = [];
+      index += 1;
+      while (index < lines.length && /^\s{10}/.test(lines[index])) {
+        block.push(lines[index].slice(10));
+        index += 1;
+      }
+      index -= 1;
+      commands.push(block.join('\n'));
+    }
+  }
+  return commands.join('\n');
+}
+
 function assertContract(workflow) {
   const triggerSection = workflow.match(/^on:\n[\s\S]*?(?=^permissions:)/m)?.[0] ?? '';
   const pullRequestPaths = triggerSection.match(
@@ -89,7 +114,7 @@ function assertContract(workflow) {
   const testStep = stepBlock(workflow, 'Run SEO page integrity contracts');
   assert.match(testStep, /run: npm run test:unit/);
 
-  const commands = workflow.replace(/^\s{8}if:[^\n]*$/gm, '');
+  const commands = runCommands(workflow);
   assert.doesNotMatch(commands, /\|\|/);
   assert.doesNotMatch(commands, /^\s*set\s+\+e\s*$/m);
   assert.doesNotMatch(commands, /(?:;\s*(?:true|:)|^\s*exit\s+0\s*$)/m);
