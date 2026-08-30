@@ -114,9 +114,11 @@ test('sitemap uses reciprocal language clusters and no unverified lastmod dates'
   }
 });
 
-test('SEO validation workflow runs for content and routing changes', () => {
-  const workflow = fs.readFileSync('.github/workflows/seo-data-hub-validation.yml', 'utf8');
+test('page-integrity validation runs for content and routing changes', () => {
+  const workflow = fs.readFileSync('.github/workflows/page-integrity-validation.yml', 'utf8');
   for (const requiredPath of ['en/**', 'el/**', 'middleware.ts', 'sitemap.xml']) {
     assert.match(workflow, new RegExp(`- ${requiredPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`), `workflow must watch ${requiredPath}`);
   }
+  assert.match(workflow, /run: npm run test:unit/);
+  assert.match(workflow, /persist-credentials: false/);
 });
