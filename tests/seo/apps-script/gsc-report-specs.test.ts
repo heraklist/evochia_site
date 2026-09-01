@@ -6,7 +6,7 @@ import {
 } from '../../../seo/apps-script/src/GscImporter.ts';
 import type { GscRow } from '../../../seo/apps-script/src/GscClient.ts';
 
-test('defines isolated daily, page, and query report grains', () => {
+test('defines isolated daily, page, query, and page-query report grains', () => {
   assert.deepEqual(GSC_REPORT_SPECS, [
     {
       id: 'daily',
@@ -28,6 +28,13 @@ test('defines isolated daily, page, and query report grains', () => {
       aggregationType: 'byProperty',
       sheetName: 'GSC Queries',
       keyColumns: ['date', 'query'],
+    },
+    {
+      id: 'pageQueries',
+      dimensions: ['date', 'page', 'query'],
+      aggregationType: 'auto',
+      sheetName: 'GSC Page Queries',
+      keyColumns: ['date', 'page', 'query'],
     },
   ]);
 

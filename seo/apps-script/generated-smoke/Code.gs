@@ -44,21 +44,24 @@
 
   // seo/apps-script/src/Config.ts
   var CONFIG_PROPERTY_KEY = "SEO_GOOGLE_RESOURCES_JSON";
-  var RESOURCE_KEYS = [
-    "gscProperty",
-    "ga4AccountId",
-    "ga4PropertyId",
-    "ga4PropertyTimeZone",
-    "productionHostname",
-    "gtmPublicContainerId",
-    "gtmAccountId",
-    "gtmContainerId",
-    "sheetId",
-    "driveFolderId"
-  ];
-  function verifyConfig(config) {
+  var CAPABILITY_RESOURCES = {
+    workbook: ["sheetId"],
+    gsc: ["gscProperty"],
+    ga4: ["ga4PropertyId", "ga4PropertyTimeZone", "productionHostname"]
+  };
+  function requiredResources(capabilities) {
+    const required = /* @__PURE__ */ new Set();
+    for (const capability of capabilities) {
+      for (const key of CAPABILITY_RESOURCES[capability]) {
+        required.add(key);
+      }
+    }
+    return required;
+  }
+  function verifyConfig(config, capabilities = ["workbook"]) {
     const errors = [];
-    for (const key of RESOURCE_KEYS) {
+    const required = requiredResources(capabilities);
+    for (const key of required) {
       const value = config[key];
       if (typeof value !== "string" || value.trim() === "") {
         errors.push(`${key} is required`);
@@ -72,24 +75,18 @@
     if (config.verificationStatus !== "verified") {
       errors.push("verificationStatus must be verified");
     }
-    if (typeof config.ga4PropertyTimeZone === "string" && config.ga4PropertyTimeZone !== "UNVERIFIED" && !isValidIanaTimeZone(config.ga4PropertyTimeZone)) {
+    if (required.has("ga4PropertyTimeZone") && typeof config.ga4PropertyTimeZone === "string" && config.ga4PropertyTimeZone !== "UNVERIFIED" && !isValidIanaTimeZone(config.ga4PropertyTimeZone)) {
       errors.push("ga4PropertyTimeZone must be a valid IANA timezone");
     }
-    if (typeof config.productionHostname === "string" && config.productionHostname !== "UNVERIFIED" && !isValidHostname(config.productionHostname)) {
+    if (required.has("productionHostname") && typeof config.productionHostname === "string" && config.productionHostname !== "UNVERIFIED" && !isValidHostname(config.productionHostname)) {
       errors.push("productionHostname must be a lowercase hostname without scheme, path, port, or trailing dot");
     }
-    if (typeof config.gtmPublicContainerId === "string" && config.gtmPublicContainerId !== "UNVERIFIED" && !/^GTM-[A-Z0-9]+$/.test(config.gtmPublicContainerId)) {
-      errors.push("gtmPublicContainerId has an invalid format");
-    }
-    for (const key of ["ga4AccountId", "ga4PropertyId", "gtmAccountId", "gtmContainerId"]) {
-      const value = config[key];
-      if (typeof value === "string" && value !== "UNVERIFIED" && !/^\d+$/.test(value)) {
-        errors.push(`${key} must contain digits only`);
-      }
+    if (required.has("ga4PropertyId") && typeof config.ga4PropertyId === "string" && config.ga4PropertyId !== "UNVERIFIED" && !/^\d+$/.test(config.ga4PropertyId)) {
+      errors.push("ga4PropertyId must contain digits only");
     }
     return { ok: errors.length === 0, errors };
   }
-  function getConfig() {
+  function getConfig(capabilities = ["workbook"]) {
     const raw = PropertiesService.getScriptProperties().getProperty(CONFIG_PROPERTY_KEY);
     if (!raw) {
       throw new Error(`Missing Script Property: ${CONFIG_PROPERTY_KEY}`);
@@ -100,7 +97,7 @@
     } catch (error) {
       throw new Error(`Invalid JSON in ${CONFIG_PROPERTY_KEY}: ${String(error)}`);
     }
-    const result = verifyConfig(parsed);
+    const result = verifyConfig(parsed, capabilities);
     if (!result.ok) {
       throw new Error(`SEO configuration is not verified: ${result.errors.join("; ")}`);
     }
@@ -199,6 +196,135 @@
       offset += pageRows.length;
     }
     return rows;
+  }
+
+  // seo/apps-script/src/WorkbookIdentity.ts
+  function getVerifiedActiveWorkbook(dependencies) {
+    var _a, _b;
+    const getVerifiedConfig = (_a = dependencies == null ? void 0 : dependencies.getConfig) != null ? _a : (() => getConfig(["workbook"]));
+    const getActiveWorkbook = (_b = dependencies == null ? void 0 : dependencies.getActiveWorkbook) != null ? _b : (() => SpreadsheetApp.getActiveSpreadsheet());
+    const config = getVerifiedConfig();
+    const workbook = getActiveWorkbook();
+    if (!workbook) {
+      throw new Error("The SEO Apps Script project must be bound to a Google Sheet.");
+    }
+    if (workbook.getId() !== config.sheetId) {
+      throw new Error("The active workbook does not match the configured sheet ID.");
+    }
+    return workbook;
+  }
+
+  // seo/apps-script/src/SheetWriter.ts
+  function serializeLiteralCell(value) {
+    if (typeof value === "string" && /^[=+\-@]/.test(value)) {
+      return `'${value}`;
+    }
+    return value != null ? value : "";
+  }
+  function cellPart(value) {
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+    return value == null ? "" : String(value);
+  }
+  function keyPart(value, timeZone) {
+    if (value instanceof Date) {
+      return formatCalendarDate(value, timeZone);
+    }
+    return value == null ? "" : String(value);
+  }
+  function buildCompositeKey(row, keyColumns, timeZone = "UTC") {
+    return keyColumns.map((column) => keyPart(row[column], timeZone)).join("");
+  }
+  function rowsEqual(headers, left, right, keyColumns, timeZone) {
+    const keySet = new Set(keyColumns);
+    return headers.every((header) => {
+      if (keySet.has(header)) {
+        return keyPart(left[header], timeZone) === keyPart(right[header], timeZone);
+      }
+      return cellPart(left[header]) === cellPart(right[header]);
+    });
+  }
+  function mergeRowRecords(headers, existingRows, keyColumns, incomingRows, timeZone = "UTC") {
+    for (const key of keyColumns) {
+      if (!headers.includes(key)) {
+        throw new Error(`Key column is not present in headers: ${key}`);
+      }
+    }
+    const rows = existingRows.map((row) => ({ ...row }));
+    const indexes = /* @__PURE__ */ new Map();
+    rows.forEach((row, index) => indexes.set(buildCompositeKey(row, keyColumns, timeZone), index));
+    const deduplicatedIncoming = /* @__PURE__ */ new Map();
+    for (const row of incomingRows) {
+      deduplicatedIncoming.set(buildCompositeKey(row, keyColumns, timeZone), { ...row });
+    }
+    let inserted = 0;
+    let updated = 0;
+    let unchanged = 0;
+    for (const [key, incoming] of deduplicatedIncoming) {
+      const existingIndex = indexes.get(key);
+      if (existingIndex == null) {
+        indexes.set(key, rows.length);
+        rows.push(incoming);
+        inserted += 1;
+        continue;
+      }
+      if (rowsEqual(headers, rows[existingIndex], incoming, keyColumns, timeZone)) {
+        unchanged += 1;
+        continue;
+      }
+      rows[existingIndex] = incoming;
+      updated += 1;
+    }
+    return {
+      rows,
+      summary: {
+        inserted,
+        updated,
+        unchanged,
+        total: rows.length
+      }
+    };
+  }
+  function upsertRows(sheetName, keyColumns, incomingRows, dependencies = { getVerifiedActiveWorkbook }) {
+    if (incomingRows.length === 0) {
+      return { inserted: 0, updated: 0, unchanged: 0, total: 0 };
+    }
+    const workbook = dependencies.getVerifiedActiveWorkbook();
+    const sheet = workbook.getSheetByName(sheetName);
+    if (!sheet) {
+      throw new Error(`Missing required sheet: ${sheetName}`);
+    }
+    const existingValues = sheet.getLastRow() > 0 ? sheet.getDataRange().getValues() : [];
+    const existingHeaders = existingValues.length > 0 ? existingValues[0].map(String) : [];
+    const incomingHeaders = Object.keys(incomingRows[0]);
+    const headers = [...existingHeaders];
+    for (const header of incomingHeaders) {
+      if (!headers.includes(header)) {
+        headers.push(header);
+      }
+    }
+    const existingRows = existingValues.slice(1).map((values) => {
+      const row = {};
+      headers.forEach((header, index) => {
+        var _a;
+        row[header] = (_a = values[index]) != null ? _a : null;
+      });
+      return row;
+    });
+    const timeZone = workbook.getSpreadsheetTimeZone();
+    const merged = mergeRowRecords(headers, existingRows, keyColumns, incomingRows, timeZone);
+    const output = [
+      headers,
+      ...merged.rows.map((row) => headers.map((header) => {
+        var _a;
+        return (_a = row[header]) != null ? _a : "";
+      }))
+    ];
+    sheet.getRange(1, 1, output.length, headers.length).setValues(
+      output.map((row) => row.map(serializeLiteralCell))
+    );
+    return merged.summary;
   }
 
   // seo/apps-script/src/Ga4Importer.ts
@@ -556,135 +682,6 @@
     return rows;
   }
 
-  // seo/apps-script/src/WorkbookIdentity.ts
-  function getVerifiedActiveWorkbook(dependencies) {
-    var _a, _b;
-    const getVerifiedConfig = (_a = dependencies == null ? void 0 : dependencies.getConfig) != null ? _a : getConfig;
-    const getActiveWorkbook = (_b = dependencies == null ? void 0 : dependencies.getActiveWorkbook) != null ? _b : (() => SpreadsheetApp.getActiveSpreadsheet());
-    const config = getVerifiedConfig();
-    const workbook = getActiveWorkbook();
-    if (!workbook) {
-      throw new Error("The SEO Apps Script project must be bound to a Google Sheet.");
-    }
-    if (workbook.getId() !== config.sheetId) {
-      throw new Error("The active workbook does not match the configured sheet ID.");
-    }
-    return workbook;
-  }
-
-  // seo/apps-script/src/SheetWriter.ts
-  function serializeLiteralCell(value) {
-    if (typeof value === "string" && /^[=+\-@]/.test(value)) {
-      return `'${value}`;
-    }
-    return value != null ? value : "";
-  }
-  function cellPart(value) {
-    if (value instanceof Date) {
-      return value.toISOString();
-    }
-    return value == null ? "" : String(value);
-  }
-  function keyPart(value, timeZone) {
-    if (value instanceof Date) {
-      return formatCalendarDate(value, timeZone);
-    }
-    return value == null ? "" : String(value);
-  }
-  function buildCompositeKey(row, keyColumns, timeZone = "UTC") {
-    return keyColumns.map((column) => keyPart(row[column], timeZone)).join("");
-  }
-  function rowsEqual(headers, left, right, keyColumns, timeZone) {
-    const keySet = new Set(keyColumns);
-    return headers.every((header) => {
-      if (keySet.has(header)) {
-        return keyPart(left[header], timeZone) === keyPart(right[header], timeZone);
-      }
-      return cellPart(left[header]) === cellPart(right[header]);
-    });
-  }
-  function mergeRowRecords(headers, existingRows, keyColumns, incomingRows, timeZone = "UTC") {
-    for (const key of keyColumns) {
-      if (!headers.includes(key)) {
-        throw new Error(`Key column is not present in headers: ${key}`);
-      }
-    }
-    const rows = existingRows.map((row) => ({ ...row }));
-    const indexes = /* @__PURE__ */ new Map();
-    rows.forEach((row, index) => indexes.set(buildCompositeKey(row, keyColumns, timeZone), index));
-    const deduplicatedIncoming = /* @__PURE__ */ new Map();
-    for (const row of incomingRows) {
-      deduplicatedIncoming.set(buildCompositeKey(row, keyColumns, timeZone), { ...row });
-    }
-    let inserted = 0;
-    let updated = 0;
-    let unchanged = 0;
-    for (const [key, incoming] of deduplicatedIncoming) {
-      const existingIndex = indexes.get(key);
-      if (existingIndex == null) {
-        indexes.set(key, rows.length);
-        rows.push(incoming);
-        inserted += 1;
-        continue;
-      }
-      if (rowsEqual(headers, rows[existingIndex], incoming, keyColumns, timeZone)) {
-        unchanged += 1;
-        continue;
-      }
-      rows[existingIndex] = incoming;
-      updated += 1;
-    }
-    return {
-      rows,
-      summary: {
-        inserted,
-        updated,
-        unchanged,
-        total: rows.length
-      }
-    };
-  }
-  function upsertRows(sheetName, keyColumns, incomingRows, dependencies = { getVerifiedActiveWorkbook }) {
-    if (incomingRows.length === 0) {
-      return { inserted: 0, updated: 0, unchanged: 0, total: 0 };
-    }
-    const workbook = dependencies.getVerifiedActiveWorkbook();
-    const sheet = workbook.getSheetByName(sheetName);
-    if (!sheet) {
-      throw new Error(`Missing required sheet: ${sheetName}`);
-    }
-    const existingValues = sheet.getLastRow() > 0 ? sheet.getDataRange().getValues() : [];
-    const existingHeaders = existingValues.length > 0 ? existingValues[0].map(String) : [];
-    const incomingHeaders = Object.keys(incomingRows[0]);
-    const headers = [...existingHeaders];
-    for (const header of incomingHeaders) {
-      if (!headers.includes(header)) {
-        headers.push(header);
-      }
-    }
-    const existingRows = existingValues.slice(1).map((values) => {
-      const row = {};
-      headers.forEach((header, index) => {
-        var _a;
-        row[header] = (_a = values[index]) != null ? _a : null;
-      });
-      return row;
-    });
-    const timeZone = workbook.getSpreadsheetTimeZone();
-    const merged = mergeRowRecords(headers, existingRows, keyColumns, incomingRows, timeZone);
-    const output = [
-      headers,
-      ...merged.rows.map((row) => headers.map((header) => {
-        var _a;
-        return (_a = row[header]) != null ? _a : "";
-      }))
-    ];
-    sheet.getRange(1, 1, output.length, headers.length).setValues(
-      output.map((row) => row.map(serializeLiteralCell))
-    );
-    return merged.summary;
-  }
-
   // seo/apps-script/src/GscImporter.ts
   var GSC_REPORT_SPECS = [
     {
@@ -707,6 +704,13 @@
       aggregationType: "byProperty",
       sheetName: "GSC Queries",
       keyColumns: ["date", "query"]
+    },
+    {
+      id: "pageQueries",
+      dimensions: ["date", "page", "query"],
+      aggregationType: "auto",
+      sheetName: "GSC Page Queries",
+      keyColumns: ["date", "page", "query"]
     }
   ];
   var GSC_TIME_ZONE = "America/Los_Angeles";
@@ -716,6 +720,23 @@
     }
     const { year, month, day } = calendarDateParts(now, GSC_TIME_ZONE);
     return new Date(Date.UTC(year, month - 1, day - delayDays)).toISOString().slice(0, 10);
+  }
+  function isIsoCalendarDate(value) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    if (!match) return false;
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    const date = new Date(Date.UTC(year, month - 1, day));
+    return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+  }
+  function validateRange(startDate, endDate) {
+    if (!isIsoCalendarDate(startDate) || !isIsoCalendarDate(endDate)) {
+      throw new Error("GSC range dates must use valid YYYY-MM-DD calendar dates");
+    }
+    if (startDate > endDate) {
+      throw new Error("GSC range startDate must be on or before endDate");
+    }
   }
   function deduplicateGscRows(rows, keyColumns) {
     const byKey = /* @__PURE__ */ new Map();
@@ -728,16 +749,16 @@
     }
     return [...byKey.values()];
   }
-  function importSearchAnalyticsDay(config, now, dependencies = {}) {
+  function importSearchAnalyticsRange(config, startDate, endDate, dependencies = {}) {
     var _a, _b;
-    const dataAsOf = getAvailableGscDate(now, 3);
-    const collectedAt = (_a = dependencies.collectedAt) != null ? _a : now.toISOString();
+    validateRange(startDate, endDate);
+    const collectedAt = (_a = dependencies.collectedAt) != null ? _a : (/* @__PURE__ */ new Date()).toISOString();
     const fetchedReports = GSC_REPORT_SPECS.map((spec) => ({
       spec,
       rows: fetchSearchAnalytics({
         siteUrl: config.siteUrl,
-        startDate: dataAsOf,
-        endDate: dataAsOf,
+        startDate,
+        endDate,
         dimensions: spec.dimensions,
         aggregationType: spec.aggregationType,
         transport: dependencies.transport,
@@ -749,7 +770,7 @@
     for (const { spec, rows: fetched } of fetchedReports) {
       const rows = deduplicateGscRows(fetched, spec.keyColumns).map((row) => ({
         ...row,
-        dataAsOf,
+        dataAsOf: endDate,
         collectedAt
       }));
       reports[spec.id] = {
@@ -757,7 +778,15 @@
         write: writer(spec.sheetName, [...spec.keyColumns], rows)
       };
     }
-    return { dataAsOf, collectedAt, reports };
+    return { dataAsOf: endDate, collectedAt, reports };
+  }
+  function importSearchAnalyticsDay(config, now, dependencies = {}) {
+    var _a;
+    const dataAsOf = getAvailableGscDate(now, 3);
+    return importSearchAnalyticsRange(config, dataAsOf, dataAsOf, {
+      ...dependencies,
+      collectedAt: (_a = dependencies.collectedAt) != null ? _a : now.toISOString()
+    });
   }
 
   // seo/apps-script/smoke/RuntimeSmoke.ts
@@ -936,7 +965,10 @@
       if (key === "date,page") {
         return response({ rows: [{ keys: ["2026-08-02", "https://www.evochia.gr/en/private-chef/"], clicks: 3, impressions: 30, ctr: 0.1, position: 5 }] });
       }
-      return response({ rows: [{ keys: ["2026-08-02", "private chef greece"], clicks: 2, impressions: 20, ctr: 0.1, position: 6 }] });
+      if (key === "date,query") {
+        return response({ rows: [{ keys: ["2026-08-02", "private chef greece"], clicks: 2, impressions: 20, ctr: 0.1, position: 6 }] });
+      }
+      return response({ rows: [{ keys: ["2026-08-02", "https://www.evochia.gr/en/private-chef/", "private chef greece"], clicks: 2, impressions: 20, ctr: 0.1, position: 6 }] });
     };
   }
   var VERIFIED_CONFIG = {
@@ -987,8 +1019,13 @@
         equal(isValidHostname("https://www.evochia.gr"), false, "scheme rejected");
       }),
       check("config_validation", () => {
-        equal(verifyConfig(VERIFIED_CONFIG).ok, true, "synthetic config accepted");
-        equal(verifyConfig({ ...VERIFIED_CONFIG, productionHostname: "WWW.evochia.gr" }).ok, false, "uppercase hostname rejected");
+        const capabilities = ["workbook", "gsc", "ga4"];
+        equal(verifyConfig(VERIFIED_CONFIG, capabilities).ok, true, "synthetic config accepted");
+        equal(
+          verifyConfig({ ...VERIFIED_CONFIG, productionHostname: "WWW.evochia.gr" }, capabilities).ok,
+          false,
+          "uppercase hostname rejected"
+        );
       }),
       check("ga4_import_assembly", () => {
         const bundle = runGa4Reports(
@@ -1025,7 +1062,7 @@
           }
         );
         equal(result2.dataAsOf, "2026-08-02", "GSC data-as-of date");
-        equal(writes.join(","), "1,1,1", "synthetic writer calls");
+        equal(writes.join(","), "1,1,1,1", "synthetic writer calls");
       }),
       check("sparse_and_error_semantics", () => {
         const sparse = runGa4Reports(

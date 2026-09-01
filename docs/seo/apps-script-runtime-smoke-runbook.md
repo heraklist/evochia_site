@@ -2,6 +2,8 @@
 
 This runbook separates repository acceptance from real Google Apps Script V8 runtime verification. Completing the repository phase does not authorize or imply any Google-side action.
 
+> **Scope:** this document is for the data-free, non-production V8 smoke only. For production configuration, scheduling, missing-day repair, calibration, property totals, and historical-load operations, use `docs/seo/seo-data-hub-production-runbook.md`.
+
 ## Phase 1 — repository-only verification
 
 Run against the exact commit intended for smoke verification:

@@ -15,7 +15,13 @@ const production = () => readFileSync('seo/apps-script/generated/Code.gs', 'utf8
 const smoke = () => readFileSync('seo/apps-script/generated-smoke/Code.gs', 'utf8');
 
 const SMOKE_ENTRYPOINTS = ['runRuntimeSmoke'];
-const PRODUCTION_ENTRYPOINTS = ['onOpen', 'setupWorkbookFromMenu', 'verifyConfiguration'];
+const PRODUCTION_ENTRYPOINTS = [
+  'onOpen',
+  'setupWorkbookFromMenu',
+  'verifyConfiguration',
+  'runDailyImport',
+  'runRangeImportFromMenu',
+];
 
 // esbuild indents every statement inside the IIFE by at least two spaces, so a
 // declaration anchored at column zero (`^function name(`) is, by construction,
@@ -58,6 +64,7 @@ test('production bundle declares every callable entrypoint as a genuine top-leve
       `generated/Code.gs must declare a top-level "function ${name}(" that Apps Script can discover`,
     );
   }
+  assert.deepEqual([...declarations.keys()].filter((name) => PRODUCTION_ENTRYPOINTS.includes(name)), PRODUCTION_ENTRYPOINTS);
 });
 
 test('top-level entrypoint declarations are emitted outside the esbuild IIFE', () => {

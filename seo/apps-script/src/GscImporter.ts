@@ -10,13 +10,13 @@ import {
 import { calendarDateParts } from './RuntimeCompat.ts';
 import { upsertRows, type RowRecord, type WriteSummary } from './SheetWriter.ts';
 
-export type GscReportId = 'daily' | 'pages' | 'queries';
+export type GscReportId = 'daily' | 'pages' | 'queries' | 'pageQueries';
 
 export interface GscReportSpec {
   id: GscReportId;
   dimensions: readonly GscDimension[];
   aggregationType: GscAggregationType;
-  sheetName: 'GSC Daily' | 'GSC Pages' | 'GSC Queries';
+  sheetName: 'GSC Daily' | 'GSC Pages' | 'GSC Queries' | 'GSC Page Queries';
   keyColumns: readonly string[];
 }
 
@@ -41,6 +41,13 @@ export const GSC_REPORT_SPECS = [
     aggregationType: 'byProperty',
     sheetName: 'GSC Queries',
     keyColumns: ['date', 'query'],
+  },
+  {
+    id: 'pageQueries',
+    dimensions: ['date', 'page', 'query'],
+    aggregationType: 'auto',
+    sheetName: 'GSC Page Queries',
+    keyColumns: ['date', 'page', 'query'],
   },
 ] as const satisfies readonly GscReportSpec[];
 
@@ -84,6 +91,28 @@ export function getAvailableGscDate(now: Date, delayDays = 3): string {
     .slice(0, 10);
 }
 
+function isIsoCalendarDate(value: string): boolean {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year
+    && date.getUTCMonth() === month - 1
+    && date.getUTCDate() === day;
+}
+
+function validateRange(startDate: string, endDate: string): void {
+  if (!isIsoCalendarDate(startDate) || !isIsoCalendarDate(endDate)) {
+    throw new Error('GSC range dates must use valid YYYY-MM-DD calendar dates');
+  }
+  if (startDate > endDate) {
+    throw new Error('GSC range startDate must be on or before endDate');
+  }
+}
+
 export function deduplicateGscRows(
   rows: GscRow[],
   keyColumns: readonly string[],
@@ -98,20 +127,21 @@ export function deduplicateGscRows(
   return [...byKey.values()];
 }
 
-export function importSearchAnalyticsDay(
+export function importSearchAnalyticsRange(
   config: GscImportConfig,
-  now: Date,
+  startDate: string,
+  endDate: string,
   dependencies: GscImportDependencies = {},
 ): GscImportResult {
-  const dataAsOf = getAvailableGscDate(now, 3);
-  const collectedAt = dependencies.collectedAt ?? now.toISOString();
+  validateRange(startDate, endDate);
+  const collectedAt = dependencies.collectedAt ?? new Date().toISOString();
 
   const fetchedReports = GSC_REPORT_SPECS.map((spec) => ({
     spec,
     rows: fetchSearchAnalytics({
       siteUrl: config.siteUrl,
-      startDate: dataAsOf,
-      endDate: dataAsOf,
+      startDate,
+      endDate,
       dimensions: spec.dimensions,
       aggregationType: spec.aggregationType,
       transport: dependencies.transport,
@@ -125,7 +155,7 @@ export function importSearchAnalyticsDay(
   for (const { spec, rows: fetched } of fetchedReports) {
     const rows = deduplicateGscRows(fetched, spec.keyColumns).map((row) => ({
       ...row,
-      dataAsOf,
+      dataAsOf: endDate,
       collectedAt,
     }));
 
@@ -135,7 +165,19 @@ export function importSearchAnalyticsDay(
     };
   }
 
-  return { dataAsOf, collectedAt, reports };
+  return { dataAsOf: endDate, collectedAt, reports };
+}
+
+export function importSearchAnalyticsDay(
+  config: GscImportConfig,
+  now: Date,
+  dependencies: GscImportDependencies = {},
+): GscImportResult {
+  const dataAsOf = getAvailableGscDate(now, 3);
+  return importSearchAnalyticsRange(config, dataAsOf, dataAsOf, {
+    ...dependencies,
+    collectedAt: dependencies.collectedAt ?? now.toISOString(),
+  });
 }
 
 export function inspectMonitoredUrls(

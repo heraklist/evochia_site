@@ -215,7 +215,10 @@ function gscTransport(options: { empty?: boolean; failOnCall?: number } = {}): H
     if (key === 'date,page') {
       return response({ rows: [{ keys: ['2026-08-02', 'https://www.evochia.gr/en/private-chef/'], clicks: 3, impressions: 30, ctr: 0.1, position: 5 }] });
     }
-    return response({ rows: [{ keys: ['2026-08-02', 'private chef greece'], clicks: 2, impressions: 20, ctr: 0.1, position: 6 }] });
+    if (key === 'date,query') {
+      return response({ rows: [{ keys: ['2026-08-02', 'private chef greece'], clicks: 2, impressions: 20, ctr: 0.1, position: 6 }] });
+    }
+    return response({ rows: [{ keys: ['2026-08-02', 'https://www.evochia.gr/en/private-chef/', 'private chef greece'], clicks: 2, impressions: 20, ctr: 0.1, position: 6 }] });
   };
 }
 
@@ -268,8 +271,13 @@ export function runRuntimeSmoke(): RuntimeSmokeResult {
       equal(isValidHostname('https://www.evochia.gr'), false, 'scheme rejected');
     }),
     check('config_validation', () => {
-      equal(verifyConfig(VERIFIED_CONFIG).ok, true, 'synthetic config accepted');
-      equal(verifyConfig({ ...VERIFIED_CONFIG, productionHostname: 'WWW.evochia.gr' }).ok, false, 'uppercase hostname rejected');
+      const capabilities = ['workbook', 'gsc', 'ga4'] as const;
+      equal(verifyConfig(VERIFIED_CONFIG, capabilities).ok, true, 'synthetic config accepted');
+      equal(
+        verifyConfig({ ...VERIFIED_CONFIG, productionHostname: 'WWW.evochia.gr' }, capabilities).ok,
+        false,
+        'uppercase hostname rejected',
+      );
     }),
     check('ga4_import_assembly', () => {
       const bundle = runGa4Reports(
@@ -306,7 +314,7 @@ export function runRuntimeSmoke(): RuntimeSmokeResult {
         },
       );
       equal(result.dataAsOf, '2026-08-02', 'GSC data-as-of date');
-      equal(writes.join(','), '1,1,1', 'synthetic writer calls');
+      equal(writes.join(','), '1,1,1,1', 'synthetic writer calls');
     }),
     check('sparse_and_error_semantics', () => {
       const sparse = runGa4Reports(

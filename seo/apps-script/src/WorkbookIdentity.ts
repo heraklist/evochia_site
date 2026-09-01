@@ -16,7 +16,7 @@ export function getVerifiedActiveWorkbook<TWorkbook extends WorkbookIdentity>(
 export function getVerifiedActiveWorkbook<TWorkbook extends WorkbookIdentity>(
   dependencies?: WorkbookIdentityDependencies<TWorkbook>,
 ): TWorkbook | GoogleAppsScript.Spreadsheet.Spreadsheet {
-  const getVerifiedConfig = dependencies?.getConfig ?? getConfig;
+  const getVerifiedConfig = dependencies?.getConfig ?? (() => getConfig(['workbook']));
   const getActiveWorkbook = dependencies?.getActiveWorkbook
     ?? (() => SpreadsheetApp.getActiveSpreadsheet());
   const config = getVerifiedConfig();

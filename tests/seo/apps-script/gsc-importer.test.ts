@@ -213,7 +213,7 @@ test('uses the named timezone across the daylight-saving boundary', () => {
   );
 });
 
-test('fetches and writes daily, page, and query reports at their own grains', () => {
+test('fetches and writes daily, page, query, and page-query reports at their own grains', () => {
   const requests: Array<{ dimensions: string[]; aggregationType: string }> = [];
   const writes: Array<{ sheetName: string; keyColumns: string[]; rows: RowRecord[] }> = [];
 
@@ -232,6 +232,7 @@ test('fetches and writes daily, page, and query reports at their own grains', ()
       date: [{ keys: ['2026-08-02'], clicks: 5, impressions: 50, ctr: 0.1, position: 4 }],
       'date,page': [{ keys: ['2026-08-02', 'https://www.evochia.gr/en/private-chef.html'], clicks: 3, impressions: 30, ctr: 0.1, position: 5 }],
       'date,query': [{ keys: ['2026-08-02', 'private chef greece'], clicks: 2, impressions: 20, ctr: 0.1, position: 6 }],
+      'date,page,query': [{ keys: ['2026-08-02', 'https://www.evochia.gr/en/private-chef/', 'private chef greece'], clicks: 2, impressions: 20, ctr: 0.1, position: 6 }],
     };
     return response({ rows: rowsByDimensions[key] ?? [] });
   };
@@ -254,11 +255,13 @@ test('fetches and writes daily, page, and query reports at their own grains', ()
     { dimensions: ['date'], aggregationType: 'byProperty' },
     { dimensions: ['date', 'page'], aggregationType: 'auto' },
     { dimensions: ['date', 'query'], aggregationType: 'byProperty' },
+    { dimensions: ['date', 'page', 'query'], aggregationType: 'auto' },
   ]);
   assert.deepEqual(writes.map(({ sheetName, keyColumns }) => ({ sheetName, keyColumns })), [
     { sheetName: 'GSC Daily', keyColumns: ['date'] },
     { sheetName: 'GSC Pages', keyColumns: ['date', 'page'] },
     { sheetName: 'GSC Queries', keyColumns: ['date', 'query'] },
+    { sheetName: 'GSC Page Queries', keyColumns: ['date', 'page', 'query'] },
   ]);
   for (const write of writes) {
     assert.equal(write.rows.length, 1);
@@ -269,6 +272,7 @@ test('fetches and writes daily, page, and query reports at their own grains', ()
   assert.equal(result.reports.daily.fetched, 1);
   assert.equal(result.reports.pages.fetched, 1);
   assert.equal(result.reports.queries.fetched, 1);
+  assert.equal(result.reports.pageQueries.fetched, 1);
 });
 
 test('does not write any report when a later GSC fetch fails', () => {
@@ -312,10 +316,11 @@ test('keeps empty successful reports empty without synthetic rows', () => {
     },
   );
 
-  assert.deepEqual(writtenRowCounts, [0, 0, 0]);
+  assert.deepEqual(writtenRowCounts, [0, 0, 0, 0]);
   assert.equal(result.reports.daily.fetched, 0);
   assert.equal(result.reports.pages.fetched, 0);
   assert.equal(result.reports.queries.fetched, 0);
+  assert.equal(result.reports.pageQueries.fetched, 0);
 });
 
 test('URL Inspection is limited to the monitored allowlist and stores canonicals', () => {

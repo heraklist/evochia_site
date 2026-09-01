@@ -7,6 +7,7 @@ export const REQUIRED_SHEET_NAMES = [
   'GSC Daily',
   'GSC Pages',
   'GSC Queries',
+  'GSC Page Queries',
   'GSC Indexing',
   'GA4 Daily',
   'GA4 Acquisition',
