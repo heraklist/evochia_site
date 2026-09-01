@@ -37,12 +37,18 @@ function firstServiceSchema(html) {
   return service;
 }
 
+function wordCount(value) {
+  return value.split(/\s+/).filter(Boolean).length;
+}
+
 test('broad private-chef page stays transactional and differentiated without owning villa intent', () => {
   const title = titleOf(parentHtml);
   const description = descriptionOf(parentHtml);
   const service = firstServiceSchema(parentHtml);
 
-  assert.match(title, /private chef in greece/i);
+  assert.match(title, /^Private Chef in Greece\b/i);
+  assert.match(title, /Dinners\s*&amp;\s*Celebrations/i, 'parent title should communicate concrete booking occasions');
+  assert.match(title, /\|\s*Evochia$/i);
   assert.doesNotMatch(title, /\bvillas?\b/i, 'parent title must not target villa intent');
   assert.doesNotMatch(title, /\byachts?\b/i, 'parent title must not target yacht intent');
 
@@ -55,6 +61,7 @@ test('broad private-chef page stays transactional and differentiated without own
 
   assert.doesNotMatch(service.description, /\bvillas?\b/i, 'parent Service schema must not target villa intent');
   assert.doesNotMatch(service.description, /\byachts?\b/i, 'parent Service schema must not target yacht intent');
+  assert.equal(service.description, description, 'parent Service schema should use the canonical parent description');
   assert.equal(socialValue(parentHtml, 'og:description'), description);
   assert.equal(socialValue(parentHtml, 'twitter:description', 'name'), description);
 
@@ -65,7 +72,7 @@ test('broad private-chef page stays transactional and differentiated without own
   );
 });
 
-test('villa child owns villa search intent while preserving editorial hospitality voice', () => {
+test('villa child owns villa search intent while preserving concise editorial hospitality voice', () => {
   const title = titleOf(childHtml);
   const description = descriptionOf(childHtml);
   const h1 = singleMatch(childHtml, /<h1\s+class="hero-title"[^>]*>([^<]+)<\/h1>/gi, 'hero H1');
@@ -75,9 +82,7 @@ test('villa child owns villa search intent while preserving editorial hospitalit
   assert.match(title, /private chef/i);
   assert.match(title, /villas?/i);
   assert.match(title, /greece/i);
-  assert.match(h1, /private chef/i);
-  assert.match(h1, /villas?/i);
-  assert.match(h1, /greece/i);
+  assert.match(h1, /^Private Chef for Villas in Greece$/i);
 
   assert.match(description, /^Private chef for villas in Greece\b/i);
   assert.match(description, /privacy|ease/i, 'child snippet should retain villa-specific hospitality language');
@@ -85,9 +90,12 @@ test('villa child owns villa search intent while preserving editorial hospitalit
   assert.notEqual(description, descriptionOf(parentHtml), 'parent and child descriptions must remain differentiated');
 
   assert.match(heroDescription, /hospitality/i, 'visible hero copy should preserve hospitality positioning');
-  assert.match(heroDescription, /breakfast/i, 'visible hero copy should retain a concrete sensory/service image');
-  assert.match(heroDescription, /candlelit dinner/i, 'visible hero copy should retain a concrete evening image');
+  assert.match(heroDescription, /slow breakfasts?/i, 'visible hero copy should retain concrete breakfast imagery');
+  assert.match(heroDescription, /long lunches?/i, 'visible hero copy should retain concrete lunch imagery');
+  assert.match(heroDescription, /candlelit dinners?/i, 'visible hero copy should retain concrete evening imagery');
   assert.match(heroDescription, /rhythm/i, 'visible hero copy should retain the established villa rhythm language');
+  assert.match(heroDescription, /villa/i);
+  assert.ok(wordCount(heroDescription) <= 18, 'hero description should stay concise enough to preserve impact');
 
   assert.match(service.name, /private chef/i);
   assert.match(service.name, /villas?/i);
