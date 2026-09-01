@@ -56,16 +56,19 @@ test('broad private-chef page delegates villa intent while retaining transaction
   );
 });
 
-test('villa child owns the explicit villa-private-chef search intent', () => {
+test('villa child owns search intent while keeping hospitality positioning visible', () => {
   const expectedTitle = 'Private Chef for Villas in Greece | Evochia';
   const expectedH1 = 'Private Chef for Villas in Greece';
+  const expectedHeroDescription = 'Discreet private chef hospitality shaped around the rhythm of your villa stay.';
   const title = titleOf(childHtml);
   const description = descriptionOf(childHtml);
   const h1 = singleMatch(childHtml, /<h1\s+class="hero-title"[^>]*>([^<]+)<\/h1>/gi, 'hero H1');
+  const heroDescription = singleMatch(childHtml, /<p\s+class="hero-description"[^>]*>([^<]+)<\/p>/gi, 'hero description');
   const service = firstServiceSchema(childHtml);
 
   assert.equal(title, expectedTitle);
   assert.equal(h1, expectedH1);
+  assert.equal(heroDescription, expectedHeroDescription);
   assert.match(description, /^Private chef for villas in Greece,/i);
   assert.equal(service.name, expectedH1);
 
