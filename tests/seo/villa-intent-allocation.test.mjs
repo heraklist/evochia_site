@@ -47,7 +47,7 @@ test('broad private-chef page stays transactional and differentiated without own
   const service = firstServiceSchema(parentHtml);
 
   assert.match(title, /^Private Chef in Greece\b/i);
-  assert.match(title, /Dinners\s*&amp;\s*Celebrations/i, 'parent title should communicate concrete booking occasions');
+  assert.match(title, /Dinners\s+(?:&amp;|&|and)\s*Celebrations/i, 'parent title should communicate concrete booking occasions');
   assert.match(title, /\|\s*Evochia$/i);
   assert.doesNotMatch(title, /\bvillas?\b/i, 'parent title must not target villa intent');
   assert.doesNotMatch(title, /\byachts?\b/i, 'parent title must not target yacht intent');
