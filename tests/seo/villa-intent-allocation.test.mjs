@@ -37,7 +37,7 @@ function firstServiceSchema(html) {
   return service;
 }
 
-test('broad private-chef page delegates villa intent to the dedicated child', () => {
+test('broad private-chef page delegates villa intent while retaining transactional intent', () => {
   const title = titleOf(parentHtml);
   const description = descriptionOf(parentHtml);
   const service = firstServiceSchema(parentHtml);
@@ -45,6 +45,10 @@ test('broad private-chef page delegates villa intent to the dedicated child', ()
   assert.doesNotMatch(title, /\bvillas?\b/i, 'parent title must not target villa intent');
   assert.doesNotMatch(description, /\bvillas?\b/i, 'parent meta description must not target villa intent');
   assert.doesNotMatch(service.description, /\bvillas?\b/i, 'parent Service schema description must not target villa intent');
+  assert.match(description, /^Book a private chef in Greece\b/i, 'parent must retain transactional Book intent');
+  assert.equal(socialValue(parentHtml, 'og:description'), description);
+  assert.equal(socialValue(parentHtml, 'twitter:description', 'name'), description);
+  assert.equal(service.description, description);
   assert.match(
     parentHtml,
     /<a\s+href="\/en\/villa-private-chef\/"\s+class="landing-link-chip"[^>]*>Private Chef for Villas<\/a>/i,
