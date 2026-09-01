@@ -51,8 +51,10 @@ test('broad private-chef page stays transactional and differentiated without own
   assert.match(title, /\|\s*Evochia$/i);
   assert.doesNotMatch(title, /\bvillas?\b/i, 'parent title must not target villa intent');
   assert.doesNotMatch(title, /\byachts?\b/i, 'parent title must not target yacht intent');
-  assert.equal(socialValue(parentHtml, 'og:title'), title, 'parent Open Graph title should stay aligned with the canonical title');
-  assert.equal(socialValue(parentHtml, 'twitter:title', 'name'), title, 'parent Twitter title should stay aligned with the canonical title');
+
+  const conciseSocialTitle = 'Private Chef in Greece | Evochia';
+  assert.equal(socialValue(parentHtml, 'og:title'), conciseSocialTitle, 'parent Open Graph title intentionally stays concise for social previews');
+  assert.equal(socialValue(parentHtml, 'twitter:title', 'name'), conciseSocialTitle, 'parent Twitter title intentionally stays concise for social previews');
 
   assert.match(description, /^Book a private chef in Greece\b/i, 'parent must retain transactional Book intent');
   assert.doesNotMatch(description, /\bvillas?\b/i, 'parent meta description must not target villa intent');
