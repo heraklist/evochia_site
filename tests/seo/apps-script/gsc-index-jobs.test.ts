@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import type { SeoConfig } from '../../../seo/apps-script/src/Config.ts';
+import { ConfigurationError, type SeoConfig } from '../../../seo/apps-script/src/Config.ts';
 import { expectedMonitoredUrls } from '../../../seo/apps-script/src/GscIndexConfig.ts';
 import {
   isUsableGscIndexRun,
@@ -116,7 +116,7 @@ function baseDependencies(overrides: Partial<JobDependencies> = {}): JobDependen
   };
 }
 
-test('malformed gscIndex configuration fails only GSC_INDEX after canonical checkpoint', () => {
+test('malformed gscIndex configuration fails only GSC_INDEX after placeholder checkpoint', () => {
   const runLogRows: RowRecord[] = [];
   const capabilityCalls: string[][] = [];
   let collectorCalls = 0;
@@ -126,7 +126,7 @@ test('malformed gscIndex configuration fails only GSC_INDEX after canonical chec
     getConfig: (capabilities) => {
       capabilityCalls.push([...capabilities]);
       if (capabilities.includes('gscIndex')) {
-        throw new Error('monitoredUrls is required');
+        throw new ConfigurationError('monitoredUrls is required');
       }
       return { ...config, monitoredUrls: undefined } as SeoConfig;
     },
@@ -150,18 +150,28 @@ test('malformed gscIndex configuration fails only GSC_INDEX after canonical chec
   assert.equal(freshnessCalls, 1);
 
   const gscIndexRows = runLogRows.filter((row) => row.source === 'GSC_INDEX');
-  assert.equal(gscIndexRows.length, 1);
+  assert.equal(gscIndexRows.length, 2);
   assert.equal(gscIndexRows[0].sourceStatus, 'FAILED');
+  assert.equal(gscIndexRows[0].errorClass, 'InspectionStageIncomplete');
   assert.equal(gscIndexRows[0].overallStatus, 'SUCCESS');
-  assert.equal(gscIndexRows[0].fetchedRows, 0);
-  assert.equal(gscIndexRows[0].stageDurationMs, 250);
+  assert.equal(gscIndexRows[1].sourceStatus, 'FAILED');
+  assert.equal(gscIndexRows[1].errorClass, 'ConfigurationError');
+  assert.equal(gscIndexRows[1].overallStatus, 'SUCCESS');
+  assert.equal(gscIndexRows[1].fetchedRows, 0);
+  assert.equal(gscIndexRows[1].stageDurationMs, 250);
 });
 
 test('daily orchestration checkpoints canonical sources before GSC_INDEX and finalizes placeholder', () => {
   const events: string[] = [];
   const runLogRows: RowRecord[] = [];
+  const times = [
+    '2026-09-02T15:00:00.000Z',
+    '2026-09-02T15:00:05.000Z',
+    '2026-09-02T15:00:06.000Z',
+  ];
 
   runDailyImport(baseDependencies({
+    now: () => new Date(times.shift() ?? '2026-09-02T15:00:06.000Z'),
     getConfig: (capabilities) => {
       if (capabilities.includes('gscIndex')) events.push('gscIndex-config');
       return config;
@@ -198,13 +208,16 @@ test('daily orchestration checkpoints canonical sources before GSC_INDEX and fin
     'ga4',
     'canonical-run-log',
     'freshness',
+    'index-placeholder',
     'gscIndex-config',
     'schema-preflight',
-    'index-placeholder',
     'inspection',
     'index-persistence',
     'index-final',
   ]);
+
+  const canonicalRows = runLogRows.filter((row) => row.source === 'GSC' || row.source === 'GA4');
+  assert.equal(canonicalRows.every((row) => row.finishedAt === '2026-09-02T15:00:05.000Z'), true);
 
   const indexRows = runLogRows.filter((row) => row.source === 'GSC_INDEX');
   assert.equal(indexRows.length, 2);
@@ -213,6 +226,7 @@ test('daily orchestration checkpoints canonical sources before GSC_INDEX and fin
   assert.equal(indexRows[0].stageDurationMs, '');
   assert.equal(indexRows[1].sourceStatus, 'SUCCESS');
   assert.equal(indexRows[1].stageDurationMs, 250);
+  assert.equal(indexRows[1].finishedAt, '2026-09-02T15:00:06.000Z');
 });
 
 test('one failed URL makes GSC_INDEX FAILED without changing canonical overallStatus', () => {
