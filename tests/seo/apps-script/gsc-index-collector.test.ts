@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import { APPROVED_MONITORED_PATHS } from '../../../seo/apps-script/src/GscIndexConfig.ts';
 import {
@@ -11,6 +14,8 @@ import {
   type RowRecord,
 } from '../../../seo/apps-script/src/SheetWriter.ts';
 import type { HttpResponseLike, HttpTransport } from '../../../seo/apps-script/src/GscClient.ts';
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 
 function response(body: unknown, status = 200): HttpResponseLike {
   return {
@@ -123,6 +128,35 @@ test('per-URL isolation preserves one complete snapshot group when request 7 fai
   });
 });
 
+test('all monitored URL requests may fail while one complete diagnostic group still persists', () => {
+  const writes: Array<{ rows: RowRecord[] }> = [];
+  const transport: HttpTransport = () => response('{"error":"server"}', 500);
+
+  const result = collectAndPersistInspectionSnapshots(
+    {
+      runId: RUN_ID,
+      checkedAt: CHECKED_AT,
+      siteUrl: SITE_URL,
+      monitoredUrls: MONITORED_URLS,
+    },
+    {
+      accessToken: 'test-token',
+      transport,
+      writeRows: (_sheetName, _keyColumns, rows) => {
+        writes.push({ rows });
+        return { inserted: rows.length, updated: 0, unchanged: 0, total: rows.length };
+      },
+    },
+  );
+
+  assert.equal(result.inspectedCount, 0);
+  assert.equal(result.failedCount, APPROVED_MONITORED_PATHS.length);
+  assert.equal(result.snapshots.length, APPROVED_MONITORED_PATHS.length);
+  assert.equal(result.snapshots.every((snapshot) => snapshot.outcome === 'REQUEST_FAILED'), true);
+  assert.equal(writes.length, 1);
+  assert.equal(writes[0].rows.length, APPROVED_MONITORED_PATHS.length);
+});
+
 test('Run Id plus URL persistence is idempotent for one run and preserves new-run history', () => {
   const headers = [
     'Checked At', 'Run Id', 'URL', 'Outcome', 'Verdict', 'Coverage State',
@@ -165,4 +199,10 @@ test('Run Id plus URL persistence is idempotent for one run and preserves new-ru
   const nextRun = run('daily-2026-09-02-b');
   assert.equal(nextRun.write.inserted, APPROVED_MONITORED_PATHS.length);
   assert.equal(storedRows.length, APPROVED_MONITORED_PATHS.length * 2);
+});
+
+test('GscImporter exposes one production inspection path and no legacy fail-fast entry point', () => {
+  const source = fs.readFileSync(path.join(repoRoot, 'seo/apps-script/src/GscImporter.ts'), 'utf8');
+  assert.doesNotMatch(source, /export function inspectMonitoredUrls\b/);
+  assert.match(source, /export function collectAndPersistInspectionSnapshots\b/);
 });
