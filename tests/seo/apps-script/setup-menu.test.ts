@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { setupWorkbookFromMenu } from '../../../seo/apps-script/src/Menu.ts';
-import { REQUIRED_SHEET_NAMES } from '../../../seo/apps-script/src/Setup.ts';
+import { GSC_INDEXING_HEADERS, REQUIRED_SHEET_NAMES } from '../../../seo/apps-script/src/Setup.ts';
 import type { SeoConfig } from '../../../seo/apps-script/src/Config.ts';
 
 const config: SeoConfig = {
@@ -35,12 +35,29 @@ test('setupWorkbookFromMenu initializes the reserved operational metadata block'
       };
     },
   };
-  const sheets = new Map<string, unknown>(REQUIRED_SHEET_NAMES.map((name) => [name, name === 'Config' ? configSheet : {}]));
+  const indexingRows: unknown[][] = [];
+  const gscIndexingSheet = {
+    getLastRow: () => indexingRows.length,
+    getDataRange: () => ({ getValues: () => indexingRows.map((row) => [...row]) }),
+    getRange: (_row: number, _column: number, numRows: number, numColumns: number) => ({
+      setValues: (values: unknown[][]) => {
+        indexingRows.splice(
+          0,
+          indexingRows.length,
+          ...values.slice(0, numRows).map((row) => row.slice(0, numColumns)),
+        );
+      },
+    }),
+  };
+  const sheets = new Map<string, unknown>(REQUIRED_SHEET_NAMES.map((name) => [
+    name,
+    name === 'Config' ? configSheet : name === 'GSC Indexing' ? gscIndexingSheet : {},
+  ]));
   const workbook = {
     getId: () => config.sheetId,
     getSheetByName: (name: string) => sheets.get(name) ?? null,
     insertSheet: (name: string) => {
-      const sheet = {};
+      const sheet = name === 'GSC Indexing' ? gscIndexingSheet : {};
       sheets.set(name, sheet);
       return sheet;
     },
@@ -68,6 +85,7 @@ test('setupWorkbookFromMenu initializes the reserved operational metadata block'
 
   try {
     setupWorkbookFromMenu();
+    assert.deepEqual(indexingRows, [[...GSC_INDEXING_HEADERS]]);
     assert.equal(writes.has('E1:F4'), true);
     assert.equal(writes.has('E7:H9'), true);
     assert.deepEqual(writes.get('E7:H9')?.[2], ['MIN_PAGE_IMPRESSIONS', '', 'not calibrated', '']);
