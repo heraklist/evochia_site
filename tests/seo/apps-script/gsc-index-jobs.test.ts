@@ -171,11 +171,13 @@ test('daily orchestration checkpoints canonical sources before GSC_INDEX and fin
     validateGscIndexingPreflight: () => { events.push('schema-preflight'); },
     collectGscIndexSnapshots: (batchConfig, dependencies) => {
       events.push('inspection');
+      assert.ok(dependencies);
       return successfulBatch(batchConfig, {
         ...dependencies,
         writeRows: (sheetName, keyColumns, rows) => {
           events.push('index-persistence');
-          return dependencies.writeRows!(sheetName, keyColumns, rows);
+          assert.ok(dependencies.writeRows);
+          return dependencies.writeRows(sheetName, keyColumns, rows);
         },
       });
     },
@@ -217,12 +219,14 @@ test('one failed URL makes GSC_INDEX FAILED without changing canonical overallSt
   const runLogRows: RowRecord[] = [];
   const result = runDailyImport(baseDependencies({
     collectGscIndexSnapshots: (_batchConfig, dependencies) => {
+      assert.ok(dependencies);
       const rows = Array.from({ length: MONITORED_URLS.length }, (_, index) => ({
         'Run Id': 'run-index-1',
         URL: MONITORED_URLS[index],
         Outcome: index === 6 ? 'REQUEST_FAILED' : 'INSPECTED',
       }));
-      const write = dependencies.writeRows!('GSC Indexing', ['Run Id', 'URL'], rows);
+      assert.ok(dependencies.writeRows);
+      const write = dependencies.writeRows('GSC Indexing', ['Run Id', 'URL'], rows);
       return {
         snapshots: [],
         inspectedCount: MONITORED_URLS.length - 1,
