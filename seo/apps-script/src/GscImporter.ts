@@ -429,28 +429,3 @@ export function importSearchAnalyticsDay(
     collectedAt: dependencies.collectedAt ?? now.toISOString(),
   });
 }
-
-export function inspectMonitoredUrls(
-  config: GscImportConfig,
-  requestedUrls: string[],
-  dependencies: {
-    transport?: HttpTransport;
-    accessToken?: string;
-    inspectedAt: string;
-  },
-): ProviderInspectionResult[] {
-  const allowed = new Set(config.monitoredUrls);
-  for (const url of requestedUrls) {
-    if (!allowed.has(url)) {
-      throw new Error(`URL Inspection request is outside the monitored allowlist: ${url}`);
-    }
-  }
-
-  return requestedUrls.map((url) => fetchUrlInspection({
-    siteUrl: config.siteUrl,
-    inspectionUrl: url,
-    transport: dependencies.transport,
-    accessToken: dependencies.accessToken,
-    inspectedAt: dependencies.inspectedAt,
-  }));
-}
