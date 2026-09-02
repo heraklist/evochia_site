@@ -139,7 +139,7 @@ function normalizeCanonicalUrl(value: string): string | null {
     port = '';
   }
 
-  return `${protocol}://${hostname}${port ? `:${port}` : ''}${remainder}`;
+  return `${protocolForPort}://${hostname}${port ? `:${port}` : ''}${remainder}`;
 }
 
 export function canonicalMatch(
