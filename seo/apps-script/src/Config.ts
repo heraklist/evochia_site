@@ -6,6 +6,13 @@ import {
 
 export const CONFIG_PROPERTY_KEY = 'SEO_GOOGLE_RESOURCES_JSON';
 
+export class ConfigurationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ConfigurationError';
+  }
+}
+
 export const RESOURCE_KEYS = [
   'gscProperty',
   'monitoredUrls',
@@ -172,23 +179,23 @@ export function getConfig(
 ): SeoConfig {
   const raw = PropertiesService.getScriptProperties().getProperty(CONFIG_PROPERTY_KEY);
   if (!raw) {
-    throw new Error(`Missing Script Property: ${CONFIG_PROPERTY_KEY}`);
+    throw new ConfigurationError(`Missing Script Property: ${CONFIG_PROPERTY_KEY}`);
   }
 
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
   } catch (error) {
-    throw new Error(`Invalid JSON in ${CONFIG_PROPERTY_KEY}: ${String(error)}`);
+    throw new ConfigurationError(`Invalid JSON in ${CONFIG_PROPERTY_KEY}: ${String(error)}`);
   }
 
   if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-    throw new Error('SEO configuration is not verified: configuration payload must be a JSON object');
+    throw new ConfigurationError('SEO configuration is not verified: configuration payload must be a JSON object');
   }
 
   const result = verifyConfig(parsed as Partial<SeoConfig>, capabilities);
   if (!result.ok) {
-    throw new Error(`SEO configuration is not verified: ${result.errors.join('; ')}`);
+    throw new ConfigurationError(`SEO configuration is not verified: ${result.errors.join('; ')}`);
   }
 
   return parsed as SeoConfig;
