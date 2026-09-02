@@ -34,10 +34,14 @@ test('production bundle contains only the intended read-only Google API surface'
   assert.match(code, /analyticsdata\.googleapis\.com\/v1beta\//);
   assert.match(code, /:runReport/);
 
+  // URL Inspection is now a permanent read-only production telemetry capability.
+  // This assertion is intentionally one-way so future bundles cannot silently
+  // drop indexing observability while appearing otherwise healthy.
+  assert.match(code, /urlInspection\/index:inspect/);
+
   assert.doesNotMatch(code, FORBIDDEN_PRODUCTION_CAPABILITY);
   assert.doesNotMatch(code, /(?:www\.)?googleapis\.com\/drive\//i);
   assert.doesNotMatch(code, /tagmanager\.googleapis\.com/i);
-  assert.doesNotMatch(code, /urlInspection\/index:inspect/);
 });
 
 test('smoke bundle contains runtime smoke and no unresolved module syntax', () => {
