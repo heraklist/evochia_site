@@ -353,7 +353,7 @@ test('URL Inspection is limited to the monitored allowlist and stores canonicals
     () => inspectMonitoredUrls(
       { siteUrl: 'https://www.evochia.gr/', monitoredUrls: [monitoredUrl] },
       ['https://www.evochia.gr/en/not-allowlisted/'],
-      { accessToken: 'test-token', transport },
+      { accessToken: 'test-token', inspectedAt: '2026-08-06T05:00:00Z', transport },
     ),
     /outside the monitored allowlist/,
   );
