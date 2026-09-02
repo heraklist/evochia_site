@@ -42,11 +42,42 @@
     return /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*$/.test(value);
   }
 
+  // seo/apps-script/src/GscIndexConfig.ts
+  var MAX_INSPECTION_URLS = 25;
+  var APPROVED_MONITORED_PATHS = [
+    "/en/private-chef/",
+    "/en/villa-private-chef/",
+    "/en/yacht-private-chef/",
+    "/en/athens-private-chef/",
+    "/en/greek-islands-private-chef/",
+    "/el/private-chef/",
+    "/el/villa-private-chef/",
+    "/el/yacht-private-chef/",
+    "/el/athens-private-chef/",
+    "/el/greek-islands-private-chef/",
+    "/en/catering/",
+    "/en/wedding-catering/",
+    "/en/corporate-catering/",
+    "/el/catering/",
+    "/el/wedding-catering/",
+    "/el/corporate-catering/"
+  ];
+  function expectedMonitoredUrls(productionHostname) {
+    return APPROVED_MONITORED_PATHS.map((path) => `https://${productionHostname}${path}`);
+  }
+
   // seo/apps-script/src/Config.ts
   var CONFIG_PROPERTY_KEY = "SEO_GOOGLE_RESOURCES_JSON";
+  var ConfigurationError = class extends Error {
+    constructor(message) {
+      super(message);
+      this.name = "ConfigurationError";
+    }
+  };
   var CAPABILITY_RESOURCES = {
     workbook: ["sheetId"],
     gsc: ["gscProperty"],
+    gscIndex: ["gscProperty", "productionHostname", "monitoredUrls"],
     ga4: ["ga4PropertyId", "ga4PropertyTimeZone", "productionHostname"]
   };
   function requiredResources(capabilities) {
@@ -58,11 +89,27 @@
     }
     return required;
   }
+  function isAbsoluteHttpsUrl(value) {
+    return /^https:\/\/[^\s/]+(?:\/[^\s]*)?$/.test(value);
+  }
+  function sameStringSet(left, right) {
+    if (left.length !== right.length) return false;
+    const leftSet = new Set(left);
+    const rightSet = new Set(right);
+    if (leftSet.size !== rightSet.size) return false;
+    return left.every((value) => rightSet.has(value)) && right.every((value) => leftSet.has(value));
+  }
   function verifyConfig(config, capabilities = ["workbook"]) {
     const errors = [];
     const required = requiredResources(capabilities);
     for (const key of required) {
       const value = config[key];
+      if (key === "monitoredUrls") {
+        if (!Array.isArray(value)) {
+          errors.push("monitoredUrls is required");
+        }
+        continue;
+      }
       if (typeof value !== "string" || value.trim() === "") {
         errors.push(`${key} is required`);
       } else if (value === "UNVERIFIED") {
@@ -84,22 +131,50 @@
     if (required.has("ga4PropertyId") && typeof config.ga4PropertyId === "string" && config.ga4PropertyId !== "UNVERIFIED" && !/^\d+$/.test(config.ga4PropertyId)) {
       errors.push("ga4PropertyId must contain digits only");
     }
+    if (required.has("monitoredUrls") && Array.isArray(config.monitoredUrls)) {
+      const monitoredUrls = config.monitoredUrls;
+      if (monitoredUrls.length === 0) {
+        errors.push("monitoredUrls must not be empty");
+      }
+      if (monitoredUrls.length > MAX_INSPECTION_URLS) {
+        errors.push(`monitoredUrls must not exceed ${MAX_INSPECTION_URLS} URLs`);
+      }
+      if (!monitoredUrls.every((value) => typeof value === "string" && isAbsoluteHttpsUrl(value))) {
+        errors.push("monitoredUrls must contain only absolute https URLs");
+      }
+      if (new Set(monitoredUrls).size !== monitoredUrls.length) {
+        errors.push("monitoredUrls must contain unique URLs");
+      }
+      const productionHostname = config.productionHostname;
+      const hostnameIsUsable = typeof productionHostname === "string" && productionHostname !== "UNVERIFIED" && isValidHostname(productionHostname);
+      if (!hostnameIsUsable) {
+        errors.push("monitoredUrls exact-set validation requires a valid productionHostname");
+      } else if (monitoredUrls.every((value) => typeof value === "string")) {
+        const expected = expectedMonitoredUrls(productionHostname);
+        if (!sameStringSet(monitoredUrls, expected)) {
+          errors.push("monitoredUrls must exactly match the approved monitored URL set");
+        }
+      }
+    }
     return { ok: errors.length === 0, errors };
   }
   function getConfig(capabilities = ["workbook"]) {
     const raw = PropertiesService.getScriptProperties().getProperty(CONFIG_PROPERTY_KEY);
     if (!raw) {
-      throw new Error(`Missing Script Property: ${CONFIG_PROPERTY_KEY}`);
+      throw new ConfigurationError(`Missing Script Property: ${CONFIG_PROPERTY_KEY}`);
     }
     let parsed;
     try {
       parsed = JSON.parse(raw);
     } catch (error) {
-      throw new Error(`Invalid JSON in ${CONFIG_PROPERTY_KEY}: ${String(error)}`);
+      throw new ConfigurationError(`Invalid JSON in ${CONFIG_PROPERTY_KEY}: ${String(error)}`);
+    }
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      throw new ConfigurationError("SEO configuration is not verified: configuration payload must be a JSON object");
     }
     const result = verifyConfig(parsed, capabilities);
     if (!result.ok) {
-      throw new Error(`SEO configuration is not verified: ${result.errors.join("; ")}`);
+      throw new ConfigurationError(`SEO configuration is not verified: ${result.errors.join("; ")}`);
     }
     return parsed;
   }
@@ -652,6 +727,12 @@
       this.responseBody = responseBody;
     }
   };
+  var MalformedInspectionResponse = class extends Error {
+    constructor(message) {
+      super(message);
+      this.name = "MalformedInspectionResponse";
+    }
+  };
   function defaultTransport2(url, options) {
     return UrlFetchApp.fetch(url, options);
   }
@@ -674,6 +755,38 @@
   }
   function numberOrZero(value) {
     return typeof value === "number" && Number.isFinite(value) ? value : 0;
+  }
+  function isRecord(value) {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+  }
+  function hasOwn(object, key) {
+    return Object.prototype.hasOwnProperty.call(object, key);
+  }
+  function scalarField(object, key) {
+    if (!hasOwn(object, key)) {
+      return { state: "NOT_RETURNED" };
+    }
+    const value = object[key];
+    if (typeof value !== "string") {
+      throw new MalformedInspectionResponse(`${key} must be a string`);
+    }
+    return { state: "VALUE", value };
+  }
+  function arrayField(object, key) {
+    if (!hasOwn(object, key)) {
+      return { state: "NOT_RETURNED" };
+    }
+    const value = object[key];
+    if (!Array.isArray(value)) {
+      throw new MalformedInspectionResponse(`${key} must be an array`);
+    }
+    if (!value.every((item) => typeof item === "string")) {
+      throw new MalformedInspectionResponse(`${key} must contain only strings`);
+    }
+    if (value.length === 0) {
+      return { state: "EMPTY" };
+    }
+    return { state: "VALUE", value: [...value] };
   }
   function normalizeSearchAnalyticsRow(dimensions, raw) {
     var _a, _b, _c, _d, _e, _f;
@@ -732,6 +845,55 @@
     }
     return rows;
   }
+  function fetchUrlInspection(request) {
+    var _a, _b;
+    const transport = (_a = request.transport) != null ? _a : defaultTransport2;
+    const response = transport(
+      "https://searchconsole.googleapis.com/v1/urlInspection/index:inspect",
+      {
+        method: "post",
+        contentType: "application/json",
+        headers: authHeaders(request.accessToken),
+        payload: JSON.stringify({
+          inspectionUrl: request.inspectionUrl,
+          siteUrl: request.siteUrl,
+          languageCode: (_b = request.languageCode) != null ? _b : "en-US"
+        }),
+        muteHttpExceptions: true
+      }
+    );
+    const parsed = parseJson(response, "gsc-url-inspection");
+    if (!isRecord(parsed) || !hasOwn(parsed, "inspectionResult")) {
+      throw new MalformedInspectionResponse("inspectionResult is required");
+    }
+    const inspectionResult = parsed.inspectionResult;
+    if (!isRecord(inspectionResult)) {
+      throw new MalformedInspectionResponse("inspectionResult must be an object");
+    }
+    if (!hasOwn(inspectionResult, "indexStatusResult")) {
+      throw new MalformedInspectionResponse("indexStatusResult is required");
+    }
+    const indexStatusResult = inspectionResult.indexStatusResult;
+    if (!isRecord(indexStatusResult)) {
+      throw new MalformedInspectionResponse("indexStatusResult must be an object");
+    }
+    return {
+      url: request.inspectionUrl,
+      verdict: scalarField(indexStatusResult, "verdict"),
+      coverageState: scalarField(indexStatusResult, "coverageState"),
+      robotsTxtState: scalarField(indexStatusResult, "robotsTxtState"),
+      indexingState: scalarField(indexStatusResult, "indexingState"),
+      pageFetchState: scalarField(indexStatusResult, "pageFetchState"),
+      crawledAs: scalarField(indexStatusResult, "crawledAs"),
+      userCanonical: scalarField(indexStatusResult, "userCanonical"),
+      googleCanonical: scalarField(indexStatusResult, "googleCanonical"),
+      lastCrawlTime: scalarField(indexStatusResult, "lastCrawlTime"),
+      sitemap: arrayField(indexStatusResult, "sitemap"),
+      referringUrls: arrayField(indexStatusResult, "referringUrls"),
+      inspectionResultLink: scalarField(inspectionResult, "inspectionResultLink"),
+      inspectedAt: request.inspectedAt
+    };
+  }
 
   // seo/apps-script/src/GscImporter.ts
   var GSC_REPORT_SPECS = [
@@ -765,6 +927,162 @@
     }
   ];
   var GSC_TIME_ZONE = "America/Los_Angeles";
+  function normalizeCanonicalUrl(value) {
+    var _a;
+    const fragmentIndex = value.indexOf("#");
+    const withoutFragment = fragmentIndex === -1 ? value : value.slice(0, fragmentIndex);
+    const match = /^(https?):\/\/([^/?#]+)(.*)$/i.exec(withoutFragment);
+    if (!match) return null;
+    const protocol = match[1];
+    const authority = match[2];
+    const remainder = match[3];
+    if (authority.includes("@")) return null;
+    const authorityMatch = /^([^:]+)(?::(\d+))?$/.exec(authority);
+    if (!authorityMatch) return null;
+    const hostname = authorityMatch[1].toLowerCase();
+    let port = (_a = authorityMatch[2]) != null ? _a : "";
+    const protocolForPort = protocol.toLowerCase();
+    if (protocolForPort === "https" && port === "443" || protocolForPort === "http" && port === "80") {
+      port = "";
+    }
+    return `${protocolForPort}://${hostname}${port ? `:${port}` : ""}${remainder}`;
+  }
+  function canonicalMatch(userCanonical, googleCanonical) {
+    if (userCanonical.state !== "VALUE" || googleCanonical.state !== "VALUE") {
+      return "NOT_COMPARABLE";
+    }
+    const normalizedUser = normalizeCanonicalUrl(userCanonical.value);
+    const normalizedGoogle = normalizeCanonicalUrl(googleCanonical.value);
+    if (normalizedUser === null || normalizedGoogle === null) {
+      return "NOT_COMPARABLE";
+    }
+    return normalizedUser === normalizedGoogle ? "MATCH" : "MISMATCH";
+  }
+  function flattenScalar(field) {
+    return field.state === "VALUE" ? field.value : "NOT_RETURNED";
+  }
+  function flattenArray(field) {
+    if (field.state === "VALUE") return JSON.stringify(field.value);
+    if (field.state === "EMPTY") return "[]";
+    return "NOT_RETURNED";
+  }
+  function flattenInspectionSnapshot(snapshot) {
+    if (snapshot.outcome === "REQUEST_FAILED") {
+      return {
+        "Checked At": snapshot.checkedAt,
+        "Run Id": snapshot.runId,
+        URL: snapshot.url,
+        Outcome: snapshot.outcome,
+        Verdict: "",
+        "Coverage State": "",
+        "Robots.txt State": "",
+        "Indexing State": "",
+        "Page Fetch State": "",
+        "Crawled As": "",
+        "Google Canonical": "",
+        "User Canonical": "",
+        "Canonical Match": snapshot.canonicalMatch,
+        "Last Crawl Time": "",
+        Sitemap: "",
+        "Referring URLs": "",
+        "Inspection Result Link": "",
+        "Error Class": snapshot.errorClass,
+        "Error Message": snapshot.errorMessage
+      };
+    }
+    return {
+      "Checked At": snapshot.checkedAt,
+      "Run Id": snapshot.runId,
+      URL: snapshot.url,
+      Outcome: snapshot.outcome,
+      Verdict: flattenScalar(snapshot.verdict),
+      "Coverage State": flattenScalar(snapshot.coverageState),
+      "Robots.txt State": flattenScalar(snapshot.robotsTxtState),
+      "Indexing State": flattenScalar(snapshot.indexingState),
+      "Page Fetch State": flattenScalar(snapshot.pageFetchState),
+      "Crawled As": flattenScalar(snapshot.crawledAs),
+      "Google Canonical": flattenScalar(snapshot.googleCanonical),
+      "User Canonical": flattenScalar(snapshot.userCanonical),
+      "Canonical Match": snapshot.canonicalMatch,
+      "Last Crawl Time": flattenScalar(snapshot.lastCrawlTime),
+      Sitemap: flattenArray(snapshot.sitemap),
+      "Referring URLs": flattenArray(snapshot.referringUrls),
+      "Inspection Result Link": flattenScalar(snapshot.inspectionResultLink),
+      "Error Class": "",
+      "Error Message": ""
+    };
+  }
+  function toInspectedSnapshot(runId, checkedAt, result) {
+    return {
+      runId,
+      checkedAt,
+      url: result.url,
+      outcome: "INSPECTED",
+      verdict: result.verdict,
+      coverageState: result.coverageState,
+      robotsTxtState: result.robotsTxtState,
+      indexingState: result.indexingState,
+      pageFetchState: result.pageFetchState,
+      crawledAs: result.crawledAs,
+      googleCanonical: result.googleCanonical,
+      userCanonical: result.userCanonical,
+      canonicalMatch: canonicalMatch(result.userCanonical, result.googleCanonical),
+      lastCrawlTime: result.lastCrawlTime,
+      sitemap: result.sitemap,
+      referringUrls: result.referringUrls,
+      inspectionResultLink: result.inspectionResultLink
+    };
+  }
+  function toFailedSnapshot(runId, checkedAt, url, error) {
+    if (error instanceof Error) {
+      return {
+        runId,
+        checkedAt,
+        url,
+        outcome: "REQUEST_FAILED",
+        canonicalMatch: "NOT_COMPARABLE",
+        errorClass: error.name || "Error",
+        errorMessage: error.message
+      };
+    }
+    return {
+      runId,
+      checkedAt,
+      url,
+      outcome: "REQUEST_FAILED",
+      canonicalMatch: "NOT_COMPARABLE",
+      errorClass: "UnknownError",
+      errorMessage: String(error)
+    };
+  }
+  function collectAndPersistInspectionSnapshots(config, dependencies = {}) {
+    var _a;
+    const snapshots = [];
+    for (const url of config.monitoredUrls) {
+      try {
+        const result = fetchUrlInspection({
+          siteUrl: config.siteUrl,
+          inspectionUrl: url,
+          accessToken: dependencies.accessToken,
+          transport: dependencies.transport,
+          inspectedAt: config.checkedAt
+        });
+        snapshots.push(toInspectedSnapshot(config.runId, config.checkedAt, result));
+      } catch (error) {
+        snapshots.push(toFailedSnapshot(config.runId, config.checkedAt, url, error));
+      }
+    }
+    const rows = snapshots.map(flattenInspectionSnapshot);
+    const writer = (_a = dependencies.writeRows) != null ? _a : upsertRows;
+    const write = writer("GSC Indexing", ["Run Id", "URL"], rows);
+    const failedCount = snapshots.filter((snapshot) => snapshot.outcome === "REQUEST_FAILED").length;
+    return {
+      snapshots,
+      inspectedCount: snapshots.length - failedCount,
+      failedCount,
+      write
+    };
+  }
   function getAvailableGscDate(now, delayDays = 3) {
     if (!Number.isInteger(delayDays) || delayDays < 0) {
       throw new Error("delayDays must be a non-negative integer");
@@ -928,9 +1246,132 @@
     ]);
   }
 
+  // seo/apps-script/src/Setup.ts
+  var REQUIRED_SHEET_NAMES = [
+    "Config",
+    "Run Log",
+    "Pipeline Health",
+    "GSC Daily",
+    "GSC Pages",
+    "GSC Queries",
+    "GSC Page Queries",
+    "GSC Indexing",
+    "GA4 Daily",
+    "GA4 Acquisition",
+    "GA4 Landing Pages",
+    "GA4 Events",
+    "GA4 Pages",
+    "GA4 URL Quality",
+    "GTM Versions",
+    "GTM Changes",
+    "Findings Summary"
+  ];
+  var GSC_INDEXING_HEADERS = [
+    "Checked At",
+    "Run Id",
+    "URL",
+    "Outcome",
+    "Verdict",
+    "Coverage State",
+    "Robots.txt State",
+    "Indexing State",
+    "Page Fetch State",
+    "Crawled As",
+    "Google Canonical",
+    "User Canonical",
+    "Canonical Match",
+    "Last Crawl Time",
+    "Sitemap",
+    "Referring URLs",
+    "Inspection Result Link",
+    "Error Class",
+    "Error Message"
+  ];
+  var SchemaError = class extends Error {
+    constructor(message) {
+      super(message);
+      this.name = "SchemaError";
+    }
+  };
+  function isGscIndexingSheet(value) {
+    if (typeof value !== "object" || value === null) return false;
+    const candidate = value;
+    return typeof candidate.getLastRow === "function" && typeof candidate.getRange === "function";
+  }
+  function readGscIndexingHeaders(sheet) {
+    var _a;
+    if (sheet.getLastRow() === 0) return [];
+    try {
+      const values = sheet.getRange(1, 1, 1, GSC_INDEXING_HEADERS.length).getValues();
+      const firstRow = (_a = values[0]) != null ? _a : [];
+      return firstRow.map((value) => String(value));
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      throw new SchemaError(`Unable to read GSC Indexing canonical headers: ${detail}`);
+    }
+  }
+  function assertExactGscIndexingHeaders(headers) {
+    if (headers.length !== GSC_INDEXING_HEADERS.length) {
+      throw new SchemaError(
+        `GSC Indexing schema must contain exactly ${GSC_INDEXING_HEADERS.length} columns`
+      );
+    }
+    for (let index = 0; index < GSC_INDEXING_HEADERS.length; index += 1) {
+      if (headers[index] !== GSC_INDEXING_HEADERS[index]) {
+        throw new SchemaError(
+          `GSC Indexing schema mismatch at column ${index + 1}: expected ${GSC_INDEXING_HEADERS[index]}`
+        );
+      }
+    }
+  }
+  function validateGscIndexingSchema(sheet) {
+    const headers = readGscIndexingHeaders(sheet);
+    if (headers.length === 0) {
+      throw new SchemaError("GSC Indexing schema is not initialized");
+    }
+    assertExactGscIndexingHeaders(headers);
+  }
+  function ensureGscIndexingSchema(sheet) {
+    if (sheet.getLastRow() === 0) {
+      sheet.getRange(1, 1, 1, GSC_INDEXING_HEADERS.length).setValues([
+        [...GSC_INDEXING_HEADERS]
+      ]);
+      return;
+    }
+    validateGscIndexingSchema(sheet);
+  }
+  function ensureWorkbookSheets(workbook) {
+    const created = [];
+    const existing = [];
+    for (const name of REQUIRED_SHEET_NAMES) {
+      if (workbook.getSheetByName(name)) {
+        existing.push(name);
+        continue;
+      }
+      workbook.insertSheet(name);
+      created.push(name);
+    }
+    return { created, existing };
+  }
+  function setupWorkbook(dependencies = { getVerifiedActiveWorkbook }) {
+    var _a, _b;
+    const workbook = dependencies.getVerifiedActiveWorkbook();
+    const setupSheets = (_a = dependencies.ensureWorkbookSheets) != null ? _a : ensureWorkbookSheets;
+    const setupGscIndexingSchema = (_b = dependencies.ensureGscIndexingSchema) != null ? _b : ensureGscIndexingSchema;
+    setupSheets(workbook);
+    const indexingSheet = workbook.getSheetByName("GSC Indexing");
+    if (!isGscIndexingSheet(indexingSheet)) {
+      throw new SchemaError("GSC Indexing sheet does not expose the required schema range API");
+    }
+    setupGscIndexingSchema(indexingSheet);
+  }
+
   // seo/apps-script/src/Jobs.ts
   function defaultNow() {
     return /* @__PURE__ */ new Date();
+  }
+  function defaultNowMs() {
+    return Date.now();
   }
   function defaultRunId() {
     return Utilities.getUuid();
@@ -987,13 +1428,44 @@
       errorMessage: ""
     };
   }
+  function gscIndexOutcome(result) {
+    const expectedCount = APPROVED_MONITORED_PATHS.length;
+    const persistedRowCount = result.write.inserted + result.write.updated + result.write.unchanged;
+    const complete = result.inspectedCount === expectedCount && result.failedCount === 0 && persistedRowCount === expectedCount;
+    if (complete) {
+      return {
+        source: "GSC_INDEX",
+        success: true,
+        dataAsOf: "",
+        fetchedRows: result.inspectedCount,
+        insertedRows: result.write.inserted,
+        updatedRows: result.write.updated,
+        unchangedRows: result.write.unchanged,
+        errorClass: "",
+        errorMessage: ""
+      };
+    }
+    const errorClass = result.failedCount > 0 ? "InspectionBatchFailure" : "InspectionPersistenceIncomplete";
+    const errorMessage = result.failedCount > 0 ? `${result.failedCount} of ${expectedCount} URL inspections failed; see GSC Indexing rows for details` : `GSC Indexing persisted ${persistedRowCount} of ${expectedCount} expected telemetry rows`;
+    return {
+      source: "GSC_INDEX",
+      success: false,
+      dataAsOf: "",
+      fetchedRows: result.inspectedCount,
+      insertedRows: result.write.inserted,
+      updatedRows: result.write.updated,
+      unchangedRows: result.write.unchanged,
+      errorClass,
+      errorMessage
+    };
+  }
   function overallStatus(gsc, ga4) {
     if (gsc.success && ga4.success) return "SUCCESS";
     if (gsc.success || ga4.success) return "PARTIAL";
     return "FAILED";
   }
-  function toRunLogRow(outcome, runId, startedAt, finishedAt, status) {
-    return {
+  function toRunLogRow(outcome, runId, startedAt, finishedAt, status, stageDurationMs) {
+    const row = {
       runId,
       startedAt,
       finishedAt,
@@ -1008,6 +1480,37 @@
       errorClass: outcome.errorClass,
       errorMessage: outcome.errorMessage
     };
+    if (stageDurationMs !== void 0) {
+      row.stageDurationMs = stageDurationMs;
+    }
+    return row;
+  }
+  function preflightPlaceholderOutcome() {
+    return {
+      source: "GSC_INDEX",
+      success: false,
+      dataAsOf: "",
+      fetchedRows: 0,
+      insertedRows: 0,
+      updatedRows: 0,
+      unchangedRows: 0,
+      errorClass: "InspectionStageIncomplete",
+      errorMessage: "GSC_INDEX stage did not reach a completed snapshot state"
+    };
+  }
+  function defaultValidateGscIndexingPreflight(workbook) {
+    if (typeof workbook !== "object" || workbook === null) {
+      throw new SchemaError("Verified workbook is unavailable for GSC Indexing preflight");
+    }
+    const getSheetByName = workbook.getSheetByName;
+    if (typeof getSheetByName !== "function") {
+      throw new SchemaError("Verified workbook does not expose getSheetByName for GSC Indexing preflight");
+    }
+    const sheet = getSheetByName.call(workbook, "GSC Indexing");
+    if (!sheet || typeof sheet.getLastRow !== "function" || typeof sheet.getRange !== "function") {
+      throw new SchemaError("GSC Indexing sheet does not expose the required schema range API");
+    }
+    validateGscIndexingSchema(sheet);
   }
   function parseIsoDate(value) {
     const [year, month, day] = value.split("-").map(Number);
@@ -1040,19 +1543,22 @@
     return chunks;
   }
   function runDailyImport(dependencies = {}) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _i;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l;
     const verifyWorkbook = (_a = dependencies.getVerifiedActiveWorkbook) != null ? _a : (() => getVerifiedActiveWorkbook());
-    verifyWorkbook();
+    const workbook = verifyWorkbook();
     const now = (_b = dependencies.now) != null ? _b : defaultNow;
+    const nowMs = (_c = dependencies.nowMs) != null ? _c : defaultNowMs;
     const started = now();
     const startedAt = started.toISOString();
-    const runId = ((_c = dependencies.createRunId) != null ? _c : defaultRunId)();
-    const accessToken = ((_d = dependencies.getOAuthToken) != null ? _d : defaultOAuthToken)();
-    const configReader = (_e = dependencies.getConfig) != null ? _e : getConfig;
-    const importGsc = (_f = dependencies.importGscDay) != null ? _f : importSearchAnalyticsDay;
-    const importGa4 = (_g = dependencies.importGa4) != null ? _g : importGa4Reports;
-    const writer = (_h = dependencies.writeRows) != null ? _h : upsertRows;
-    const updateFreshness = (_i = dependencies.updateFreshness) != null ? _i : updateOperationalFreshness;
+    const runId = ((_d = dependencies.createRunId) != null ? _d : defaultRunId)();
+    const accessToken = ((_e = dependencies.getOAuthToken) != null ? _e : defaultOAuthToken)();
+    const configReader = (_f = dependencies.getConfig) != null ? _f : getConfig;
+    const importGsc = (_g = dependencies.importGscDay) != null ? _g : importSearchAnalyticsDay;
+    const importGa4 = (_h = dependencies.importGa4) != null ? _h : importGa4Reports;
+    const collectGscIndex = (_i = dependencies.collectGscIndexSnapshots) != null ? _i : collectAndPersistInspectionSnapshots;
+    const validateGscIndexingPreflight = (_j = dependencies.validateGscIndexingPreflight) != null ? _j : defaultValidateGscIndexingPreflight;
+    const writer = (_k = dependencies.writeRows) != null ? _k : upsertRows;
+    const updateFreshness = (_l = dependencies.updateFreshness) != null ? _l : updateOperationalFreshness;
     let gsc;
     try {
       const config = configReader(["gsc"]);
@@ -1078,19 +1584,61 @@
       ga4 = emptyFailure("GA4", error);
     }
     const status = overallStatus(gsc, ga4);
-    const finishedAt = now().toISOString();
-    const rows = [
-      toRunLogRow(gsc, runId, startedAt, finishedAt, status),
-      toRunLogRow(ga4, runId, startedAt, finishedAt, status)
-    ];
-    writer("Run Log", ["runId", "source"], rows);
+    const canonicalFinishedAt = now().toISOString();
+    writer("Run Log", ["runId", "source"], [
+      toRunLogRow(gsc, runId, startedAt, canonicalFinishedAt, status),
+      toRunLogRow(ga4, runId, startedAt, canonicalFinishedAt, status)
+    ]);
     updateFreshness({
       gsc: { success: gsc.success, dataAsOf: gsc.success ? gsc.dataAsOf : void 0 },
       ga4: { success: ga4.success, dataAsOf: ga4.success ? ga4.dataAsOf : void 0 },
-      lastRun: finishedAt,
+      lastRun: canonicalFinishedAt,
       status
     });
-    return { runId, status, sources: { gsc, ga4 } };
+    const gscIndexStartedMs = nowMs();
+    let gscIndex;
+    try {
+      writer("Run Log", ["runId", "source"], [
+        toRunLogRow(
+          preflightPlaceholderOutcome(),
+          runId,
+          startedAt,
+          canonicalFinishedAt,
+          status,
+          ""
+        )
+      ]);
+      const config = configReader(["gscIndex"]);
+      if (!Array.isArray(config.monitoredUrls)) {
+        throw new Error("gscIndex configuration did not provide monitoredUrls after validation");
+      }
+      validateGscIndexingPreflight(workbook);
+      const batch = collectGscIndex({
+        runId,
+        checkedAt: startedAt,
+        siteUrl: config.gscProperty,
+        monitoredUrls: config.monitoredUrls
+      }, {
+        accessToken,
+        writeRows: writer
+      });
+      gscIndex = gscIndexOutcome(batch);
+    } catch (error) {
+      gscIndex = emptyFailure("GSC_INDEX", error);
+    }
+    const stageDurationMs = Math.max(0, nowMs() - gscIndexStartedMs);
+    const gscIndexFinishedAt = now().toISOString();
+    writer("Run Log", ["runId", "source"], [
+      toRunLogRow(
+        gscIndex,
+        runId,
+        startedAt,
+        gscIndexFinishedAt,
+        status,
+        stageDurationMs
+      )
+    ]);
+    return { runId, status, sources: { gsc, ga4, gscIndex } };
   }
   function runRangeImport(startDate, endDate, dependencies = {}) {
     var _a, _b, _c, _d;
@@ -1125,45 +1673,6 @@
       aggregationType: "auto",
       accessToken
     }).length;
-  }
-
-  // seo/apps-script/src/Setup.ts
-  var REQUIRED_SHEET_NAMES = [
-    "Config",
-    "Run Log",
-    "Pipeline Health",
-    "GSC Daily",
-    "GSC Pages",
-    "GSC Queries",
-    "GSC Page Queries",
-    "GSC Indexing",
-    "GA4 Daily",
-    "GA4 Acquisition",
-    "GA4 Landing Pages",
-    "GA4 Events",
-    "GA4 Pages",
-    "GA4 URL Quality",
-    "GTM Versions",
-    "GTM Changes",
-    "Findings Summary"
-  ];
-  function ensureWorkbookSheets(workbook) {
-    const created = [];
-    const existing = [];
-    for (const name of REQUIRED_SHEET_NAMES) {
-      if (workbook.getSheetByName(name)) {
-        existing.push(name);
-        continue;
-      }
-      workbook.insertSheet(name);
-      created.push(name);
-    }
-    return { created, existing };
-  }
-  function setupWorkbook(dependencies = { getVerifiedActiveWorkbook }) {
-    var _a;
-    const setupSheets = (_a = dependencies.ensureWorkbookSheets) != null ? _a : ensureWorkbookSheets;
-    setupSheets(dependencies.getVerifiedActiveWorkbook());
   }
 
   // seo/apps-script/src/Menu.ts
