@@ -186,8 +186,8 @@ export function inspectMonitoredUrls(
   dependencies: {
     transport?: HttpTransport;
     accessToken?: string;
-    inspectedAt?: string;
-  } = {},
+    inspectedAt: string;
+  },
 ): InspectionRow[] {
   const allowed = new Set(config.monitoredUrls);
   for (const url of requestedUrls) {
