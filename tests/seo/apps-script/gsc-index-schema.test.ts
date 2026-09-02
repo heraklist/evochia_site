@@ -3,10 +3,13 @@ import test from 'node:test';
 
 import {
   GSC_INDEXING_HEADERS,
+  REQUIRED_SHEET_NAMES,
   SchemaError,
   ensureGscIndexingSchema,
+  setupWorkbook,
   validateGscIndexingSchema,
   type GscIndexingSheet,
+  type WorkbookLike,
 } from '../../../seo/apps-script/src/Setup.ts';
 
 const EXPECTED_HEADERS = [
@@ -129,4 +132,33 @@ test('preflight validator rejects mismatched schemas without writing', () => {
 
   assert.throws(() => validateGscIndexingSchema(sheet), SchemaError);
   assert.equal(writes.length, 0);
+});
+
+test('setupWorkbook creates remaining required sheets before failing closed on a bad GSC Indexing schema', () => {
+  const { sheet: badIndexingSheet, writes } = sheetWithRows([[...EXPECTED_HEADERS.slice(0, 18)]]);
+  const sheets = new Map<string, unknown>([['GSC Indexing', badIndexingSheet]]);
+  const inserted: string[] = [];
+  const workbook: WorkbookLike = {
+    getSheetByName(name) {
+      return sheets.get(name) ?? null;
+    },
+    insertSheet(name) {
+      inserted.push(name);
+      const sheet = {};
+      sheets.set(name, sheet);
+      return sheet;
+    },
+  };
+
+  assert.throws(
+    () => setupWorkbook({ getVerifiedActiveWorkbook: () => workbook }),
+    SchemaError,
+  );
+
+  assert.equal(writes.length, 0, 'bad existing GSC Indexing schema must never be rewritten');
+  assert.deepEqual(
+    inserted,
+    REQUIRED_SHEET_NAMES.filter((name) => name !== 'GSC Indexing'),
+    'sheet creation happens before the schema gate, matching operator setup order',
+  );
 });
