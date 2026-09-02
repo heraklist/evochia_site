@@ -345,8 +345,8 @@ test('URL Inspection is limited to the monitored allowlist and stores canonicals
     { accessToken: 'test-token', inspectedAt: '2026-08-06T05:00:00Z', transport },
   );
 
-  assert.equal(result[0].userCanonical, monitoredUrl);
-  assert.equal(result[0].googleCanonical, monitoredUrl);
+  assert.deepEqual(result[0].userCanonical, { state: 'VALUE', value: monitoredUrl });
+  assert.deepEqual(result[0].googleCanonical, { state: 'VALUE', value: monitoredUrl });
   assert.equal(result[0].inspectedAt, '2026-08-06T05:00:00Z');
 
   assert.throws(
