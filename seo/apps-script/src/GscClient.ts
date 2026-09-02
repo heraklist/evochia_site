@@ -30,7 +30,7 @@ export type ArrayField =
   | { state: 'EMPTY' }
   | { state: 'NOT_RETURNED' };
 
-export interface InspectionRow {
+export interface ProviderInspectionResult {
   url: string;
   verdict: ScalarField;
   coverageState: ScalarField;
@@ -259,7 +259,7 @@ export function fetchSearchAnalytics(request: SearchAnalyticsRequest): GscRow[] 
   return rows;
 }
 
-export function fetchUrlInspection(request: UrlInspectionRequest): InspectionRow {
+export function fetchUrlInspection(request: UrlInspectionRequest): ProviderInspectionResult {
   const transport = request.transport ?? defaultTransport;
   const response = transport(
     'https://searchconsole.googleapis.com/v1/urlInspection/index:inspect',
