@@ -55,6 +55,30 @@ export interface FailedInspectionSnapshot {
 
 export type InspectionSnapshot = InspectedSnapshot | FailedInspectionSnapshot;
 
+export interface InspectionBatchConfig {
+  runId: string;
+  checkedAt: string;
+  siteUrl: string;
+  monitoredUrls: string[];
+}
+
+export interface InspectionBatchDependencies {
+  transport?: HttpTransport;
+  accessToken?: string;
+  writeRows?: (
+    sheetName: string,
+    keyColumns: string[],
+    rows: RowRecord[],
+  ) => WriteSummary;
+}
+
+export interface InspectionBatchResult {
+  snapshots: InspectionSnapshot[];
+  inspectedCount: number;
+  failedCount: number;
+  write: WriteSummary;
+}
+
 export const GSC_REPORT_SPECS = [
   {
     id: 'daily',
@@ -214,6 +238,95 @@ export function flattenInspectionSnapshot(snapshot: InspectionSnapshot): RowReco
     'Inspection Result Link': flattenScalar(snapshot.inspectionResultLink),
     'Error Class': '',
     'Error Message': '',
+  };
+}
+
+function toInspectedSnapshot(
+  runId: string,
+  checkedAt: string,
+  result: ProviderInspectionResult,
+): InspectedSnapshot {
+  return {
+    runId,
+    checkedAt,
+    url: result.url,
+    outcome: 'INSPECTED',
+    verdict: result.verdict,
+    coverageState: result.coverageState,
+    robotsTxtState: result.robotsTxtState,
+    indexingState: result.indexingState,
+    pageFetchState: result.pageFetchState,
+    crawledAs: result.crawledAs,
+    googleCanonical: result.googleCanonical,
+    userCanonical: result.userCanonical,
+    canonicalMatch: canonicalMatch(result.userCanonical, result.googleCanonical),
+    lastCrawlTime: result.lastCrawlTime,
+    sitemap: result.sitemap,
+    referringUrls: result.referringUrls,
+    inspectionResultLink: result.inspectionResultLink,
+  };
+}
+
+function toFailedSnapshot(
+  runId: string,
+  checkedAt: string,
+  url: string,
+  error: unknown,
+): FailedInspectionSnapshot {
+  if (error instanceof Error) {
+    return {
+      runId,
+      checkedAt,
+      url,
+      outcome: 'REQUEST_FAILED',
+      canonicalMatch: 'NOT_COMPARABLE',
+      errorClass: error.name || 'Error',
+      errorMessage: error.message,
+    };
+  }
+
+  return {
+    runId,
+    checkedAt,
+    url,
+    outcome: 'REQUEST_FAILED',
+    canonicalMatch: 'NOT_COMPARABLE',
+    errorClass: 'UnknownError',
+    errorMessage: String(error),
+  };
+}
+
+export function collectAndPersistInspectionSnapshots(
+  config: InspectionBatchConfig,
+  dependencies: InspectionBatchDependencies = {},
+): InspectionBatchResult {
+  const snapshots: InspectionSnapshot[] = [];
+
+  for (const url of config.monitoredUrls) {
+    try {
+      const result = fetchUrlInspection({
+        siteUrl: config.siteUrl,
+        inspectionUrl: url,
+        accessToken: dependencies.accessToken,
+        transport: dependencies.transport,
+        inspectedAt: config.checkedAt,
+      });
+      snapshots.push(toInspectedSnapshot(config.runId, config.checkedAt, result));
+    } catch (error) {
+      snapshots.push(toFailedSnapshot(config.runId, config.checkedAt, url, error));
+    }
+  }
+
+  const rows = snapshots.map(flattenInspectionSnapshot);
+  const writer = dependencies.writeRows ?? upsertRows;
+  const write = writer('GSC Indexing', ['Run Id', 'URL'], rows);
+  const failedCount = snapshots.filter((snapshot) => snapshot.outcome === 'REQUEST_FAILED').length;
+
+  return {
+    snapshots,
+    inspectedCount: snapshots.length - failedCount,
+    failedCount,
+    write,
   };
 }
 
