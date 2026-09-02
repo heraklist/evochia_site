@@ -4,7 +4,12 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { getConfig, verifyConfig, type SeoConfig } from '../../../seo/apps-script/src/Config.ts';
+import {
+  ConfigurationError,
+  getConfig,
+  verifyConfig,
+  type SeoConfig,
+} from '../../../seo/apps-script/src/Config.ts';
 import {
   APPROVED_MONITORED_PATHS,
   MAX_INSPECTION_URLS,
@@ -143,7 +148,7 @@ test('gscIndex capability rejects malformed or non-exact monitored URL sets with
   });
 });
 
-test('getConfig rejects a null Script Property payload with a controlled configuration error', () => {
+test('getConfig rejects a null Script Property payload with a typed configuration error', () => {
   const originalPropertiesService = Object.getOwnPropertyDescriptor(globalThis, 'PropertiesService');
 
   Object.defineProperty(globalThis, 'PropertiesService', {
@@ -158,7 +163,8 @@ test('getConfig rejects a null Script Property payload with a controlled configu
   try {
     assert.throws(
       () => getConfig(['gsc']),
-      /SEO configuration is not verified: configuration payload must be a JSON object/,
+      (error: unknown) => error instanceof ConfigurationError
+        && /SEO configuration is not verified: configuration payload must be a JSON object/.test(error.message),
     );
   } finally {
     if (originalPropertiesService) {
