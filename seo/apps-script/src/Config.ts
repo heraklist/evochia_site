@@ -149,14 +149,15 @@ export function verifyConfig(
       errors.push('monitoredUrls must contain unique URLs');
     }
 
-    const hostnameIsUsable = typeof config.productionHostname === 'string'
-      && config.productionHostname !== 'UNVERIFIED'
-      && isValidHostname(config.productionHostname);
+    const productionHostname = config.productionHostname;
+    const hostnameIsUsable = typeof productionHostname === 'string'
+      && productionHostname !== 'UNVERIFIED'
+      && isValidHostname(productionHostname);
 
     if (!hostnameIsUsable) {
       errors.push('monitoredUrls exact-set validation requires a valid productionHostname');
     } else if (monitoredUrls.every((value): value is string => typeof value === 'string')) {
-      const expected = expectedMonitoredUrls(config.productionHostname);
+      const expected = expectedMonitoredUrls(productionHostname);
       if (!sameStringSet(monitoredUrls, expected)) {
         errors.push('monitoredUrls must exactly match the approved monitored URL set');
       }
