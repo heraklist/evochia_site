@@ -414,13 +414,6 @@ export function runDailyImport(dependencies: JobDependencies = {}): DailyJobResu
   let gscIndex: SourceOutcome;
 
   try {
-    const config = configReader(['gscIndex']);
-    if (!Array.isArray(config.monitoredUrls)) {
-      throw new Error('gscIndex configuration did not provide monitoredUrls after validation');
-    }
-
-    validateGscIndexingPreflight(workbook);
-
     writer('Run Log', ['runId', 'source'], [
       toRunLogRow(
         preflightPlaceholderOutcome(),
@@ -431,6 +424,13 @@ export function runDailyImport(dependencies: JobDependencies = {}): DailyJobResu
         '',
       ),
     ]);
+
+    const config = configReader(['gscIndex']);
+    if (!Array.isArray(config.monitoredUrls)) {
+      throw new Error('gscIndex configuration did not provide monitoredUrls after validation');
+    }
+
+    validateGscIndexingPreflight(workbook);
 
     const batch = collectGscIndex({
       runId,
@@ -447,12 +447,13 @@ export function runDailyImport(dependencies: JobDependencies = {}): DailyJobResu
   }
 
   const stageDurationMs = Math.max(0, nowMs() - gscIndexStartedMs);
+  const gscIndexFinishedAt = now().toISOString();
   writer('Run Log', ['runId', 'source'], [
     toRunLogRow(
       gscIndex,
       runId,
       startedAt,
-      canonicalFinishedAt,
+      gscIndexFinishedAt,
       status,
       stageDurationMs,
     ),
