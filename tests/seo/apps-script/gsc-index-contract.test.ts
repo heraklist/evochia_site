@@ -4,7 +4,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { verifyConfig, type SeoConfig } from '../../../seo/apps-script/src/Config.ts';
+import { getConfig, verifyConfig, type SeoConfig } from '../../../seo/apps-script/src/Config.ts';
 import {
   APPROVED_MONITORED_PATHS,
   MAX_INSPECTION_URLS,
@@ -55,9 +55,67 @@ test('approved monitored paths are fixed, bounded, unique, and resolve from repo
 });
 
 test('expected monitored URLs compose host plus approved paths without rewriting', () => {
-  assert.deepEqual(
-    expectedMonitoredUrls('www.evochia.gr'),
-    APPROVED_MONITORED_PATHS.map((monitoredPath) => `https://www.evochia.gr${monitoredPath}`),
+  const expected = expectedMonitoredUrls('www.evochia.gr');
+
+  assert.equal(expected[0], 'https://www.evochia.gr/en/private-chef/');
+  assert.equal(expected.at(-1), 'https://www.evochia.gr/el/corporate-catering/');
+  assert.equal(expected.length, APPROVED_MONITORED_PATHS.length);
+});
+
+test('gscIndex exact-set validation is order-independent', () => {
+  const exact = expectedMonitoredUrls(baseConfig.productionHostname);
+  const reversed = [...exact].reverse();
+
+  assert.deepEqual(verifyConfig({ ...baseConfig, monitoredUrls: reversed }, ['gscIndex']), {
+    ok: true,
+    errors: [],
+  });
+});
+
+test('gscIndex exact-set validation detects duplicate-plus-missing sets independently', () => {
+  const exact = expectedMonitoredUrls(baseConfig.productionHostname);
+  const duplicatePlusMissing = [...exact];
+  duplicatePlusMissing[duplicatePlusMissing.length - 1] = exact[0];
+
+  const result = verifyConfig({ ...baseConfig, monitoredUrls: duplicatePlusMissing }, ['gscIndex']);
+  assert.equal(result.ok, false);
+  assert.equal(result.errors.includes('monitoredUrls must contain unique URLs'), true);
+  assert.equal(result.errors.includes('monitoredUrls must exactly match the approved monitored URL set'), true);
+});
+
+test('gscIndex rejects an empty monitored URL list and enforces the defensive cap', () => {
+  const emptyResult = verifyConfig({ ...baseConfig, monitoredUrls: [] }, ['gscIndex']);
+  assert.equal(emptyResult.ok, false);
+  assert.equal(emptyResult.errors.includes('monitoredUrls must not be empty'), true);
+
+  const overCap = Array.from(
+    { length: MAX_INSPECTION_URLS + 1 },
+    (_, index) => `https://www.evochia.gr/inspection-test-${index}/`,
+  );
+  const overCapResult = verifyConfig({ ...baseConfig, monitoredUrls: overCap }, ['gscIndex']);
+  assert.equal(overCapResult.ok, false);
+  assert.equal(
+    overCapResult.errors.includes(`monitoredUrls must not exceed ${MAX_INSPECTION_URLS} URLs`),
+    true,
+  );
+});
+
+test('gscIndex reports when exact-set composition cannot use an invalid production hostname', () => {
+  const exact = expectedMonitoredUrls(baseConfig.productionHostname);
+  const result = verifyConfig({
+    ...baseConfig,
+    productionHostname: 'WWW.evochia.gr',
+    monitoredUrls: exact,
+  }, ['gscIndex']);
+
+  assert.equal(result.ok, false);
+  assert.equal(
+    result.errors.includes('productionHostname must be a lowercase hostname without scheme, path, port, or trailing dot'),
+    true,
+  );
+  assert.equal(
+    result.errors.includes('monitoredUrls exact-set validation requires a valid productionHostname'),
+    true,
   );
 });
 
@@ -83,4 +141,30 @@ test('gscIndex capability rejects malformed or non-exact monitored URL sets with
     ok: true,
     errors: [],
   });
+});
+
+test('getConfig rejects a null Script Property payload with a controlled configuration error', () => {
+  const originalPropertiesService = Object.getOwnPropertyDescriptor(globalThis, 'PropertiesService');
+
+  Object.defineProperty(globalThis, 'PropertiesService', {
+    configurable: true,
+    value: {
+      getScriptProperties: () => ({
+        getProperty: () => 'null',
+      }),
+    },
+  });
+
+  try {
+    assert.throws(
+      () => getConfig(['gsc']),
+      /SEO configuration is not verified: configuration payload must be a JSON object/,
+    );
+  } finally {
+    if (originalPropertiesService) {
+      Object.defineProperty(globalThis, 'PropertiesService', originalPropertiesService);
+    } else {
+      delete (globalThis as Record<string, unknown>).PropertiesService;
+    }
+  }
 });
