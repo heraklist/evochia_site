@@ -51,7 +51,6 @@ export class SchemaError extends Error {
 
 export interface GscIndexingSheet {
   getLastRow(): number;
-  getDataRange(): { getValues(): unknown[][] };
   getRange(row: number, column: number, numRows: number, numColumns: number): {
     getValues(): unknown[][];
     setValues(values: unknown[][]): void;
@@ -78,7 +77,6 @@ function isGscIndexingSheet(value: unknown): value is GscIndexingSheet {
   if (typeof value !== 'object' || value === null) return false;
   const candidate = value as Partial<GscIndexingSheet>;
   return typeof candidate.getLastRow === 'function'
-    && typeof candidate.getDataRange === 'function'
     && typeof candidate.getRange === 'function';
 }
 
