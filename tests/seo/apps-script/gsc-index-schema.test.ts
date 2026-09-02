@@ -35,17 +35,28 @@ function sheetWithRows(initialRows: unknown[][]): {
   sheet: GscIndexingSheet;
   rows: unknown[][];
   writes: unknown[][][];
+  reads: Array<[number, number, number, number]>;
 } {
   const rows = initialRows.map((row) => [...row]);
   const writes: unknown[][][] = [];
+  const reads: Array<[number, number, number, number]> = [];
 
   return {
     rows,
     writes,
+    reads,
     sheet: {
       getLastRow: () => rows.length,
-      getDataRange: () => ({ getValues: () => rows.map((row) => [...row]) }),
-      getRange: (_row, _column, numRows, numColumns) => ({
+      getDataRange: () => {
+        throw new Error('GSC Indexing schema reads must never use getDataRange');
+      },
+      getRange: (row, column, numRows, numColumns) => ({
+        getValues() {
+          reads.push([row, column, numRows, numColumns]);
+          return rows
+            .slice(row - 1, row - 1 + numRows)
+            .map((valueRow) => valueRow.slice(column - 1, column - 1 + numColumns));
+        },
         setValues(values) {
           writes.push(values.map((valueRow) => [...valueRow]));
           rows.splice(0, rows.length, ...values.slice(0, numRows).map((valueRow) => valueRow.slice(0, numColumns)));
@@ -86,18 +97,23 @@ test('schema initializer fails closed on 18, reordered, or extra headers', () =>
   }
 });
 
-test('preflight validator accepts exact schema without writing', () => {
-  const { sheet, writes } = sheetWithRows([[...EXPECTED_HEADERS]]);
+test('preflight validator reads only the bounded 1x19 header range and never writes', () => {
+  const { sheet, writes, reads } = sheetWithRows([
+    [...EXPECTED_HEADERS],
+    ...Array.from({ length: 100 }, () => Array.from({ length: 25 }, () => 'data')),
+  ]);
 
   validateGscIndexingSchema(sheet);
+  assert.deepEqual(reads, [[1, 1, 1, EXPECTED_HEADERS.length]]);
   assert.equal(writes.length, 0);
 });
 
 test('preflight validator rejects an empty sheet and never initializes it', () => {
-  const { sheet, rows, writes } = sheetWithRows([]);
+  const { sheet, rows, writes, reads } = sheetWithRows([]);
 
   assert.throws(() => validateGscIndexingSchema(sheet), SchemaError);
   assert.deepEqual(rows, []);
+  assert.deepEqual(reads, []);
   assert.equal(writes.length, 0);
 });
 
