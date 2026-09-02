@@ -1,16 +1,19 @@
 import {
   fetchSearchAnalytics,
   fetchUrlInspection,
+  type ArrayField,
   type GscAggregationType,
   type GscDimension,
   type GscRow,
   type HttpTransport,
-  type InspectionRow,
+  type ProviderInspectionResult,
+  type ScalarField,
 } from './GscClient.ts';
 import { calendarDateParts } from './RuntimeCompat.ts';
 import { upsertRows, type RowRecord, type WriteSummary } from './SheetWriter.ts';
 
 export type GscReportId = 'daily' | 'pages' | 'queries' | 'pageQueries';
+export type CanonicalMatch = 'MATCH' | 'MISMATCH' | 'NOT_COMPARABLE';
 
 export interface GscReportSpec {
   id: GscReportId;
@@ -19,6 +22,38 @@ export interface GscReportSpec {
   sheetName: 'GSC Daily' | 'GSC Pages' | 'GSC Queries' | 'GSC Page Queries';
   keyColumns: readonly string[];
 }
+
+export interface InspectedSnapshot {
+  runId: string;
+  checkedAt: string;
+  url: string;
+  outcome: 'INSPECTED';
+  verdict: ScalarField;
+  coverageState: ScalarField;
+  robotsTxtState: ScalarField;
+  indexingState: ScalarField;
+  pageFetchState: ScalarField;
+  crawledAs: ScalarField;
+  googleCanonical: ScalarField;
+  userCanonical: ScalarField;
+  canonicalMatch: CanonicalMatch;
+  lastCrawlTime: ScalarField;
+  sitemap: ArrayField;
+  referringUrls: ArrayField;
+  inspectionResultLink: ScalarField;
+}
+
+export interface FailedInspectionSnapshot {
+  runId: string;
+  checkedAt: string;
+  url: string;
+  outcome: 'REQUEST_FAILED';
+  canonicalMatch: 'NOT_COMPARABLE';
+  errorClass: string;
+  errorMessage: string;
+}
+
+export type InspectionSnapshot = InspectedSnapshot | FailedInspectionSnapshot;
 
 export const GSC_REPORT_SPECS = [
   {
@@ -78,6 +113,108 @@ export interface GscImportDependencies {
     keyColumns: string[],
     rows: RowRecord[],
   ) => WriteSummary;
+}
+
+function normalizeCanonicalUrl(value: string): string | null {
+  const fragmentIndex = value.indexOf('#');
+  const withoutFragment = fragmentIndex === -1 ? value : value.slice(0, fragmentIndex);
+  const match = /^(https?):\/\/([^/?#]+)(.*)$/i.exec(withoutFragment);
+  if (!match) return null;
+
+  const protocol = match[1];
+  const authority = match[2];
+  const remainder = match[3];
+  if (authority.includes('@')) return null;
+
+  const authorityMatch = /^([^:]+)(?::(\d+))?$/.exec(authority);
+  if (!authorityMatch) return null;
+
+  const hostname = authorityMatch[1].toLowerCase();
+  let port = authorityMatch[2] ?? '';
+  const protocolForPort = protocol.toLowerCase();
+  if (
+    (protocolForPort === 'https' && port === '443')
+    || (protocolForPort === 'http' && port === '80')
+  ) {
+    port = '';
+  }
+
+  return `${protocol}://${hostname}${port ? `:${port}` : ''}${remainder}`;
+}
+
+export function canonicalMatch(
+  userCanonical: ScalarField,
+  googleCanonical: ScalarField,
+): CanonicalMatch {
+  if (userCanonical.state !== 'VALUE' || googleCanonical.state !== 'VALUE') {
+    return 'NOT_COMPARABLE';
+  }
+
+  const normalizedUser = normalizeCanonicalUrl(userCanonical.value);
+  const normalizedGoogle = normalizeCanonicalUrl(googleCanonical.value);
+  if (normalizedUser === null || normalizedGoogle === null) {
+    return 'NOT_COMPARABLE';
+  }
+
+  return normalizedUser === normalizedGoogle ? 'MATCH' : 'MISMATCH';
+}
+
+function flattenScalar(field: ScalarField): string {
+  return field.state === 'VALUE' ? field.value : 'NOT_RETURNED';
+}
+
+function flattenArray(field: ArrayField): string {
+  if (field.state === 'VALUE') return JSON.stringify(field.value);
+  if (field.state === 'EMPTY') return '[]';
+  return 'NOT_RETURNED';
+}
+
+export function flattenInspectionSnapshot(snapshot: InspectionSnapshot): RowRecord {
+  if (snapshot.outcome === 'REQUEST_FAILED') {
+    return {
+      'Checked At': snapshot.checkedAt,
+      'Run Id': snapshot.runId,
+      URL: snapshot.url,
+      Outcome: snapshot.outcome,
+      Verdict: '',
+      'Coverage State': '',
+      'Robots.txt State': '',
+      'Indexing State': '',
+      'Page Fetch State': '',
+      'Crawled As': '',
+      'Google Canonical': '',
+      'User Canonical': '',
+      'Canonical Match': snapshot.canonicalMatch,
+      'Last Crawl Time': '',
+      Sitemap: '',
+      'Referring URLs': '',
+      'Inspection Result Link': '',
+      'Error Class': snapshot.errorClass,
+      'Error Message': snapshot.errorMessage,
+    };
+  }
+
+  return {
+    'Checked At': snapshot.checkedAt,
+    'Run Id': snapshot.runId,
+    URL: snapshot.url,
+    Outcome: snapshot.outcome,
+    Verdict: flattenScalar(snapshot.verdict),
+    'Coverage State': flattenScalar(snapshot.coverageState),
+    'Robots.txt State': flattenScalar(snapshot.robotsTxtState),
+    'Indexing State': flattenScalar(snapshot.indexingState),
+    'Page Fetch State': flattenScalar(snapshot.pageFetchState),
+    'Crawled As': flattenScalar(snapshot.crawledAs),
+    'Google Canonical': flattenScalar(snapshot.googleCanonical),
+    'User Canonical': flattenScalar(snapshot.userCanonical),
+    'Canonical Match': snapshot.canonicalMatch,
+    'Last Crawl Time': flattenScalar(snapshot.lastCrawlTime),
+    Sitemap: flattenArray(snapshot.sitemap),
+    'Referring URLs': flattenArray(snapshot.referringUrls),
+    'Inspection Result Link': flattenScalar(snapshot.inspectionResultLink),
+    'Error Class': '',
+    'Error Message': '',
+  };
 }
 
 export function getAvailableGscDate(now: Date, delayDays = 3): string {
@@ -188,7 +325,7 @@ export function inspectMonitoredUrls(
     accessToken?: string;
     inspectedAt: string;
   },
-): InspectionRow[] {
+): ProviderInspectionResult[] {
   const allowed = new Set(config.monitoredUrls);
   for (const url of requestedUrls) {
     if (!allowed.has(url)) {
