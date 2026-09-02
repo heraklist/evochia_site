@@ -39,6 +39,7 @@ Consequences:
 - fewer than 19 canonical headers -> `SchemaError`;
 - reordered or mismatched canonical headers -> `SchemaError`;
 - content or notes in columns beyond column 19 do not invalidate the canonical schema and are ignored by schema validation;
+- a Sheets range-read failure while reading the canonical header range is translated into `SchemaError` rather than leaking a raw Apps Script range exception;
 - `setupWorkbook()` remains the sole initializer of the canonical 19 headers;
 - preflight remains read-only and never repairs or initializes schema.
 
