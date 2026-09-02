@@ -70,3 +70,20 @@ jobs:
 
       - name: Verify committed Apps Script bundles
         run: npm run seo:check:apps-script-bundle
+
+      # Temporary Task 7 capture step. This commit is removed after the exact
+      # generated artifacts are downloaded and committed to the branch.
+      - name: Build Task 7 generated bundles for capture
+        if: always()
+        run: npm run seo:build:apps-script
+
+      - name: Upload Task 7 generated bundles
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: task7-generated-bundles
+          path: |
+            seo/apps-script/generated
+            seo/apps-script/generated-smoke
+          if-no-files-found: error
+          retention-days: 1
