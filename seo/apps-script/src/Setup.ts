@@ -53,6 +53,7 @@ export interface GscIndexingSheet {
   getLastRow(): number;
   getDataRange(): { getValues(): unknown[][] };
   getRange(row: number, column: number, numRows: number, numColumns: number): {
+    getValues(): unknown[][];
     setValues(values: unknown[][]): void;
   };
 }
@@ -83,7 +84,9 @@ function isGscIndexingSheet(value: unknown): value is GscIndexingSheet {
 
 function readGscIndexingHeaders(sheet: GscIndexingSheet): string[] {
   if (sheet.getLastRow() === 0) return [];
-  const values = sheet.getDataRange().getValues();
+  const values = sheet
+    .getRange(1, 1, 1, GSC_INDEXING_HEADERS.length)
+    .getValues();
   const firstRow = values[0] ?? [];
   return firstRow.map((value) => String(value));
 }
