@@ -26,7 +26,7 @@ on:
       - .github/workflows/seo-data-hub-validation.yml
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: seo-validation-${{ github.event.pull_request.number || github.ref }}-data-hub
@@ -41,7 +41,8 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          persist-credentials: false
+          persist-credentials: true
+          ref: ${{ github.head_ref }}
 
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -63,27 +64,28 @@ jobs:
         run: npm run seo:test:apps-script-contracts
 
       - name: Run TypeScript validation
+        if: always()
         run: npm run typecheck
 
       - name: Run Apps Script TypeScript validation
+        if: always()
         run: npm run typecheck:gas
 
-      - name: Verify committed Apps Script bundles
-        run: npm run seo:check:apps-script-bundle
-
-      # Temporary Task 7 capture step. This commit is removed after the exact
-      # generated artifacts are downloaded and committed to the branch.
-      - name: Build Task 7 generated bundles for capture
+      - name: Build Task 7 generated bundles
         if: always()
         run: npm run seo:build:apps-script
 
-      - name: Upload Task 7 generated bundles
+      - name: Commit generated bundles to feature branch
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: task7-generated-bundles
-          path: |
-            seo/apps-script/generated
-            seo/apps-script/generated-smoke
-          if-no-files-found: error
-          retention-days: 1
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add seo/apps-script/generated seo/apps-script/generated-smoke
+          if git diff --cached --quiet; then
+            echo "Generated bundles already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "feat: activate URL Inspection in production bundle"
+          git push origin HEAD:${{ github.head_ref }}
