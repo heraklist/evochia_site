@@ -1,9 +1,14 @@
 import { isValidHostname, isValidIanaTimeZone } from './RuntimeCompat.ts';
+import {
+  MAX_INSPECTION_URLS,
+  expectedMonitoredUrls,
+} from './GscIndexConfig.ts';
 
 export const CONFIG_PROPERTY_KEY = 'SEO_GOOGLE_RESOURCES_JSON';
 
 export const RESOURCE_KEYS = [
   'gscProperty',
+  'monitoredUrls',
   'ga4AccountId',
   'ga4PropertyId',
   'ga4PropertyTimeZone',
@@ -15,10 +20,11 @@ export const RESOURCE_KEYS = [
   'driveFolderId',
 ] as const;
 
-export type CapabilityKey = 'workbook' | 'gsc' | 'ga4';
+export type CapabilityKey = 'workbook' | 'gsc' | 'gscIndex' | 'ga4';
 
 export interface SeoConfig {
   gscProperty: string;
+  monitoredUrls?: string[];
   ga4AccountId: string;
   ga4PropertyId: string;
   ga4PropertyTimeZone: string;
@@ -40,6 +46,7 @@ export interface VerificationResult {
 const CAPABILITY_RESOURCES: Record<CapabilityKey, readonly (keyof SeoConfig)[]> = {
   workbook: ['sheetId'],
   gsc: ['gscProperty'],
+  gscIndex: ['gscProperty', 'productionHostname', 'monitoredUrls'],
   ga4: ['ga4PropertyId', 'ga4PropertyTimeZone', 'productionHostname'],
 };
 
@@ -53,6 +60,16 @@ function requiredResources(capabilities: readonly CapabilityKey[]): Set<keyof Se
   return required;
 }
 
+function isAbsoluteHttpsUrl(value: string): boolean {
+  return /^https:\/\/[^\s/]+(?:\/[^\s]*)?$/.test(value);
+}
+
+function sameStringSet(left: string[], right: string[]): boolean {
+  if (left.length !== right.length) return false;
+  const rightSet = new Set(right);
+  return left.every((value) => rightSet.has(value));
+}
+
 export function verifyConfig(
   config: Partial<SeoConfig>,
   capabilities: readonly CapabilityKey[] = ['workbook'],
@@ -62,6 +79,13 @@ export function verifyConfig(
 
   for (const key of required) {
     const value = config[key];
+    if (key === 'monitoredUrls') {
+      if (!Array.isArray(value)) {
+        errors.push('monitoredUrls is required');
+      }
+      continue;
+    }
+
     if (typeof value !== 'string' || value.trim() === '') {
       errors.push(`${key} is required`);
     } else if (value === 'UNVERIFIED') {
@@ -102,6 +126,35 @@ export function verifyConfig(
     && !/^\d+$/.test(config.ga4PropertyId)
   ) {
     errors.push('ga4PropertyId must contain digits only');
+  }
+
+  if (required.has('monitoredUrls') && Array.isArray(config.monitoredUrls)) {
+    const monitoredUrls = config.monitoredUrls;
+
+    if (monitoredUrls.length === 0) {
+      errors.push('monitoredUrls must not be empty');
+    }
+    if (monitoredUrls.length > MAX_INSPECTION_URLS) {
+      errors.push(`monitoredUrls must not exceed ${MAX_INSPECTION_URLS} URLs`);
+    }
+    if (!monitoredUrls.every((value): value is string => typeof value === 'string' && isAbsoluteHttpsUrl(value))) {
+      errors.push('monitoredUrls must contain only absolute https URLs');
+    }
+    if (new Set(monitoredUrls).size !== monitoredUrls.length) {
+      errors.push('monitoredUrls must contain unique URLs');
+    }
+
+    if (
+      typeof config.productionHostname === 'string'
+      && config.productionHostname !== 'UNVERIFIED'
+      && isValidHostname(config.productionHostname)
+      && monitoredUrls.every((value): value is string => typeof value === 'string')
+    ) {
+      const expected = expectedMonitoredUrls(config.productionHostname);
+      if (!sameStringSet(monitoredUrls, expected)) {
+        errors.push('monitoredUrls must exactly match the approved monitored URL set');
+      }
+    }
   }
 
   return { ok: errors.length === 0, errors };
