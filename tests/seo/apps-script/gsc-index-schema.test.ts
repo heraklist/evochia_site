@@ -118,6 +118,21 @@ test('preflight validator reads only the bounded 1x19 header range and never wri
   assert.equal(writes.length, 0);
 });
 
+test('preflight validator translates sheet range failures into SchemaError', () => {
+  const brokenSheet: GscIndexingSheet = {
+    getLastRow: () => 1,
+    getRange: () => {
+      throw new Error('Those columns are out of bounds');
+    },
+  };
+
+  assert.throws(
+    () => validateGscIndexingSchema(brokenSheet),
+    (error: unknown) => error instanceof SchemaError
+      && /Unable to read GSC Indexing canonical headers/.test(error.message),
+  );
+});
+
 test('preflight validator rejects an empty sheet and never initializes it', () => {
   const { sheet, rows, writes, reads } = sheetWithRows([]);
 
