@@ -7,12 +7,17 @@ import {
   type JobDependencies,
 } from '../../../seo/apps-script/src/Jobs.ts';
 import type { SeoConfig } from '../../../seo/apps-script/src/Config.ts';
-import type { GscImportResult } from '../../../seo/apps-script/src/GscImporter.ts';
+import { expectedMonitoredUrls } from '../../../seo/apps-script/src/GscIndexConfig.ts';
+import type {
+  GscImportResult,
+  InspectionBatchResult,
+} from '../../../seo/apps-script/src/GscImporter.ts';
 import type { Ga4PersistenceResult } from '../../../seo/apps-script/src/Ga4Importer.ts';
 import type { RowRecord, WriteSummary } from '../../../seo/apps-script/src/SheetWriter.ts';
 
 const config: SeoConfig = {
   gscProperty: 'https://www.evochia.gr/',
+  monitoredUrls: expectedMonitoredUrls('www.evochia.gr'),
   ga4AccountId: '388030118',
   ga4PropertyId: '528945896',
   ga4PropertyTimeZone: 'Europe/Athens',
@@ -59,6 +64,16 @@ function ga4Result(dataAsOf = '2026-08-25'): Ga4PersistenceResult {
   };
 }
 
+function gscIndexResult(): InspectionBatchResult {
+  const count = config.monitoredUrls!.length;
+  return {
+    snapshots: [],
+    inspectedCount: count,
+    failedCount: 0,
+    write: { inserted: count, updated: 0, unchanged: 0, total: count },
+  };
+}
+
 function dependencies(options: { gscFails?: boolean; ga4Fails?: boolean } = {}) {
   let tokenCalls = 0;
   const runLogRows: RowRecord[] = [];
@@ -67,6 +82,10 @@ function dependencies(options: { gscFails?: boolean; ga4Fails?: boolean } = {}) 
 
   const deps: JobDependencies = {
     now: () => new Date('2026-08-27T12:00:00.000Z'),
+    nowMs: (() => {
+      const values = [1_000, 1_100];
+      return () => values.shift() ?? 1_100;
+    })(),
     createRunId: () => 'run-1',
     getVerifiedActiveWorkbook: () => ({ getId: () => config.sheetId }),
     getOAuthToken: () => {
@@ -85,8 +104,18 @@ function dependencies(options: { gscFails?: boolean; ga4Fails?: boolean } = {}) 
       if (options.ga4Fails) throw new Error('ga4 failed');
       return ga4Result();
     },
-    writeRows: (_sheetName, _keyColumns, rows) => {
-      runLogRows.push(...rows);
+    validateGscIndexingPreflight: () => {},
+    collectGscIndexSnapshots: () => gscIndexResult(),
+    writeRows: (sheetName, _keyColumns, rows) => {
+      if (sheetName === 'Run Log') {
+        for (const row of rows) {
+          const existingIndex = runLogRows.findIndex(
+            (existing) => existing.runId === row.runId && existing.source === row.source,
+          );
+          if (existingIndex === -1) runLogRows.push({ ...row });
+          else runLogRows[existingIndex] = { ...runLogRows[existingIndex], ...row };
+        }
+      }
       return { inserted: rows.length, updated: 0, unchanged: 0, total: rows.length };
     },
     updateFreshness: (input) => {
@@ -105,17 +134,19 @@ function dependencies(options: { gscFails?: boolean; ga4Fails?: boolean } = {}) 
   };
 }
 
-test('daily job reports SUCCESS and obtains one OAuth token for both sources', () => {
+test('daily job reports SUCCESS and obtains one OAuth token for all three sources', () => {
   const { deps, state } = dependencies();
   const result = runDailyImport(deps);
 
   assert.equal(result.status, 'SUCCESS');
+  assert.equal(result.sources.gscIndex.success, true);
   assert.equal(state.tokenCalls, 1);
-  assert.deepEqual(state.capabilityCalls, [['gsc'], ['ga4']]);
-  assert.equal(state.runLogRows.length, 2);
-  assert.deepEqual(state.runLogRows.map((row) => row.source), ['GSC', 'GA4']);
+  assert.deepEqual(state.capabilityCalls, [['gsc'], ['ga4'], ['gscIndex']]);
+  assert.equal(state.runLogRows.length, 3);
+  assert.deepEqual(state.runLogRows.map((row) => row.source), ['GSC', 'GA4', 'GSC_INDEX']);
   assert.equal(state.runLogRows.every((row) => row.runId === 'run-1'), true);
   assert.equal(state.runLogRows.every((row) => row.overallStatus === 'SUCCESS'), true);
+  assert.equal(state.runLogRows.find((row) => row.source === 'GSC_INDEX')?.stageDurationMs, 100);
   assert.equal(state.freshnessCalls.length, 1);
 });
 
@@ -147,6 +178,10 @@ test('daily job verifies the bound workbook before OAuth or any source/write act
       sourceCalls += 1;
       return ga4Result();
     },
+    collectGscIndexSnapshots: () => {
+      sourceCalls += 1;
+      return gscIndexResult();
+    },
     writeRows: () => {
       writerCalls += 1;
       return zeroWrite;
@@ -169,8 +204,8 @@ test('daily job isolates a GSC failure and reports PARTIAL', () => {
   const result = runDailyImport(deps);
 
   assert.equal(result.status, 'PARTIAL');
-  assert.equal(state.runLogRows.length, 2);
-  assert.deepEqual(state.runLogRows.map((row) => row.sourceStatus), ['FAILED', 'SUCCESS']);
+  assert.equal(state.runLogRows.length, 3);
+  assert.deepEqual(state.runLogRows.map((row) => row.sourceStatus), ['FAILED', 'SUCCESS', 'SUCCESS']);
   assert.equal(state.runLogRows.every((row) => row.overallStatus === 'PARTIAL'), true);
 });
 
@@ -179,15 +214,17 @@ test('daily job isolates a GA4 failure and reports PARTIAL', () => {
   const result = runDailyImport(deps);
 
   assert.equal(result.status, 'PARTIAL');
-  assert.deepEqual(state.runLogRows.map((row) => row.sourceStatus), ['SUCCESS', 'FAILED']);
+  assert.deepEqual(state.runLogRows.map((row) => row.sourceStatus), ['SUCCESS', 'FAILED', 'SUCCESS']);
+  assert.equal(state.runLogRows.every((row) => row.overallStatus === 'PARTIAL'), true);
 });
 
-test('daily job reports FAILED when both sources fail', () => {
+test('daily job reports FAILED when both canonical sources fail', () => {
   const { deps, state } = dependencies({ gscFails: true, ga4Fails: true });
   const result = runDailyImport(deps);
 
   assert.equal(result.status, 'FAILED');
-  assert.deepEqual(state.runLogRows.map((row) => row.sourceStatus), ['FAILED', 'FAILED']);
+  assert.deepEqual(state.runLogRows.map((row) => row.sourceStatus), ['FAILED', 'FAILED', 'SUCCESS']);
+  assert.equal(state.runLogRows.every((row) => row.overallStatus === 'FAILED'), true);
 });
 
 test('range import is GSC-only and returns the page-query fetched count', () => {
