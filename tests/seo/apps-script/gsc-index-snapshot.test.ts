@@ -30,6 +30,12 @@ const canonicalCases: Array<{
     expected: 'MISMATCH',
   },
   {
+    name: 'scheme case alone normalizes',
+    user: value('HTTPS://www.evochia.gr/en/private-chef/'),
+    google: value('https://www.evochia.gr/en/private-chef/'),
+    expected: 'MATCH',
+  },
+  {
     name: 'trailing slash remains semantic',
     user: value('https://www.evochia.gr/en/private-chef'),
     google: value('https://www.evochia.gr/en/private-chef/'),
@@ -39,6 +45,12 @@ const canonicalCases: Array<{
     name: 'path casing remains semantic',
     user: value('https://www.evochia.gr/en/Foo/'),
     google: value('https://www.evochia.gr/en/foo/'),
+    expected: 'MISMATCH',
+  },
+  {
+    name: 'percent encoding in path remains semantic',
+    user: value('https://www.evochia.gr/%7Efoo'),
+    google: value('https://www.evochia.gr/~foo'),
     expected: 'MISMATCH',
   },
   {
