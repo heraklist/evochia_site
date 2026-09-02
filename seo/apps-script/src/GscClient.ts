@@ -106,7 +106,7 @@ export interface UrlInspectionRequest extends AuthenticatedRequest {
   siteUrl: string;
   inspectionUrl: string;
   languageCode?: string;
-  inspectedAt?: string;
+  inspectedAt: string;
   transport?: HttpTransport;
 }
 
@@ -282,7 +282,10 @@ export function fetchUrlInspection(request: UrlInspectionRequest): InspectionRow
   }
 
   const inspectionResult = parsed.inspectionResult;
-  if (!isRecord(inspectionResult) || !hasOwn(inspectionResult, 'indexStatusResult')) {
+  if (!isRecord(inspectionResult)) {
+    throw new MalformedInspectionResponse('inspectionResult must be an object');
+  }
+  if (!hasOwn(inspectionResult, 'indexStatusResult')) {
     throw new MalformedInspectionResponse('indexStatusResult is required');
   }
 
@@ -305,6 +308,6 @@ export function fetchUrlInspection(request: UrlInspectionRequest): InspectionRow
     sitemap: arrayField(indexStatusResult, 'sitemap'),
     referringUrls: arrayField(indexStatusResult, 'referringUrls'),
     inspectionResultLink: scalarField(inspectionResult, 'inspectionResultLink'),
-    inspectedAt: request.inspectedAt ?? new Date().toISOString(),
+    inspectedAt: request.inspectedAt,
   };
 }
