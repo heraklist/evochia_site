@@ -106,10 +106,12 @@ No production logic may depend on a literal `16`; expected count is always deriv
 
 ### 4.4 Host composition and validation
 
-Expected absolute monitored URLs are composed from:
+Expected absolute monitored URLs are composed exactly as:
 
-```text
-productionHostname + APPROVED_MONITORED_PATHS
+```ts
+APPROVED_MONITORED_PATHS.map(
+  (path) => `https://${productionHostname}${path}`,
+)
 ```
 
 The configured `monitoredUrls` must equal this composed absolute URL set exactly.
@@ -319,7 +321,7 @@ Behavior:
 - any other non-empty header state -> `SchemaError`, fail closed;
 - do not dynamically append/reorder these headers through generic `SheetWriter` behavior.
 
-Deployment runbook must call `setupWorkbook()` and verify the 19 headers before enabling `monitoredUrls` in the production Script Property.
+Deployment runbook must call the updated `setupWorkbook()` after repository deployment and verify the 19 headers before enabling `monitoredUrls` in the production Script Property.
 
 Schema recovery:
 
@@ -520,9 +522,15 @@ sourceStatus FAILED
 
 ### 10.3 Stage duration
 
-Measure URL Inspection stage duration from the first production run.
+Add a machine-readable `stageDurationMs` column to `Run Log`.
 
-The Run Log must persist a `GSC_INDEX` stage duration value suitable for later runtime-budget analysis. The exact representation should follow the implementation plan, but it must be machine-readable and must not change the existing semantics of `startedAt` / `finishedAt`.
+Semantics:
+
+- `GSC_INDEX`: integer milliseconds from the beginning of the GSC_INDEX stage preflight/checkpoint to stage finalization;
+- `GSC` and `GA4`: blank in this change; no attempt is made to retrofit per-stage timing semantics onto canonical sources;
+- the field does not alter the meaning of existing `startedAt` / `finishedAt`, which remain run-level timestamps.
+
+The fail-closed placeholder may initially store a blank `stageDurationMs`; successful or handled-failure finalization writes the measured integer duration. A hard-killed stage may therefore retain a blank duration, which is itself consistent with incomplete finalization.
 
 No arbitrary soft execution deadline is introduced initially. Future budget gates must be based on collected production duration evidence.
 
@@ -539,9 +547,9 @@ Required order:
 6. Persist canonical freshness/status
    ----- canonical checkpoint complete -----
 7. Preflight GSC_INDEX and write FAILED placeholder
-8. Run 16 URL inspections independently
+8. Run APPROVED_MONITORED_PATHS.length URL inspections independently
 9. Persist the complete in-memory GSC Indexing group
-10. Finalize GSC_INDEX Run Log row
+10. Finalize GSC_INDEX Run Log row, including stageDurationMs
 11. Return daily result
 ```
 
@@ -552,8 +560,8 @@ URL Inspection must run last so auxiliary latency cannot consume execution budge
 Hard contract:
 
 ```text
-runDailyImport     -> may call URL Inspection
-runRangeImport     -> must never call URL Inspection
+runDailyImport       -> may call URL Inspection
+runRangeImport       -> must never call URL Inspection
 measurePageQueryRows -> must never call URL Inspection
 ```
 
@@ -565,14 +573,15 @@ Activation is intentionally two-sided because repo contract and production Scrip
 
 Sequence:
 
-1. Run updated `setupWorkbook()` and verify exact 19-column `GSC Indexing` headers.
-2. Merge/deploy repository code and contract changes.
-3. Before setting `monitoredUrls`, execute/observe production once: `GSC_INDEX FAILED / ConfigurationError` is expected while `GSC`, `GA4`, and canonical `overallStatus` remain successful. This is production evidence that capability isolation works.
-4. Update `SEO_GOOGLE_RESOURCES_JSON` with the 16 approved absolute monitored URLs.
-5. Run/observe the next daily execution.
-6. Validate first successful telemetry snapshot against acceptance criteria.
+1. Merge/deploy repository code and contract changes.
+2. Run the updated `setupWorkbook()` in production.
+3. Verify exact 19-column `GSC Indexing` headers in the canonical sheet.
+4. Before setting `monitoredUrls`, execute/observe production once: `GSC_INDEX FAILED / ConfigurationError` is expected while `GSC`, `GA4`, and canonical `overallStatus` remain successful. This is production evidence that capability isolation works.
+5. Update `SEO_GOOGLE_RESOURCES_JSON` with the approved absolute monitored URLs composed from `https://${productionHostname}${path}`.
+6. Run/observe the next daily execution.
+7. Validate the first successful telemetry snapshot against acceptance criteria.
 
-The temporary activation failure in step 3 is expected evidence, not a regression.
+The temporary activation failure in step 4 is expected evidence, not a regression.
 
 ## 14. RED tests required before implementation
 
@@ -639,7 +648,7 @@ Required cases:
 
 ### 14.7 Per-URL isolation
 
-16 URLs; seventh request fails -> 16 diagnostic rows, 15 INSPECTED, 1 REQUEST_FAILED, sourceStatus FAILED.
+`APPROVED_MONITORED_PATHS.length` URLs; seventh request fails -> full diagnostic row set, one `REQUEST_FAILED`, all remaining rows `INSPECTED`, sourceStatus FAILED.
 
 ### 14.8 Snapshot atomicity
 
@@ -656,7 +665,7 @@ Production path must pass explicit checkedAt; it must not rely on the client's p
 Verify:
 
 - expected count derives from `APPROVED_MONITORED_PATHS.length`;
-- exact set equality after host composition;
+- exact set equality after `https://${productionHostname}${path}` composition;
 - cap 25;
 - all approved paths resolve to existing repository route files.
 
@@ -670,7 +679,7 @@ Interruption/failure after placeholder checkpoint but before finalization leaves
 
 ### 14.13 Stage duration
 
-Verify stage duration is captured in the `GSC_INDEX` Run Log representation without modifying canonical overall status semantics.
+Verify `stageDurationMs` is numeric on finalized `GSC_INDEX` Run Log rows, blank on the initial placeholder, and absent/blank for canonical GSC/GA4 rows in this change. Verify it does not modify canonical overall-status semantics.
 
 ## 15. First production-run acceptance
 
@@ -686,6 +695,7 @@ headers                                 exactly 19, correct order
 Outcome                                 INSPECTED for all rows
 GSC / GA4 / overallStatus               SUCCESS
 Sitemap / Referring URLs                valid JSON or NOT_RETURNED
+stageDurationMs                         numeric on GSC_INDEX Run Log row
 ```
 
 Additional structural guard:
@@ -694,7 +704,7 @@ Additional structural guard:
 
 If such a row appears, treat it as evidence that malformed-response protection may be leaking; do not accept production activation until investigated.
 
-Record the observed GSC_INDEX stage duration as the first production data point. Duration is evidence, not a pass/fail threshold.
+Record the observed `stageDurationMs` as the first production runtime-budget data point. Duration is evidence, not a pass/fail threshold.
 
 Do not use any content-state expectation as acceptance criteria, including whether EN child pages appear indexed or not indexed.
 
@@ -732,9 +742,9 @@ Update the production runbook to document:
 - approved monitored-path governance and cap;
 - `gscIndex` capability isolation;
 - Run Log status/counter semantics;
+- `stageDurationMs` semantics;
 - same-day latest-SUCCESS tie-break;
 - range-inspection prohibition;
-- stage duration meaning;
 - schema recovery procedure;
 - activation sequence and expected temporary ConfigurationError state;
 - downstream rule that only `GSC_INDEX SUCCESS` Run Ids are valid snapshots;
