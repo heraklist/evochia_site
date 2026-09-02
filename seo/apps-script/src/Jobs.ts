@@ -13,12 +13,17 @@ import {
   type GscRow,
   type SearchAnalyticsRequest,
 } from './GscClient.ts';
+import { APPROVED_MONITORED_PATHS } from './GscIndexConfig.ts';
 import {
+  collectAndPersistInspectionSnapshots,
   importSearchAnalyticsDay,
   importSearchAnalyticsRange,
   type GscImportConfig,
   type GscImportDependencies,
   type GscImportResult,
+  type InspectionBatchConfig,
+  type InspectionBatchDependencies,
+  type InspectionBatchResult,
 } from './GscImporter.ts';
 import {
   updateOperationalFreshness,
@@ -26,17 +31,24 @@ import {
   type OperationalFreshnessInput,
 } from './OperationalMetadata.ts';
 import {
+  SchemaError,
+  validateGscIndexingSchema,
+  type GscIndexingSheet,
+} from './Setup.ts';
+import {
   upsertRows,
   type RowRecord,
   type WriteSummary,
 } from './SheetWriter.ts';
 import { getVerifiedActiveWorkbook } from './WorkbookIdentity.ts';
 
+export type RunLogSource = 'GSC' | 'GA4' | 'GSC_INDEX';
+
 export interface RunLogRow extends RowRecord {
   runId: string;
   startedAt: string;
   finishedAt: string;
-  source: 'GSC' | 'GA4';
+  source: RunLogSource;
   sourceStatus: 'SUCCESS' | 'FAILED';
   overallStatus: DailyOverallStatus;
   dataAsOf: string;
@@ -46,10 +58,11 @@ export interface RunLogRow extends RowRecord {
   unchangedRows: number;
   errorClass: string;
   errorMessage: string;
+  stageDurationMs?: number | '';
 }
 
-interface SourceOutcome {
-  source: 'GSC' | 'GA4';
+export interface SourceOutcome {
+  source: RunLogSource;
   success: boolean;
   dataAsOf: string;
   fetchedRows: number;
@@ -62,6 +75,7 @@ interface SourceOutcome {
 
 export interface JobDependencies {
   now?: () => Date;
+  nowMs?: () => number;
   createRunId?: () => string;
   getVerifiedActiveWorkbook?: () => unknown;
   getOAuthToken?: () => string;
@@ -81,6 +95,11 @@ export interface JobDependencies {
     range: Ga4ReportRange,
     dependencies?: Parameters<typeof importGa4Reports>[1],
   ) => Ga4PersistenceResult;
+  collectGscIndexSnapshots?: (
+    config: InspectionBatchConfig,
+    dependencies?: InspectionBatchDependencies,
+  ) => InspectionBatchResult;
+  validateGscIndexingPreflight?: (workbook: unknown) => void;
   searchAnalytics?: (request: SearchAnalyticsRequest) => GscRow[];
   writeRows?: (
     sheetName: string,
@@ -96,6 +115,7 @@ export interface DailyJobResult {
   sources: {
     gsc: SourceOutcome;
     ga4: SourceOutcome;
+    gscIndex: SourceOutcome;
   };
 }
 
@@ -106,6 +126,10 @@ interface DateRangeChunk {
 
 function defaultNow(): Date {
   return new Date();
+}
+
+function defaultNowMs(): number {
+  return Date.now();
 }
 
 function defaultRunId(): string {
@@ -175,6 +199,47 @@ function ga4Outcome(result: Ga4PersistenceResult): SourceOutcome {
   };
 }
 
+function gscIndexOutcome(result: InspectionBatchResult): SourceOutcome {
+  const expectedCount = APPROVED_MONITORED_PATHS.length;
+  const persistedRowCount = result.write.inserted + result.write.updated + result.write.unchanged;
+  const complete = result.inspectedCount === expectedCount
+    && result.failedCount === 0
+    && persistedRowCount === expectedCount;
+
+  if (complete) {
+    return {
+      source: 'GSC_INDEX',
+      success: true,
+      dataAsOf: '',
+      fetchedRows: result.inspectedCount,
+      insertedRows: result.write.inserted,
+      updatedRows: result.write.updated,
+      unchangedRows: result.write.unchanged,
+      errorClass: '',
+      errorMessage: '',
+    };
+  }
+
+  const errorClass = result.failedCount > 0
+    ? 'InspectionBatchFailure'
+    : 'InspectionPersistenceIncomplete';
+  const errorMessage = result.failedCount > 0
+    ? `${result.failedCount} of ${expectedCount} URL inspections failed; see GSC Indexing rows for details`
+    : `GSC Indexing persisted ${persistedRowCount} of ${expectedCount} expected telemetry rows`;
+
+  return {
+    source: 'GSC_INDEX',
+    success: false,
+    dataAsOf: '',
+    fetchedRows: result.inspectedCount,
+    insertedRows: result.write.inserted,
+    updatedRows: result.write.updated,
+    unchangedRows: result.write.unchanged,
+    errorClass,
+    errorMessage,
+  };
+}
+
 function overallStatus(gsc: SourceOutcome, ga4: SourceOutcome): DailyOverallStatus {
   if (gsc.success && ga4.success) return 'SUCCESS';
   if (gsc.success || ga4.success) return 'PARTIAL';
@@ -187,8 +252,9 @@ function toRunLogRow(
   startedAt: string,
   finishedAt: string,
   status: DailyOverallStatus,
+  stageDurationMs?: number | '',
 ): RunLogRow {
-  return {
+  const row: RunLogRow = {
     runId,
     startedAt,
     finishedAt,
@@ -203,6 +269,52 @@ function toRunLogRow(
     errorClass: outcome.errorClass,
     errorMessage: outcome.errorMessage,
   };
+
+  if (stageDurationMs !== undefined) {
+    row.stageDurationMs = stageDurationMs;
+  }
+
+  return row;
+}
+
+function preflightPlaceholderOutcome(): SourceOutcome {
+  return {
+    source: 'GSC_INDEX',
+    success: false,
+    dataAsOf: '',
+    fetchedRows: 0,
+    insertedRows: 0,
+    updatedRows: 0,
+    unchangedRows: 0,
+    errorClass: 'InspectionStageIncomplete',
+    errorMessage: 'GSC_INDEX stage did not reach a completed snapshot state',
+  };
+}
+
+function defaultValidateGscIndexingPreflight(workbook: unknown): void {
+  if (typeof workbook !== 'object' || workbook === null) {
+    throw new SchemaError('Verified workbook is unavailable for GSC Indexing preflight');
+  }
+
+  const getSheetByName = (workbook as { getSheetByName?: unknown }).getSheetByName;
+  if (typeof getSheetByName !== 'function') {
+    throw new SchemaError('Verified workbook does not expose getSheetByName for GSC Indexing preflight');
+  }
+
+  const sheet = getSheetByName.call(workbook, 'GSC Indexing') as Partial<GscIndexingSheet> | null;
+  if (
+    !sheet
+    || typeof sheet.getLastRow !== 'function'
+    || typeof sheet.getRange !== 'function'
+  ) {
+    throw new SchemaError('GSC Indexing sheet does not expose the required schema range API');
+  }
+
+  validateGscIndexingSchema(sheet as GscIndexingSheet);
+}
+
+export function isUsableGscIndexRun(row: Pick<RunLogRow, 'source' | 'sourceStatus'>): boolean {
+  return row.source === 'GSC_INDEX' && row.sourceStatus === 'SUCCESS';
 }
 
 function parseIsoDate(value: string): Date {
@@ -242,9 +354,10 @@ function calendarMonthChunks(startDate: string, endDate: string): DateRangeChunk
 
 export function runDailyImport(dependencies: JobDependencies = {}): DailyJobResult {
   const verifyWorkbook = dependencies.getVerifiedActiveWorkbook ?? (() => getVerifiedActiveWorkbook());
-  verifyWorkbook();
+  const workbook = verifyWorkbook();
 
   const now = dependencies.now ?? defaultNow;
+  const nowMs = dependencies.nowMs ?? defaultNowMs;
   const started = now();
   const startedAt = started.toISOString();
   const runId = (dependencies.createRunId ?? defaultRunId)();
@@ -252,6 +365,9 @@ export function runDailyImport(dependencies: JobDependencies = {}): DailyJobResu
   const configReader = dependencies.getConfig ?? getConfig;
   const importGsc = dependencies.importGscDay ?? importSearchAnalyticsDay;
   const importGa4 = dependencies.importGa4 ?? importGa4Reports;
+  const collectGscIndex = dependencies.collectGscIndexSnapshots ?? collectAndPersistInspectionSnapshots;
+  const validateGscIndexingPreflight = dependencies.validateGscIndexingPreflight
+    ?? defaultValidateGscIndexingPreflight;
   const writer = dependencies.writeRows ?? upsertRows;
   const updateFreshness = dependencies.updateFreshness ?? updateOperationalFreshness;
 
@@ -282,20 +398,67 @@ export function runDailyImport(dependencies: JobDependencies = {}): DailyJobResu
   }
 
   const status = overallStatus(gsc, ga4);
-  const finishedAt = now().toISOString();
-  const rows: RowRecord[] = [
-    toRunLogRow(gsc, runId, startedAt, finishedAt, status),
-    toRunLogRow(ga4, runId, startedAt, finishedAt, status),
-  ];
-  writer('Run Log', ['runId', 'source'], rows);
+  const canonicalFinishedAt = now().toISOString();
+  writer('Run Log', ['runId', 'source'], [
+    toRunLogRow(gsc, runId, startedAt, canonicalFinishedAt, status),
+    toRunLogRow(ga4, runId, startedAt, canonicalFinishedAt, status),
+  ]);
   updateFreshness({
     gsc: { success: gsc.success, dataAsOf: gsc.success ? gsc.dataAsOf : undefined },
     ga4: { success: ga4.success, dataAsOf: ga4.success ? ga4.dataAsOf : undefined },
-    lastRun: finishedAt,
+    lastRun: canonicalFinishedAt,
     status,
   });
 
-  return { runId, status, sources: { gsc, ga4 } };
+  const gscIndexStartedMs = nowMs();
+  let gscIndex: SourceOutcome;
+
+  try {
+    const config = configReader(['gscIndex']);
+    if (!Array.isArray(config.monitoredUrls)) {
+      throw new Error('gscIndex configuration did not provide monitoredUrls after validation');
+    }
+
+    validateGscIndexingPreflight(workbook);
+
+    writer('Run Log', ['runId', 'source'], [
+      toRunLogRow(
+        preflightPlaceholderOutcome(),
+        runId,
+        startedAt,
+        canonicalFinishedAt,
+        status,
+        '',
+      ),
+    ]);
+
+    const batch = collectGscIndex({
+      runId,
+      checkedAt: startedAt,
+      siteUrl: config.gscProperty,
+      monitoredUrls: config.monitoredUrls,
+    }, {
+      accessToken,
+      writeRows: writer,
+    });
+    gscIndex = gscIndexOutcome(batch);
+  } catch (error) {
+    gscIndex = emptyFailure('GSC_INDEX', error);
+  }
+
+  const stageDurationMs = Math.max(0, nowMs() - gscIndexStartedMs);
+  writer('Run Log', ['runId', 'source'], [
+    toRunLogRow(
+      gscIndex,
+      runId,
+      startedAt,
+      canonicalFinishedAt,
+      status,
+      stageDurationMs,
+    ),
+  ]);
+
+  return { runId, status, sources: { gsc, ga4, gscIndex } };
 }
 
 export function runRangeImport(
