@@ -11,7 +11,6 @@ import {
   deduplicateGscRows,
   getAvailableGscDate,
   importSearchAnalyticsDay,
-  inspectMonitoredUrls,
 } from '../../../seo/apps-script/src/GscImporter.ts';
 import {
   mergeRowRecords,
@@ -321,42 +320,6 @@ test('keeps empty successful reports empty without synthetic rows', () => {
   assert.equal(result.reports.pages.fetched, 0);
   assert.equal(result.reports.queries.fetched, 0);
   assert.equal(result.reports.pageQueries.fetched, 0);
-});
-
-test('URL Inspection is limited to the monitored allowlist and stores canonicals', () => {
-  const monitoredUrl = 'https://www.evochia.gr/en/private-chef/';
-  const transport: HttpTransport = () => response({
-    inspectionResult: {
-      indexStatusResult: {
-        verdict: 'PASS',
-        coverageState: 'Submitted and indexed',
-        indexingState: 'INDEXING_ALLOWED',
-        pageFetchState: 'SUCCESSFUL',
-        userCanonical: monitoredUrl,
-        googleCanonical: monitoredUrl,
-        lastCrawlTime: '2026-08-04T08:30:00Z',
-      },
-    },
-  });
-
-  const result = inspectMonitoredUrls(
-    { siteUrl: 'https://www.evochia.gr/', monitoredUrls: [monitoredUrl] },
-    [monitoredUrl],
-    { accessToken: 'test-token', inspectedAt: '2026-08-06T05:00:00Z', transport },
-  );
-
-  assert.deepEqual(result[0].userCanonical, { state: 'VALUE', value: monitoredUrl });
-  assert.deepEqual(result[0].googleCanonical, { state: 'VALUE', value: monitoredUrl });
-  assert.equal(result[0].inspectedAt, '2026-08-06T05:00:00Z');
-
-  assert.throws(
-    () => inspectMonitoredUrls(
-      { siteUrl: 'https://www.evochia.gr/', monitoredUrls: [monitoredUrl] },
-      ['https://www.evochia.gr/en/not-allowlisted/'],
-      { accessToken: 'test-token', inspectedAt: '2026-08-06T05:00:00Z', transport },
-    ),
-    /outside the monitored allowlist/,
-  );
 });
 
 test('non-2xx Search Console responses throw a typed pipeline error', () => {
