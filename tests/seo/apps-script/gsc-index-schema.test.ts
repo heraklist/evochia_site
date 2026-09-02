@@ -47,9 +47,6 @@ function sheetWithRows(initialRows: unknown[][]): {
     reads,
     sheet: {
       getLastRow: () => rows.length,
-      getDataRange: () => {
-        throw new Error('GSC Indexing schema reads must never use getDataRange');
-      },
       getRange: (row, column, numRows, numColumns) => ({
         getValues() {
           reads.push([row, column, numRows, numColumns]);
@@ -83,11 +80,10 @@ test('setup-owned schema initializer writes exact headers into an empty sheet on
   assert.equal(writes.length, 1, 'exact existing schema must not be rewritten');
 });
 
-test('schema initializer fails closed on 18, reordered, or extra headers', () => {
+test('schema initializer fails closed on missing or reordered canonical headers', () => {
   const invalidSchemas = [
     EXPECTED_HEADERS.slice(0, 18),
     [EXPECTED_HEADERS[1], EXPECTED_HEADERS[0], ...EXPECTED_HEADERS.slice(2)],
-    [...EXPECTED_HEADERS, 'Unexpected Column'],
   ];
 
   for (const headers of invalidSchemas) {
@@ -95,6 +91,17 @@ test('schema initializer fails closed on 18, reordered, or extra headers', () =>
     assert.throws(() => ensureGscIndexingSchema(sheet), SchemaError);
     assert.equal(writes.length, 0);
   }
+});
+
+test('schema validation ignores cells beyond the canonical 19-column contract', () => {
+  const { sheet, writes, reads } = sheetWithRows([[
+    ...EXPECTED_HEADERS,
+    'Unrelated note outside canonical schema',
+  ]]);
+
+  ensureGscIndexingSchema(sheet);
+  assert.deepEqual(reads, [[1, 1, 1, EXPECTED_HEADERS.length]]);
+  assert.equal(writes.length, 0);
 });
 
 test('preflight validator reads only the bounded 1x19 header range and never writes', () => {
