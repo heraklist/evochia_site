@@ -82,11 +82,17 @@ function isGscIndexingSheet(value: unknown): value is GscIndexingSheet {
 
 function readGscIndexingHeaders(sheet: GscIndexingSheet): string[] {
   if (sheet.getLastRow() === 0) return [];
-  const values = sheet
-    .getRange(1, 1, 1, GSC_INDEXING_HEADERS.length)
-    .getValues();
-  const firstRow = values[0] ?? [];
-  return firstRow.map((value) => String(value));
+
+  try {
+    const values = sheet
+      .getRange(1, 1, 1, GSC_INDEXING_HEADERS.length)
+      .getValues();
+    const firstRow = values[0] ?? [];
+    return firstRow.map((value) => String(value));
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new SchemaError(`Unable to read GSC Indexing canonical headers: ${detail}`);
+  }
 }
 
 function assertExactGscIndexingHeaders(headers: string[]): void {
