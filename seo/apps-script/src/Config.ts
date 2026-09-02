@@ -66,8 +66,11 @@ function isAbsoluteHttpsUrl(value: string): boolean {
 
 function sameStringSet(left: string[], right: string[]): boolean {
   if (left.length !== right.length) return false;
+  const leftSet = new Set(left);
   const rightSet = new Set(right);
-  return left.every((value) => rightSet.has(value));
+  if (leftSet.size !== rightSet.size) return false;
+  return left.every((value) => rightSet.has(value))
+    && right.every((value) => leftSet.has(value));
 }
 
 export function verifyConfig(
@@ -131,6 +134,8 @@ export function verifyConfig(
   if (required.has('monitoredUrls') && Array.isArray(config.monitoredUrls)) {
     const monitoredUrls = config.monitoredUrls;
 
+    // Defense in depth: exact-set validation is the governing contract, while
+    // these guards provide clearer operator errors for accidental expansion or duplication.
     if (monitoredUrls.length === 0) {
       errors.push('monitoredUrls must not be empty');
     }
@@ -144,12 +149,13 @@ export function verifyConfig(
       errors.push('monitoredUrls must contain unique URLs');
     }
 
-    if (
-      typeof config.productionHostname === 'string'
+    const hostnameIsUsable = typeof config.productionHostname === 'string'
       && config.productionHostname !== 'UNVERIFIED'
-      && isValidHostname(config.productionHostname)
-      && monitoredUrls.every((value): value is string => typeof value === 'string')
-    ) {
+      && isValidHostname(config.productionHostname);
+
+    if (!hostnameIsUsable) {
+      errors.push('monitoredUrls exact-set validation requires a valid productionHostname');
+    } else if (monitoredUrls.every((value): value is string => typeof value === 'string')) {
       const expected = expectedMonitoredUrls(config.productionHostname);
       if (!sameStringSet(monitoredUrls, expected)) {
         errors.push('monitoredUrls must exactly match the approved monitored URL set');
@@ -173,6 +179,10 @@ export function getConfig(
     parsed = JSON.parse(raw);
   } catch (error) {
     throw new Error(`Invalid JSON in ${CONFIG_PROPERTY_KEY}: ${String(error)}`);
+  }
+
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    throw new Error('SEO configuration is not verified: configuration payload must be a JSON object');
   }
 
   const result = verifyConfig(parsed as Partial<SeoConfig>, capabilities);
