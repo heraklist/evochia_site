@@ -44,7 +44,7 @@ import { getVerifiedActiveWorkbook } from './WorkbookIdentity.ts';
 
 export type RunLogSource = 'GSC' | 'GA4' | 'GSC_INDEX';
 
-export interface RunLogRow extends RowRecord {
+export interface RunLogRow {
   runId: string;
   startedAt: string;
   finishedAt: string;
@@ -253,8 +253,8 @@ function toRunLogRow(
   finishedAt: string,
   status: DailyOverallStatus,
   stageDurationMs?: number | '',
-): RunLogRow {
-  const row: RunLogRow = {
+): RowRecord {
+  const row: RowRecord = {
     runId,
     startedAt,
     finishedAt,
