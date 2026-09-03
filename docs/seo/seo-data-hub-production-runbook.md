@@ -102,11 +102,113 @@ The retained-history horizon before `2026-03-03` must be described only from pro
 
 If the UI later shows zero impressions for the retained pre-March interval, record `available GSC performance-data horizon = 2026-03-03` in the execution record. If it shows data, reopen the historical-load gate and repair only the missing retained range.
 
+## GSC URL Inspection telemetry
+
+URL Inspection is an auxiliary, read-only telemetry source. It runs only inside `runDailyImport()` after canonical GSC + GA4 persistence and freshness have completed. It never contributes to canonical `overallStatus`, and it must never run from range/backfill or measurement-only paths.
+
+### Canonical sheet and schema ownership
+
+`GSC Indexing` is the only canonical URL Inspection telemetry sheet. `GSC_Index` is legacy and must remain unconsumed.
+
+`setupWorkbook()` is the sole initializer/owner of the fixed `GSC Indexing` header schema. Runtime preflight verifies the schema but must not initialize, repair, reorder, or extend these headers.
+
+The exact 19-column schema is:
+
+```text
+Checked At | Run Id | URL | Outcome | Verdict | Coverage State | Robots.txt State | Indexing State | Page Fetch State | Crawled As | Google Canonical | User Canonical | Canonical Match | Last Crawl Time | Sitemap | Referring URLs | Inspection Result Link | Error Class | Error Message
+```
+
+If the schema is wrong, use a retention-safe recovery path: rename/archive the existing sheet, recreate the canonical sheet, run `setupWorkbook()`, and verify the exact 19 headers. Destructive clearing is allowed only after an explicit retention check confirms that no evidence needs preservation.
+
+### Run Log semantics
+
+A `Run Log` row with `source = GSC_INDEX` has auxiliary source status only:
+
+```text
+GSC_INDEX SUCCESS = complete, usable snapshot
+GSC_INDEX FAILED  = incomplete/unusable snapshot as a whole
+```
+
+`fetchedRows` means successful provider responses. Persisted row count is computed, not stored, as:
+
+```text
+insertedRows + updatedRows + unchangedRows
+```
+
+Persisted count may exceed fetched count because diagnostic `REQUEST_FAILED` rows are persisted even when the provider call did not yield a usable inspection response.
+
+`stageDurationMs` is the elapsed time of the auxiliary GSC_INDEX stage only. It is appended to `Run Log` through the generic dynamic-header extension. Historical rows are preserved; canonical GSC/GA4 rows and historical rows may legitimately have a blank value in this column.
+
+`startedAt` remains the common run start. The finalized `finishedAt` of each source row is the time that source row is finalized: canonical GSC/GA4 rows retain their canonical checkpoint time, while the finalized `GSC_INDEX` row records actual completion of the auxiliary stage.
+
+The first `GSC_INDEX` placeholder row is written before GSC_INDEX config/preflight. If execution is interrupted after that checkpoint and before finalization, the fail-closed placeholder remains diagnostic evidence rather than leaving no GSC_INDEX row.
+
+### Historical consumption rules
+
+Historical snapshot completeness is immutable. For an old run, use only its historical `Run Log` evidence:
+
+- `source = GSC_INDEX` and `sourceStatus = SUCCESS` means that historical snapshot is complete/usable.
+- Never compare historical snapshot row count with the current approved monitored-path count.
+- For multiple successful snapshots on the same day, the latest `SUCCESS` by `Checked At` is authoritative.
+- `FAILED` snapshots remain troubleshooting evidence and must not be consumed as valid indexing state.
+
+### Activation and deployment sequence
+
+Use the existing production Apps Script deployment model. Do not create a new trigger, deployment model, OAuth scope, or public callback.
+
+Activation sequence:
+
+```text
+1. merge/deploy code
+2. run updated setupWorkbook
+3. verify exact 19 GSC Indexing headers
+4. intentionally observe one run before monitoredUrls is configured:
+   GSC_INDEX FAILED / ConfigurationError
+   GSC SUCCESS
+   GA4 SUCCESS
+   overallStatus SUCCESS
+5. verify Run Log now contains stageDurationMs header without historical damage
+6. update SEO_GOOGLE_RESOURCES_JSON with exact approved absolute URLs
+7. run/observe next daily execution
+8. verify mechanical first-run acceptance
+```
+
+The intentional pre-configuration failure is positive isolation evidence: GSC_INDEX must fail closed without changing canonical GSC/GA4 success or `overallStatus`.
+
+### Lost-day recovery and range prohibition
+
+URL Inspection is not backfilled through `runRangeImport()` and must not be invoked by `measurePageQueryRows()`.
+
+If an indexing snapshot day is lost, the only supported recovery is a manual `runDailyImport()`. This creates a new Run Id and a new current snapshot; it does not reconstruct a historical indexed-version state for the missed day.
+
+### Provider semantics and acceptance interpretation
+
+Search Console URL Inspection reports Google's indexed-version state and is not a live URL test. Omitted provider fields can therefore be legitimate evidence and are represented as `NOT_RETURNED` where the response is structurally valid.
+
+A structurally valid `indexStatusResult` with provider fields omitted remains valid parser input. However, during first production acceptance, if any row has `Outcome = INSPECTED` and every provider field is `NOT_RETURNED`, stop acceptance and investigate the response shape/provider behavior. This is an acceptance observation requiring investigation, not a runtime parser rejection rule.
+
+Mechanical first-run acceptance requires:
+
+```text
+matching GSC_INDEX Run Log row       SUCCESS
+GSC Indexing rows for Run Id         approved monitored-path count
+common Run Id / Checked At           all rows
+headers                              exact 19
+Outcome                              INSPECTED for all rows
+GSC / GA4 / overallStatus            SUCCESS
+Sitemap / Referring URLs             valid JSON or NOT_RETURNED
+stageDurationMs                      numeric
+```
+
+Record the first observed `stageDurationMs` as a datapoint only; do not create a pass/fail timing threshold from one run. Treat the first successful snapshot as T0 and accumulate at least two weeks of `SUCCESS` snapshots before interpreting transition-level EN/EL indexing behavior.
+
 ## Production invariants
 
 - Exactly five public Apps Script callbacks remain exposed.
 - Exactly five approved OAuth scopes remain in the production manifest.
 - Exactly one scheduled production trigger remains installed.
+- `GSC_INDEX` remains auxiliary and never contributes to canonical `overallStatus`.
+- URL Inspection remains prohibited from range/backfill and measurement-only paths.
 - No synthetic zero rows.
 - No guessed brand aliases.
 - Property totals come from `GSC Daily` / `byProperty`.
