@@ -44,10 +44,11 @@ test('production bundle contains only the intended read-only Google API surface'
   assert.doesNotMatch(code, /tagmanager\.googleapis\.com/i);
 });
 
-test('smoke bundle contains runtime smoke and no unresolved module syntax', () => {
+test('smoke bundle contains runtime smoke, no unresolved module syntax, and no URL Inspection capability', () => {
   const code = smoke();
   assert.doesNotMatch(code, /^\s*(?:import|export)\s/m);
   assert.match(code, /runRuntimeSmoke/);
+  assert.doesNotMatch(code, /urlInspection\/index:inspect/);
 });
 
 test('generated bundles exclude Apps Script-incompatible public class fields', () => {
