@@ -118,7 +118,7 @@ The exact 19-column schema is:
 Checked At | Run Id | URL | Outcome | Verdict | Coverage State | Robots.txt State | Indexing State | Page Fetch State | Crawled As | Google Canonical | User Canonical | Canonical Match | Last Crawl Time | Sitemap | Referring URLs | Inspection Result Link | Error Class | Error Message
 ```
 
-If the schema is wrong, use a retention-safe recovery path: rename/archive the existing sheet, recreate the canonical sheet, run `setupWorkbook()`, and verify the exact 19 headers. Destructive clearing is allowed only after an explicit retention check confirms that no evidence needs preservation.
+If the schema is wrong, use a retention-safe recovery path: rename/archive the existing sheet, recreate the canonical sheet, run `setupWorkbook()`, and verify the exact 19 headers. Destructive clearing is allowed only after an explicit retention check confirms that no evidence needs preservation. `Evochia SEO` → `Set up workbook` surfaces `SchemaError` with a link back to this recovery section.
 
 ### Run Log semantics
 
@@ -137,11 +137,15 @@ insertedRows + updatedRows + unchangedRows
 
 Persisted count may exceed fetched count because diagnostic `REQUEST_FAILED` rows are persisted even when the provider call did not yield a usable inspection response.
 
+`PipelineError.status` is retained on the in-memory typed error but is not stored in its own Sheet column. For persisted `REQUEST_FAILED` rows with `Error Class = PipelineError`, the machine-readable status contract is the terminal `HTTP <status>` token in `Error Message` (for example, `gsc-url-inspection request failed with HTTP 429`); consumers may extract it with `HTTP (\d{3})$`. Do not apply that parser to other error classes.
+
+This status contract is the path for future evidence-based retry policy: compare historical 429/403/5xx distributions from failed URL rows before introducing retries. Do not infer retry behavior from `Error Class` alone.
+
 `stageDurationMs` is the elapsed time of the auxiliary GSC_INDEX stage only. It is appended to `Run Log` through the generic dynamic-header extension. Historical rows are preserved; canonical GSC/GA4 rows and historical rows may legitimately have a blank value in this column.
 
 `startedAt` remains the common run start. The finalized `finishedAt` of each source row is the time that source row is finalized: canonical GSC/GA4 rows retain their canonical checkpoint time, while the finalized `GSC_INDEX` row records actual completion of the auxiliary stage.
 
-The first `GSC_INDEX` placeholder row is written before GSC_INDEX config/preflight. If execution is interrupted after that checkpoint and before finalization, the fail-closed placeholder remains diagnostic evidence rather than leaving no GSC_INDEX row.
+The first `GSC_INDEX` placeholder row is written before GSC_INDEX config/preflight. Placeholder and finalization use the same `Run Id + source` UPSERT key, so `Run Log` retains exactly one `GSC_INDEX` row per run: finalization updates the placeholder rather than appending a second row. If execution is interrupted after the placeholder checkpoint and before finalization, that one fail-closed placeholder remains diagnostic evidence.
 
 ### Historical consumption rules
 
@@ -162,16 +166,19 @@ Activation sequence:
 1. merge/deploy code
 2. run updated setupWorkbook
 3. verify exact 19 GSC Indexing headers
-4. intentionally observe one run before monitoredUrls is configured:
+4. make a backup copy of the existing Run Log before its first dynamic-header extension
+5. intentionally observe one run before monitoredUrls is configured:
    GSC_INDEX FAILED / ConfigurationError
    GSC SUCCESS
    GA4 SUCCESS
    overallStatus SUCCESS
-5. verify Run Log now contains stageDurationMs header without historical damage
-6. update SEO_GOOGLE_RESOURCES_JSON with exact approved absolute URLs
-7. run/observe next daily execution
-8. verify mechanical first-run acceptance
+6. verify Run Log now contains stageDurationMs header without historical damage
+7. update SEO_GOOGLE_RESOURCES_JSON with exact approved absolute URLs
+8. run/observe next daily execution
+9. verify mechanical first-run acceptance
 ```
+
+The backup before the isolation run is required because the first `GSC_INDEX` write is the only activation step that mutates an existing production sheet containing historical data: the generic writer appends `stageDurationMs` while preserving old rows with a blank value.
 
 The intentional pre-configuration failure is positive isolation evidence: GSC_INDEX must fail closed without changing canonical GSC/GA4 success or `overallStatus`.
 
