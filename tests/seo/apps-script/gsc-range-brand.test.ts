@@ -6,15 +6,22 @@ import {
   isBrandedQuery,
   normalizeBrandText,
 } from '../../../seo/apps-script/src/BrandedQuery.ts';
+import type { SeoConfig } from '../../../seo/apps-script/src/Config.ts';
 import type {
   FetchOptionsLike,
   HttpResponseLike,
   HttpTransport,
 } from '../../../seo/apps-script/src/GscClient.ts';
+import { expectedMonitoredUrls } from '../../../seo/apps-script/src/GscIndexConfig.ts';
 import {
   GSC_REPORT_SPECS,
   importSearchAnalyticsRange,
+  type GscImportResult,
 } from '../../../seo/apps-script/src/GscImporter.ts';
+import {
+  measurePageQueryRows,
+  runRangeImport,
+} from '../../../seo/apps-script/src/Jobs.ts';
 import { REQUIRED_SHEET_NAMES } from '../../../seo/apps-script/src/Setup.ts';
 import type { RowRecord } from '../../../seo/apps-script/src/SheetWriter.ts';
 
@@ -29,6 +36,36 @@ const config = {
   siteUrl: 'https://www.evochia.gr/',
   monitoredUrls: [],
 };
+
+const fullSeoConfig: SeoConfig = {
+  gscProperty: 'https://www.evochia.gr/',
+  monitoredUrls: expectedMonitoredUrls('www.evochia.gr'),
+  ga4AccountId: '388030118',
+  ga4PropertyId: '528945896',
+  ga4PropertyTimeZone: 'Europe/Athens',
+  productionHostname: 'www.evochia.gr',
+  gtmPublicContainerId: 'UNVERIFIED',
+  gtmAccountId: 'UNVERIFIED',
+  gtmContainerId: 'UNVERIFIED',
+  sheetId: 'sheet-id',
+  driveFolderId: 'UNVERIFIED',
+  ownerEmail: 'heraklis@evochia.gr',
+  verificationStatus: 'verified',
+};
+
+function emptyRangeResult(startDate: string, endDate: string): GscImportResult {
+  const emptyWrite = { inserted: 0, updated: 0, unchanged: 0, total: 0 };
+  return {
+    dataAsOf: endDate,
+    collectedAt: `${startDate}T00:00:00.000Z`,
+    reports: {
+      daily: { fetched: 0, write: emptyWrite },
+      pages: { fetched: 0, write: emptyWrite },
+      queries: { fetched: 0, write: emptyWrite },
+      pageQueries: { fetched: 0, write: emptyWrite },
+    },
+  };
+}
 
 test('adds the fourth page-query GSC grain with the exact canonical contract', () => {
   assert.equal(REQUIRED_SHEET_NAMES.includes('GSC Page Queries' as never), true);
@@ -129,6 +166,72 @@ test('range import rejects malformed and reversed dates before any transport cal
   assert.throws(() => importSearchAnalyticsRange(config, '2026-7-01', '2026-07-31', dependencies), /YYYY-MM-DD/);
   assert.throws(() => importSearchAnalyticsRange(config, '2026-08-01', '2026-07-31', dependencies), /startDate/);
   assert.equal(calls, 0);
+});
+
+test('runRangeImport is structurally GSC-only even when verified config contains monitored URLs', () => {
+  const capabilityCalls: string[][] = [];
+  let collectorCalls = 0;
+  let importerCalls = 0;
+
+  const result = runRangeImport('2026-07-01', '2026-07-31', {
+    now: () => new Date('2026-09-02T20:00:00.000Z'),
+    getOAuthToken: () => 'test-token',
+    getConfig: (capabilities) => {
+      capabilityCalls.push([...capabilities]);
+      return fullSeoConfig;
+    },
+    collectGscIndexSnapshots: () => {
+      collectorCalls += 1;
+      throw new Error('range import must never invoke URL Inspection');
+    },
+    importGscRange: (rangeConfig, startDate, endDate) => {
+      importerCalls += 1;
+      assert.deepEqual(rangeConfig, {
+        siteUrl: fullSeoConfig.gscProperty,
+        monitoredUrls: [],
+      });
+      return emptyRangeResult(startDate, endDate);
+    },
+  });
+
+  assert.deepEqual(capabilityCalls, [['gsc']]);
+  assert.equal(importerCalls, 1);
+  assert.equal(collectorCalls, 0);
+  assert.equal(result.dataAsOf, '2026-07-31');
+});
+
+test('measurePageQueryRows is structurally Search Analytics-only even when verified config contains monitored URLs', () => {
+  const capabilityCalls: string[][] = [];
+  let collectorCalls = 0;
+  let searchCalls = 0;
+  let writes = 0;
+
+  const count = measurePageQueryRows('2026-07-01', '2026-07-31', {
+    getOAuthToken: () => 'test-token',
+    getConfig: (capabilities) => {
+      capabilityCalls.push([...capabilities]);
+      return fullSeoConfig;
+    },
+    collectGscIndexSnapshots: () => {
+      collectorCalls += 1;
+      throw new Error('measure path must never invoke URL Inspection');
+    },
+    searchAnalytics: (request) => {
+      searchCalls += 1;
+      assert.deepEqual(request.dimensions, ['date', 'page', 'query']);
+      return [];
+    },
+    writeRows: () => {
+      writes += 1;
+      throw new Error('measure path must remain read-only');
+    },
+  });
+
+  assert.deepEqual(capabilityCalls, [['gsc']]);
+  assert.equal(searchCalls, 1);
+  assert.equal(collectorCalls, 0);
+  assert.equal(writes, 0);
+  assert.equal(count, 0);
 });
 
 test('brand normalization uses locked seeds plus the owner-approved observed alias', () => {

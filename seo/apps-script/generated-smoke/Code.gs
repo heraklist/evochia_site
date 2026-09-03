@@ -42,11 +42,42 @@
     return /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*$/.test(value);
   }
 
+  // seo/apps-script/src/GscIndexConfig.ts
+  var MAX_INSPECTION_URLS = 25;
+  var APPROVED_MONITORED_PATHS = [
+    "/en/private-chef/",
+    "/en/villa-private-chef/",
+    "/en/yacht-private-chef/",
+    "/en/athens-private-chef/",
+    "/en/greek-islands-private-chef/",
+    "/el/private-chef/",
+    "/el/villa-private-chef/",
+    "/el/yacht-private-chef/",
+    "/el/athens-private-chef/",
+    "/el/greek-islands-private-chef/",
+    "/en/catering/",
+    "/en/wedding-catering/",
+    "/en/corporate-catering/",
+    "/el/catering/",
+    "/el/wedding-catering/",
+    "/el/corporate-catering/"
+  ];
+  function expectedMonitoredUrls(productionHostname) {
+    return APPROVED_MONITORED_PATHS.map((path) => `https://${productionHostname}${path}`);
+  }
+
   // seo/apps-script/src/Config.ts
   var CONFIG_PROPERTY_KEY = "SEO_GOOGLE_RESOURCES_JSON";
+  var ConfigurationError = class extends Error {
+    constructor(message) {
+      super(message);
+      this.name = "ConfigurationError";
+    }
+  };
   var CAPABILITY_RESOURCES = {
     workbook: ["sheetId"],
     gsc: ["gscProperty"],
+    gscIndex: ["gscProperty", "productionHostname", "monitoredUrls"],
     ga4: ["ga4PropertyId", "ga4PropertyTimeZone", "productionHostname"]
   };
   function requiredResources(capabilities) {
@@ -58,11 +89,27 @@
     }
     return required;
   }
+  function isAbsoluteHttpsUrl(value) {
+    return /^https:\/\/[^\s/]+(?:\/[^\s]*)?$/.test(value);
+  }
+  function sameStringSet(left, right) {
+    if (left.length !== right.length) return false;
+    const leftSet = new Set(left);
+    const rightSet = new Set(right);
+    if (leftSet.size !== rightSet.size) return false;
+    return left.every((value) => rightSet.has(value)) && right.every((value) => leftSet.has(value));
+  }
   function verifyConfig(config, capabilities = ["workbook"]) {
     const errors = [];
     const required = requiredResources(capabilities);
     for (const key of required) {
       const value = config[key];
+      if (key === "monitoredUrls") {
+        if (!Array.isArray(value)) {
+          errors.push("monitoredUrls is required");
+        }
+        continue;
+      }
       if (typeof value !== "string" || value.trim() === "") {
         errors.push(`${key} is required`);
       } else if (value === "UNVERIFIED") {
@@ -84,22 +131,50 @@
     if (required.has("ga4PropertyId") && typeof config.ga4PropertyId === "string" && config.ga4PropertyId !== "UNVERIFIED" && !/^\d+$/.test(config.ga4PropertyId)) {
       errors.push("ga4PropertyId must contain digits only");
     }
+    if (required.has("monitoredUrls") && Array.isArray(config.monitoredUrls)) {
+      const monitoredUrls = config.monitoredUrls;
+      if (monitoredUrls.length === 0) {
+        errors.push("monitoredUrls must not be empty");
+      }
+      if (monitoredUrls.length > MAX_INSPECTION_URLS) {
+        errors.push(`monitoredUrls must not exceed ${MAX_INSPECTION_URLS} URLs`);
+      }
+      if (!monitoredUrls.every((value) => typeof value === "string" && isAbsoluteHttpsUrl(value))) {
+        errors.push("monitoredUrls must contain only absolute https URLs");
+      }
+      if (new Set(monitoredUrls).size !== monitoredUrls.length) {
+        errors.push("monitoredUrls must contain unique URLs");
+      }
+      const productionHostname = config.productionHostname;
+      const hostnameIsUsable = typeof productionHostname === "string" && productionHostname !== "UNVERIFIED" && isValidHostname(productionHostname);
+      if (!hostnameIsUsable) {
+        errors.push("monitoredUrls exact-set validation requires a valid productionHostname");
+      } else if (monitoredUrls.every((value) => typeof value === "string")) {
+        const expected = expectedMonitoredUrls(productionHostname);
+        if (!sameStringSet(monitoredUrls, expected)) {
+          errors.push("monitoredUrls must exactly match the approved monitored URL set");
+        }
+      }
+    }
     return { ok: errors.length === 0, errors };
   }
   function getConfig(capabilities = ["workbook"]) {
     const raw = PropertiesService.getScriptProperties().getProperty(CONFIG_PROPERTY_KEY);
     if (!raw) {
-      throw new Error(`Missing Script Property: ${CONFIG_PROPERTY_KEY}`);
+      throw new ConfigurationError(`Missing Script Property: ${CONFIG_PROPERTY_KEY}`);
     }
     let parsed;
     try {
       parsed = JSON.parse(raw);
     } catch (error) {
-      throw new Error(`Invalid JSON in ${CONFIG_PROPERTY_KEY}: ${String(error)}`);
+      throw new ConfigurationError(`Invalid JSON in ${CONFIG_PROPERTY_KEY}: ${String(error)}`);
+    }
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      throw new ConfigurationError("SEO configuration is not verified: configuration payload must be a JSON object");
     }
     const result = verifyConfig(parsed, capabilities);
     if (!result.ok) {
-      throw new Error(`SEO configuration is not verified: ${result.errors.join("; ")}`);
+      throw new ConfigurationError(`SEO configuration is not verified: ${result.errors.join("; ")}`);
     }
     return parsed;
   }

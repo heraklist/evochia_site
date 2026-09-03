@@ -1,9 +1,21 @@
 import { isValidHostname, isValidIanaTimeZone } from './RuntimeCompat.ts';
+import {
+  MAX_INSPECTION_URLS,
+  expectedMonitoredUrls,
+} from './GscIndexConfig.ts';
 
 export const CONFIG_PROPERTY_KEY = 'SEO_GOOGLE_RESOURCES_JSON';
 
+export class ConfigurationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ConfigurationError';
+  }
+}
+
 export const RESOURCE_KEYS = [
   'gscProperty',
+  'monitoredUrls',
   'ga4AccountId',
   'ga4PropertyId',
   'ga4PropertyTimeZone',
@@ -15,10 +27,11 @@ export const RESOURCE_KEYS = [
   'driveFolderId',
 ] as const;
 
-export type CapabilityKey = 'workbook' | 'gsc' | 'ga4';
+export type CapabilityKey = 'workbook' | 'gsc' | 'gscIndex' | 'ga4';
 
 export interface SeoConfig {
   gscProperty: string;
+  monitoredUrls?: string[];
   ga4AccountId: string;
   ga4PropertyId: string;
   ga4PropertyTimeZone: string;
@@ -40,6 +53,7 @@ export interface VerificationResult {
 const CAPABILITY_RESOURCES: Record<CapabilityKey, readonly (keyof SeoConfig)[]> = {
   workbook: ['sheetId'],
   gsc: ['gscProperty'],
+  gscIndex: ['gscProperty', 'productionHostname', 'monitoredUrls'],
   ga4: ['ga4PropertyId', 'ga4PropertyTimeZone', 'productionHostname'],
 };
 
@@ -53,6 +67,19 @@ function requiredResources(capabilities: readonly CapabilityKey[]): Set<keyof Se
   return required;
 }
 
+function isAbsoluteHttpsUrl(value: string): boolean {
+  return /^https:\/\/[^\s/]+(?:\/[^\s]*)?$/.test(value);
+}
+
+function sameStringSet(left: string[], right: string[]): boolean {
+  if (left.length !== right.length) return false;
+  const leftSet = new Set(left);
+  const rightSet = new Set(right);
+  if (leftSet.size !== rightSet.size) return false;
+  return left.every((value) => rightSet.has(value))
+    && right.every((value) => leftSet.has(value));
+}
+
 export function verifyConfig(
   config: Partial<SeoConfig>,
   capabilities: readonly CapabilityKey[] = ['workbook'],
@@ -62,6 +89,13 @@ export function verifyConfig(
 
   for (const key of required) {
     const value = config[key];
+    if (key === 'monitoredUrls') {
+      if (!Array.isArray(value)) {
+        errors.push('monitoredUrls is required');
+      }
+      continue;
+    }
+
     if (typeof value !== 'string' || value.trim() === '') {
       errors.push(`${key} is required`);
     } else if (value === 'UNVERIFIED') {
@@ -104,6 +138,39 @@ export function verifyConfig(
     errors.push('ga4PropertyId must contain digits only');
   }
 
+  if (required.has('monitoredUrls') && Array.isArray(config.monitoredUrls)) {
+    const monitoredUrls = config.monitoredUrls;
+
+    // Defense in depth: exact-set validation is the governing contract, while
+    // these guards provide clearer operator errors for accidental expansion or duplication.
+    if (monitoredUrls.length === 0) {
+      errors.push('monitoredUrls must not be empty');
+    }
+    if (monitoredUrls.length > MAX_INSPECTION_URLS) {
+      errors.push(`monitoredUrls must not exceed ${MAX_INSPECTION_URLS} URLs`);
+    }
+    if (!monitoredUrls.every((value): value is string => typeof value === 'string' && isAbsoluteHttpsUrl(value))) {
+      errors.push('monitoredUrls must contain only absolute https URLs');
+    }
+    if (new Set(monitoredUrls).size !== monitoredUrls.length) {
+      errors.push('monitoredUrls must contain unique URLs');
+    }
+
+    const productionHostname = config.productionHostname;
+    const hostnameIsUsable = typeof productionHostname === 'string'
+      && productionHostname !== 'UNVERIFIED'
+      && isValidHostname(productionHostname);
+
+    if (!hostnameIsUsable) {
+      errors.push('monitoredUrls exact-set validation requires a valid productionHostname');
+    } else if (monitoredUrls.every((value): value is string => typeof value === 'string')) {
+      const expected = expectedMonitoredUrls(productionHostname);
+      if (!sameStringSet(monitoredUrls, expected)) {
+        errors.push('monitoredUrls must exactly match the approved monitored URL set');
+      }
+    }
+  }
+
   return { ok: errors.length === 0, errors };
 }
 
@@ -112,19 +179,23 @@ export function getConfig(
 ): SeoConfig {
   const raw = PropertiesService.getScriptProperties().getProperty(CONFIG_PROPERTY_KEY);
   if (!raw) {
-    throw new Error(`Missing Script Property: ${CONFIG_PROPERTY_KEY}`);
+    throw new ConfigurationError(`Missing Script Property: ${CONFIG_PROPERTY_KEY}`);
   }
 
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
   } catch (error) {
-    throw new Error(`Invalid JSON in ${CONFIG_PROPERTY_KEY}: ${String(error)}`);
+    throw new ConfigurationError(`Invalid JSON in ${CONFIG_PROPERTY_KEY}: ${String(error)}`);
+  }
+
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    throw new ConfigurationError('SEO configuration is not verified: configuration payload must be a JSON object');
   }
 
   const result = verifyConfig(parsed as Partial<SeoConfig>, capabilities);
   if (!result.ok) {
-    throw new Error(`SEO configuration is not verified: ${result.errors.join('; ')}`);
+    throw new ConfigurationError(`SEO configuration is not verified: ${result.errors.join('; ')}`);
   }
 
   return parsed as SeoConfig;

@@ -21,15 +21,29 @@ export interface GscRow {
   position: number;
 }
 
-export interface InspectionRow {
+export type ScalarField =
+  | { state: 'VALUE'; value: string }
+  | { state: 'NOT_RETURNED' };
+
+export type ArrayField =
+  | { state: 'VALUE'; value: string[] }
+  | { state: 'EMPTY' }
+  | { state: 'NOT_RETURNED' };
+
+export interface ProviderInspectionResult {
   url: string;
-  verdict: string;
-  coverageState: string;
-  indexingState: string;
-  pageFetchState: string;
-  userCanonical: string;
-  googleCanonical: string;
-  lastCrawlTime: string;
+  verdict: ScalarField;
+  coverageState: ScalarField;
+  robotsTxtState: ScalarField;
+  indexingState: ScalarField;
+  pageFetchState: ScalarField;
+  crawledAs: ScalarField;
+  userCanonical: ScalarField;
+  googleCanonical: ScalarField;
+  lastCrawlTime: ScalarField;
+  sitemap: ArrayField;
+  referringUrls: ArrayField;
+  inspectionResultLink: ScalarField;
   inspectedAt: string;
 }
 
@@ -66,6 +80,13 @@ export class PipelineError extends Error {
   }
 }
 
+export class MalformedInspectionResponse extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'MalformedInspectionResponse';
+  }
+}
+
 interface AuthenticatedRequest {
   accessToken?: string;
 }
@@ -85,7 +106,7 @@ export interface UrlInspectionRequest extends AuthenticatedRequest {
   siteUrl: string;
   inspectionUrl: string;
   languageCode?: string;
-  inspectedAt?: string;
+  inspectedAt: string;
   transport?: HttpTransport;
 }
 
@@ -117,6 +138,46 @@ function parseJson(response: HttpResponseLike, source: PipelineError['source']):
 
 function numberOrZero(value: unknown): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function hasOwn(object: Record<string, unknown>, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(object, key);
+}
+
+function scalarField(object: Record<string, unknown>, key: string): ScalarField {
+  if (!hasOwn(object, key)) {
+    return { state: 'NOT_RETURNED' };
+  }
+
+  const value = object[key];
+  if (typeof value !== 'string') {
+    throw new MalformedInspectionResponse(`${key} must be a string`);
+  }
+
+  return { state: 'VALUE', value };
+}
+
+function arrayField(object: Record<string, unknown>, key: string): ArrayField {
+  if (!hasOwn(object, key)) {
+    return { state: 'NOT_RETURNED' };
+  }
+
+  const value = object[key];
+  if (!Array.isArray(value)) {
+    throw new MalformedInspectionResponse(`${key} must be an array`);
+  }
+  if (!value.every((item) => typeof item === 'string')) {
+    throw new MalformedInspectionResponse(`${key} must contain only strings`);
+  }
+  if (value.length === 0) {
+    return { state: 'EMPTY' };
+  }
+
+  return { state: 'VALUE', value: [...value] };
 }
 
 export function normalizeSearchAnalyticsRow(
@@ -198,7 +259,7 @@ export function fetchSearchAnalytics(request: SearchAnalyticsRequest): GscRow[] 
   return rows;
 }
 
-export function fetchUrlInspection(request: UrlInspectionRequest): InspectionRow {
+export function fetchUrlInspection(request: UrlInspectionRequest): ProviderInspectionResult {
   const transport = request.transport ?? defaultTransport;
   const response = transport(
     'https://searchconsole.googleapis.com/v1/urlInspection/index:inspect',
@@ -215,30 +276,38 @@ export function fetchUrlInspection(request: UrlInspectionRequest): InspectionRow
     },
   );
 
-  const parsed = parseJson(response, 'gsc-url-inspection') as {
-    inspectionResult?: {
-      indexStatusResult?: {
-        verdict?: unknown;
-        coverageState?: unknown;
-        indexingState?: unknown;
-        pageFetchState?: unknown;
-        userCanonical?: unknown;
-        googleCanonical?: unknown;
-        lastCrawlTime?: unknown;
-      };
-    };
-  };
-  const result = parsed.inspectionResult?.indexStatusResult ?? {};
+  const parsed = parseJson(response, 'gsc-url-inspection');
+  if (!isRecord(parsed) || !hasOwn(parsed, 'inspectionResult')) {
+    throw new MalformedInspectionResponse('inspectionResult is required');
+  }
+
+  const inspectionResult = parsed.inspectionResult;
+  if (!isRecord(inspectionResult)) {
+    throw new MalformedInspectionResponse('inspectionResult must be an object');
+  }
+  if (!hasOwn(inspectionResult, 'indexStatusResult')) {
+    throw new MalformedInspectionResponse('indexStatusResult is required');
+  }
+
+  const indexStatusResult = inspectionResult.indexStatusResult;
+  if (!isRecord(indexStatusResult)) {
+    throw new MalformedInspectionResponse('indexStatusResult must be an object');
+  }
 
   return {
     url: request.inspectionUrl,
-    verdict: result.verdict == null ? '' : String(result.verdict),
-    coverageState: result.coverageState == null ? '' : String(result.coverageState),
-    indexingState: result.indexingState == null ? '' : String(result.indexingState),
-    pageFetchState: result.pageFetchState == null ? '' : String(result.pageFetchState),
-    userCanonical: result.userCanonical == null ? '' : String(result.userCanonical),
-    googleCanonical: result.googleCanonical == null ? '' : String(result.googleCanonical),
-    lastCrawlTime: result.lastCrawlTime == null ? '' : String(result.lastCrawlTime),
-    inspectedAt: request.inspectedAt ?? new Date().toISOString(),
+    verdict: scalarField(indexStatusResult, 'verdict'),
+    coverageState: scalarField(indexStatusResult, 'coverageState'),
+    robotsTxtState: scalarField(indexStatusResult, 'robotsTxtState'),
+    indexingState: scalarField(indexStatusResult, 'indexingState'),
+    pageFetchState: scalarField(indexStatusResult, 'pageFetchState'),
+    crawledAs: scalarField(indexStatusResult, 'crawledAs'),
+    userCanonical: scalarField(indexStatusResult, 'userCanonical'),
+    googleCanonical: scalarField(indexStatusResult, 'googleCanonical'),
+    lastCrawlTime: scalarField(indexStatusResult, 'lastCrawlTime'),
+    sitemap: arrayField(indexStatusResult, 'sitemap'),
+    referringUrls: arrayField(indexStatusResult, 'referringUrls'),
+    inspectionResultLink: scalarField(inspectionResult, 'inspectionResultLink'),
+    inspectedAt: request.inspectedAt,
   };
 }
