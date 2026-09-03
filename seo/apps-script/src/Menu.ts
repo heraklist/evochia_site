@@ -1,7 +1,9 @@
 import { getConfig, verifyConfig } from './Config.ts';
 import { measurePageQueryRows, runRangeImport } from './Jobs.ts';
 import { ensureOperationalMetadata } from './OperationalMetadata.ts';
-import { setupWorkbook } from './Setup.ts';
+import { SchemaError, setupWorkbook } from './Setup.ts';
+
+const GSC_INDEXING_SCHEMA_RECOVERY_URL = 'https://github.com/heraklist/evochia_site/blob/main/docs/seo/seo-data-hub-production-runbook.md#canonical-sheet-and-schema-ownership';
 
 function isIsoCalendarDate(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -63,7 +65,10 @@ export function setupWorkbookFromMenu(): void {
       ui.ButtonSet.OK,
     );
   } catch (error) {
-    ui.alert('Evochia SEO workbook', String(error), ui.ButtonSet.OK);
+    const detail = error instanceof SchemaError
+      ? `${String(error)}\nRecovery: ${GSC_INDEXING_SCHEMA_RECOVERY_URL}`
+      : String(error);
+    ui.alert('Evochia SEO workbook', detail, ui.ButtonSet.OK);
   }
 }
 
