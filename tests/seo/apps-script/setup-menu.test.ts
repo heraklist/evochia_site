@@ -97,3 +97,75 @@ test('setupWorkbookFromMenu initializes the reserved operational metadata block'
     }
   }
 });
+
+test('setupWorkbookFromMenu links SchemaError alerts to the documented recovery procedure', () => {
+  const originals = new Map<string, PropertyDescriptor | undefined>();
+  for (const name of ['PropertiesService', 'SpreadsheetApp']) {
+    originals.set(name, Object.getOwnPropertyDescriptor(globalThis, name));
+  }
+
+  const configSheet = {
+    getRange: () => ({
+      getValues: () => Array.from({ length: 9 }, () => ['', '', '', '']),
+      setValues: () => undefined,
+    }),
+  };
+  const indexingRows: unknown[][] = [['Wrong Header']];
+  const gscIndexingSheet = {
+    getLastRow: () => indexingRows.length,
+    getRange: (_row: number, _column: number, numRows: number, numColumns: number) => ({
+      getValues: () => indexingRows
+        .slice(0, numRows)
+        .map((row) => [...row, ...Array(Math.max(0, numColumns - row.length)).fill('')].slice(0, numColumns)),
+      setValues: () => undefined,
+    }),
+  };
+  const sheets = new Map<string, unknown>(REQUIRED_SHEET_NAMES.map((name) => [
+    name,
+    name === 'Config' ? configSheet : name === 'GSC Indexing' ? gscIndexingSheet : {},
+  ]));
+  const workbook = {
+    getId: () => config.sheetId,
+    getSheetByName: (name: string) => sheets.get(name) ?? null,
+    insertSheet: (name: string) => {
+      const sheet = name === 'GSC Indexing' ? gscIndexingSheet : {};
+      sheets.set(name, sheet);
+      return sheet;
+    },
+  };
+  const alerts: unknown[][] = [];
+  const ui = {
+    ButtonSet: { OK: 'OK' },
+    alert: (...args: unknown[]) => alerts.push(args),
+  };
+
+  Object.defineProperty(globalThis, 'PropertiesService', {
+    configurable: true,
+    value: {
+      getScriptProperties: () => ({ getProperty: () => JSON.stringify(config) }),
+    },
+  });
+  Object.defineProperty(globalThis, 'SpreadsheetApp', {
+    configurable: true,
+    value: {
+      ButtonSet: ui.ButtonSet,
+      getUi: () => ui,
+      getActiveSpreadsheet: () => workbook,
+    },
+  });
+
+  try {
+    setupWorkbookFromMenu();
+    const alertText = alerts.flat().map(String).join('\n');
+    assert.match(alertText, /SchemaError/);
+    assert.match(
+      alertText,
+      /https:\/\/github\.com\/heraklist\/evochia_site\/blob\/main\/docs\/seo\/seo-data-hub-production-runbook\.md#canonical-sheet-and-schema-ownership/,
+    );
+  } finally {
+    for (const [name, descriptor] of originals) {
+      if (descriptor) Object.defineProperty(globalThis, name, descriptor);
+      else delete (globalThis as Record<string, unknown>)[name];
+    }
+  }
+});
